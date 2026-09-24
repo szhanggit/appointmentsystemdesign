@@ -1,0 +1,251 @@
+/* =========================================================================
+   Selah Head Spa - byChronos CLIENT-FACING wireframe
+   -------------------------------------------------------------------------
+   This is a structural wireframe, not a final visual design.
+   Colors below are an approximate read of the reference screenshots -
+   please correct the exact hex values by hand during your review pass.
+   ========================================================================= */
+
+:root {
+  --bc-teal: #4a8b8b;
+  --bc-teal-dark: #3a6f6f;
+  --bc-teal-light: #eef5f5;
+  --bc-ink: #1c2b33;
+  --bc-muted: #6c7a80;
+  --bc-border: #e3e7e9;
+  --bc-yellow: #f5c945;
+}
+
+body {
+  color: var(--bc-ink);
+  background-color: #ffffff;
+}
+
+a {
+  color: var(--bc-teal-dark);
+}
+
+/* ---- Buttons -------------------------------------------------------- */
+.btn-brand {
+  background-color: var(--bc-teal);
+  border-color: var(--bc-teal);
+  color: #fff;
+}
+.btn-brand:hover,
+.btn-brand:focus {
+  background-color: var(--bc-teal-dark);
+  border-color: var(--bc-teal-dark);
+  color: #fff;
+}
+.btn-brand:disabled,
+.btn-brand.disabled {
+  background-color: #a9c8c8;
+  border-color: #a9c8c8;
+  color: #fff;
+}
+.btn-outline-brand {
+  color: var(--bc-teal-dark);
+  border-color: var(--bc-teal);
+}
+.btn-outline-brand:hover {
+  background-color: var(--bc-teal);
+  color: #fff;
+}
+
+/* ---- Plain top header (booking step 1, no back arrow) ---------------- */
+.bc-header {
+  border-bottom: 1px solid var(--bc-border);
+  padding: .9rem 1.5rem;
+}
+.bc-header .bc-logo {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--bc-ink);
+  text-decoration: none;
+}
+
+/* ---- Small square brand mark used on account pages -------------------- */
+.bc-logo-icon {
+  width: 34px;
+  height: 34px;
+  background-color: var(--bc-teal);
+  border-radius: 8px;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+/* ---- Banner header (business overview / booking confirmation) -------- */
+.bc-banner {
+  background-color: var(--bc-teal);
+  color: #fff;
+  padding: 1.25rem 1.5rem 3rem;
+  border-radius: 0 0 50% 50% / 0 0 40px 40px;
+  text-align: center;
+}
+.bc-banner a {
+  color: #fff;
+}
+.bc-banner .dropdown-toggle {
+  text-decoration: none;
+}
+
+/* ---- Top notice strip (business overview) ----------------------------- */
+.bc-notice {
+  border-bottom: 1px solid var(--bc-border);
+  padding: .6rem 1.5rem;
+  font-size: .9rem;
+}
+
+/* ---- Booking step breadcrumb ------------------------------------------ */
+.bc-steps {
+  font-size: .95rem;
+  color: var(--bc-muted);
+}
+.bc-steps .active {
+  color: var(--bc-ink);
+  font-weight: 600;
+}
+.bc-steps .divider {
+  margin: 0 .4rem;
+}
+
+/* ---- Service / category pill tabs -------------------------------------- */
+.bc-category-tabs {
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: .25rem;
+}
+.bc-category-tabs .btn {
+  border-radius: 2rem;
+}
+
+/* ---- Service list card --------------------------------------------------- */
+.bc-service-card {
+  border: 1px solid var(--bc-border);
+  border-radius: .5rem;
+  padding: 1rem;
+}
+.bc-service-card.selected {
+  border-color: var(--bc-teal);
+  border-width: 2px;
+}
+.bc-add-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--bc-teal);
+  color: var(--bc-teal);
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.bc-add-btn.selected {
+  background-color: var(--bc-teal);
+  color: #fff;
+}
+
+/* ---- Right-hand booking summary sidebar --------------------------------- */
+.bc-summary {
+  border: 1px solid var(--bc-border);
+  border-radius: .5rem;
+}
+.bc-summary .bc-summary-header {
+  text-align: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--bc-border);
+}
+.bc-summary .bc-guest-block {
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--bc-border);
+}
+.bc-summary .bc-guest-block .bc-guest-title {
+  font-weight: 600;
+  cursor: pointer;
+}
+.bc-summary .bc-total {
+  padding: 1rem;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ---- Empty-state blocks -------------------------------------------------- */
+.bc-empty-icon {
+  width: 64px;
+  height: 64px;
+  background-color: var(--bc-yellow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 1.75rem;
+  color: var(--bc-ink);
+}
+
+/* ---- Status badges -------------------------------------------------------- */
+.bc-badge-confirmed {
+  background-color: var(--bc-teal);
+  color: #fff;
+}
+.bc-badge-cancelled {
+  background-color: #d9534f;
+  color: #fff;
+}
+
+/* ---- Footer ---------------------------------------------------------------- */
+.bc-footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: .85rem;
+  color: var(--bc-muted);
+  border-top: 1px solid var(--bc-border);
+}
+
+/* ---- Auth card (sign in / create account) ---------------------------------- */
+.bc-auth-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+}
+.bc-auth-icon-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--bc-border);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bc-ink);
+}
+.bc-auth-wrap {
+  max-width: 460px;
+  margin: 1rem auto 3rem;
+  border: 1px solid var(--bc-border);
+  border-radius: .5rem;
+  padding: 1.5rem;
+}
+.bc-auth-icon {
+  width: 72px;
+  height: 72px;
+  background-color: var(--bc-teal);
+  border-radius: .75rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  font-size: 2rem;
+}
+
+/* ---- Dev-only sitemap page (index.html) -------------------------------------- */
+.bc-devnote {
+  background-color: #fff8e1;
+  border: 1px solid #f0e0a0;
+  border-radius: .5rem;
+  padding: 1rem 1.25rem;
+}

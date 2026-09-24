@@ -1,0 +1,233 @@
+/* =========================================================================
+   byChronos BackOffice - staff/admin wireframe (desktop layout)
+   -------------------------------------------------------------------------
+   This is a structural wireframe, not a final visual design.
+   Colors below are an approximate read of the reference screenshots -
+   please correct the exact hex values by hand during your review pass.
+   ========================================================================= */
+
+:root {
+  --ad-teal: #4a8b8b;
+  --ad-teal-dark: #3a6f6f;
+  --ad-teal-light: #eef5f5;
+  --ad-purple: #6c5ce7;
+  --ad-purple-light: #ecebfd;
+  --ad-yellow: #f4b740;
+  --ad-yellow-light: #fdf1da;
+  --ad-red: #f2777b;
+  --ad-red-light: #fbe3e4;
+  --ad-lavender: #b8b3e8;
+  --ad-lavender-light: #ecebfa;
+  --ad-green: #4caf82;
+  --ad-ink: #1c2b33;
+  --ad-muted: #7a848c;
+  --ad-border: #e6e8ea;
+  --sidebar-width: 280px;
+}
+
+body {
+  color: var(--ad-ink);
+  background-color: #f7f8f9;
+}
+
+a { color: var(--ad-teal-dark); }
+
+/* ---- Auth pages (login / locations) - no sidebar ------------------------ */
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+.auth-brand img, .auth-brand .brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--ad-border);
+}
+
+/* ---- Admin shell: sidebar + main -------------------------------------- */
+.admin-shell {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+}
+.admin-sidebar {
+  width: var(--sidebar-width);
+  flex: 0 0 auto;
+  background: #fff;
+  border-right: 1px solid var(--ad-border);
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+.admin-sidebar .brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.admin-sidebar .brand-row .brand {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+  color: var(--ad-ink);
+}
+.admin-sidebar .brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--ad-border);
+}
+.admin-sidebar .back-btn {
+  display: block;
+  text-align: center;
+  border: 1px solid var(--ad-teal);
+  color: var(--ad-teal-dark);
+  border-radius: .5rem;
+  padding: .5rem;
+  text-decoration: none;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+.admin-sidebar .location-name {
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: .02em;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--ad-border);
+  margin-bottom: 1rem;
+}
+.admin-sidebar .nav-group-label {
+  font-size: .75rem;
+  letter-spacing: .08em;
+  color: var(--ad-muted);
+  margin: .5rem .5rem .5rem;
+}
+.admin-sidebar .nav-link-item {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding: .6rem .8rem;
+  border-radius: .6rem;
+  color: var(--ad-ink);
+  text-decoration: none;
+  font-weight: 500;
+  margin-bottom: .15rem;
+}
+.admin-sidebar .nav-link-item:hover {
+  background: var(--ad-teal-light);
+}
+.admin-sidebar .nav-link-item.active {
+  background: var(--ad-teal);
+  color: #fff;
+}
+.admin-sidebar .sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding-top: 1rem;
+}
+.admin-sidebar .sidebar-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--ad-teal);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.admin-main {
+  flex: 1 1 auto;
+  padding: 1.75rem 2rem 3rem;
+  min-width: 0;
+}
+
+/* ---- Cards --------------------------------------------------------------- */
+.ad-card {
+  background: #fff;
+  border: 1px solid var(--ad-border);
+  border-radius: .75rem;
+  padding: 1.25rem;
+}
+.ad-kpi-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: .6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+/* ---- Simple inline chart placeholders (no chart library) ---------------- */
+.ad-chart-box {
+  border: 1px solid var(--ad-border);
+  border-radius: .5rem;
+  padding: .75rem;
+}
+.ad-chart-box svg { display: block; width: 100%; height: auto; }
+.ad-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: .75rem;
+  color: var(--ad-muted);
+  margin-top: .25rem;
+}
+
+/* ---- Summary tiles (appointment summary) --------------------------------- */
+.ad-tile {
+  border-radius: .6rem;
+  padding: 1rem;
+  color: #fff;
+}
+.ad-tile .ad-tile-num { font-size: 1.7rem; font-weight: 700; }
+.ad-tile .ad-tile-label { font-size: .8rem; letter-spacing: .03em; }
+
+/* ---- Buttons -------------------------------------------------------------- */
+.btn-ad {
+  background-color: var(--ad-teal);
+  border-color: var(--ad-teal);
+  color: #fff;
+}
+.btn-ad:hover, .btn-ad:focus {
+  background-color: var(--ad-teal-dark);
+  border-color: var(--ad-teal-dark);
+  color: #fff;
+}
+.btn-ad-outline {
+  border-color: var(--ad-border);
+  color: var(--ad-ink);
+  background: #fff;
+}
+
+/* ---- Scroll-to-top button -------------------------------------------------- */
+.ad-scrolltop {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--ad-teal);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+/* ---- Simple CSS pie/donut chart (Booking Quantity) ------------------------- */
+.ad-pie {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+}

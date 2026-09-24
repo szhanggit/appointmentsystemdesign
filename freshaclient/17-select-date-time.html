@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Select date and time - Fresha</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: selectdatetime2.png (this state is used below). The same screen
+     is reused for several flows with different data - see also
+     selectDateAndTime.png/2 (single quick-book), selectService3.png and
+     selectDateTime3.png (direct professional booking, Upper Lip Waxing with
+     Yuki). Only one representative state is built here. -->
+<div class="phone-shell no-bottom-pad">
+  <div class="sheet-header">
+    <a href="16-select-professional-list.html"><i class="bi bi-arrow-left"></i></a>
+    <a href="12-select-an-option.html"><i class="bi bi-x-lg"></i></a>
+  </div>
+  <div class="p-3">
+    <h1 class="fw-bold mb-3">Select date and time</h1>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <span class="btn btn-fresha-outline rounded-pill btn-sm"><i class="bi bi-person"></i> Any professional <i class="bi bi-chevron-down"></i></span>
+      <button class="btn btn-light rounded-circle"><i class="bi bi-calendar3"></i></button>
+    </div>
+
+    <div class="fw-semibold mb-2">Select a date</div>
+    <div class="d-flex gap-2 mb-4" style="overflow-x:auto;">
+      <a href="#" class="fr-date-pill active">Tue<br><strong>22</strong><br>Sep</a>
+      <a href="#" class="fr-date-pill">Wed<br><strong>23</strong><br>Sep</a>
+      <a href="#" class="fr-date-pill">Thu<br><strong>24</strong><br>Sep</a>
+      <a href="#" class="fr-date-pill">Fri<br><strong>25</strong><br>Sep</a>
+      <a href="#" class="fr-date-pill">Sat<br><strong>26</strong><br>Sep</a>
+    </div>
+
+    <div class="fw-semibold mb-2">Pick a time</div>
+    <div class="d-flex flex-column gap-2">
+      <a href="#" class="fr-time-slot">10:00 AM</a>
+      <a href="#" class="fr-time-slot">10:30 AM</a>
+      <a href="#" class="fr-time-slot active">11:00 AM</a>
+      <a href="#" class="fr-time-slot">11:30 AM</a>
+      <a href="#" class="fr-time-slot">12:00 PM</a>
+    </div>
+  </div>
+  <div class="cart-bar">
+    <div>
+      <div class="cart-bar-price">CA$649</div>
+      <div class="cart-bar-meta"><i class="bi bi-cart"></i> 3 items &middot; 3 hr, 10 min</div>
+    </div>
+    <!-- VERIFY: notes.txt does not show what screen follows this step for the
+         group-booking path - reusing the "Review and continue" summary step
+         from the direct-professional-booking flow as the logical next step. -->
+    <a href="30-review-continue.html" class="btn btn-fresha px-4">Continue <i class="bi bi-arrow-right"></i></a>
+  </div>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

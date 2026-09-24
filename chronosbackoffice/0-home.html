@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: HomeOverview.png, HomeDetail.png (single scrolling dashboard) -->
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="brand-row">
+      <a href="0-home.html" class="brand">
+        <span class="brand-mark d-inline-flex align-items-center justify-content-center"><i class="bi bi-emoji-smile"></i></span>
+        byChronos
+      </a>
+      <button class="btn btn-sm btn-link text-dark"><i class="bi bi-chevron-double-left"></i></button>
+    </div>
+    <a href="00-locations.html" class="back-btn"><i class="bi bi-chevron-left"></i> BACK</a>
+    <div class="location-name">SELAH HEAD SPA</div>
+
+    <div class="nav-group-label">APPS &amp; SERVICES</div>
+    <a href="0-home.html" class="nav-link-item active"><i class="bi bi-house-door"></i> Home</a>
+    <a href="appt-01-calendar.html" class="nav-link-item"><i class="bi bi-calendar3"></i> Appointments</a>
+    <a href="hist-01-list.html" class="nav-link-item"><i class="bi bi-calendar-check"></i> Appointments History</a>
+    <a href="wait-01-overview.html" class="nav-link-item"><i class="bi bi-clipboard"></i> Waitlist</a>
+    <a href="checkout-01-manual.html" class="nav-link-item"><i class="bi bi-credit-card"></i> Checkout</a>
+    <a href="sales-01-overview.html" class="nav-link-item"><i class="bi bi-cash-stack"></i> Sales</a>
+    <a href="cust-01-overview.html" class="nav-link-item"><i class="bi bi-person-vcard"></i> Customers</a>
+    <a href="inv-01-services.html" class="nav-link-item"><i class="bi bi-grid"></i> Inventory</a>
+    <a href="staff-01-overview.html" class="nav-link-item"><i class="bi bi-people"></i> Staffs</a>
+    <a href="mkt-01-overview.html" class="nav-link-item"><i class="bi bi-tags"></i> Marketing</a>
+    <a href="rpt-01-overview.html" class="nav-link-item"><i class="bi bi-bar-chart"></i> Reports</a>
+
+    <div class="nav-group-label mt-3">SETTINGS</div>
+    <a href="bset-01-overview.html" class="nav-link-item"><i class="bi bi-gear"></i> Business Settings</a>
+    <a href="lock-01-screen.html" class="nav-link-item"><i class="bi bi-box-arrow-in-right"></i> Lock Screen</a>
+
+    <div class="sidebar-footer">
+      <button class="btn btn-sm btn-light rounded-circle"><i class="bi bi-translate"></i></button>
+      <span class="sidebar-avatar">SZ</span>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+      <div>
+        <h1 class="h4 fw-bold mb-1">Hi ,</h1>
+        <p class="text-muted mb-0">Here's a quick stat on how your business is doing over the last <a href="#">7 days.</a></p>
+      </div>
+      <div>
+        <div class="text-muted small text-end mb-1">DAYS TO PREVIEW</div>
+        <div class="btn-group ad-days-toggle">
+          <button class="btn btn-ad-outline border">TODAY</button>
+          <button class="btn btn-ad border">7 DAYS</button>
+          <button class="btn btn-ad-outline border">30 DAYS</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="ad-card">
+          <div class="ad-kpi-icon mb-3" style="background:var(--ad-teal-light); color:var(--ad-teal);"><i class="bi bi-currency-dollar"></i></div>
+          <div class="fs-4 fw-bold">$0.00</div>
+          <div class="text-muted small">TOTAL SALES</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="ad-card">
+          <div class="ad-kpi-icon mb-3" style="background:var(--ad-yellow-light); color:var(--ad-yellow);"><i class="bi bi-hash"></i></div>
+          <div class="fs-4 fw-bold">0</div>
+          <div class="text-muted small">SALES QTY</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="ad-card">
+          <div class="ad-kpi-icon mb-3" style="background:var(--ad-red-light); color:var(--ad-red);"><i class="bi bi-dash-circle"></i></div>
+          <div class="fs-4 fw-bold">$0.00</div>
+          <div class="text-muted small">GIFT CARD SALES</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="ad-card">
+          <div class="ad-kpi-icon mb-3" style="background:var(--ad-yellow-light); color:var(--ad-yellow);"><i class="bi bi-plus-square"></i></div>
+          <div class="fs-4 fw-bold">$0.00</div>
+          <div class="text-muted small">GIFT CARD RELOAD</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <div class="ad-card">
+          <h2 class="h6 fw-bold text-center mb-3">Sales Breakdown</h2>
+          <div class="text-center small mb-2"><span style="color:var(--ad-teal);">&#9632;</span> Daily Sales Total</div>
+          <div class="ad-chart-box">
+            <svg viewBox="0 0 400 100" preserveAspectRatio="none">
+              <line x1="0" y1="99" x2="400" y2="99" stroke="var(--ad-teal)" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="ad-chart-axis"><span>Sep 11</span><span>Sep 12</span><span>Sep 13</span><span>Sep 14</span><span>Sep 15</span><span>Sep 16</span><span>Sep 17</span></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="ad-card">
+          <h2 class="h6 fw-bold text-center mb-3">Sales Qty Breakdown</h2>
+          <div class="text-center small mb-2"><span style="color:var(--ad-yellow);">&#9632;</span> Daily Completed Orders</div>
+          <div class="ad-chart-box">
+            <svg viewBox="0 0 400 100" preserveAspectRatio="none">
+              <line x1="0" y1="60" x2="400" y2="60" stroke="var(--ad-yellow)" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="ad-chart-axis"><span>Sep 11</span><span>Sep 12</span><span>Sep 13</span><span>Sep 14</span><span>Sep 15</span><span>Sep 16</span><span>Sep 17</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-lg-8">
+        <div class="ad-card h-100">
+          <h2 class="h6 fw-bold text-center mb-3">Appointments</h2>
+          <div class="text-center small mb-2"><span style="color:var(--ad-yellow);">&#9632;</span> All Appointments</div>
+          <div class="ad-chart-box">
+            <svg viewBox="0 0 400 140" preserveAspectRatio="none">
+              <polyline points="0,105 66,10 133,118 200,132 266,105 333,135 400,136" fill="none" stroke="var(--ad-yellow)" stroke-width="3"/>
+            </svg>
+          </div>
+          <div class="ad-chart-axis"><span>Sep 11</span><span>Sep 12</span><span>Sep 13</span><span>Sep 14</span><span>Sep 15</span><span>Sep 16</span><span>Sep 17</span></div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <h2 class="h6 fw-bold mb-3">Appointment Summary</h2>
+        <div class="ad-tile mb-3" style="background:var(--ad-teal);">
+          <div class="ad-tile-num">122</div>
+          <div class="ad-tile-label">ALL APPOINTMENTS</div>
+        </div>
+        <div class="row g-2">
+          <div class="col-6"><div class="ad-tile" style="background:var(--ad-yellow); color:#5a4300;"><div class="ad-tile-num">98</div><div class="ad-tile-label">UPCOMING</div></div></div>
+          <div class="col-6"><div class="ad-tile" style="background:var(--ad-teal-light); color:var(--ad-teal-dark);"><div class="ad-tile-num">0</div><div class="ad-tile-label">COMPLETED</div></div></div>
+          <div class="col-6"><div class="ad-tile" style="background:var(--ad-lavender); color:#332f66;"><div class="ad-tile-num">0</div><div class="ad-tile-label">NO-SHOW</div></div></div>
+          <div class="col-6"><div class="ad-tile" style="background:var(--ad-red);"><div class="ad-tile-num">23</div><div class="ad-tile-label">CANCELLED</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="ad-card h-100">
+          <h2 class="h6 fw-bold mb-3">Top Staffers by Revenue Contribution</h2>
+          <p class="text-muted text-center py-5 mb-0">NO STAFF LISTED AT THIS TIME</p>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="ad-card h-100">
+          <h2 class="h6 fw-bold mb-3">Top Services</h2>
+          <table class="table table-borderless mb-0">
+            <thead>
+              <tr class="text-muted small"><th>SERVICE</th><th class="text-end">#</th><th class="text-end">TOTAL</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>1&nbsp;&nbsp;Signature Soothing Head Spa 特色舒缓头疗</td><td class="text-end">91</td><td class="text-end"><span class="badge bg-light text-dark">$5,915.00</span></td></tr>
+              <tr><td>2&nbsp;&nbsp;Scalp Guasha + Head Spa + Shoulder Massage 头部拨&hellip;</td><td class="text-end">17</td><td class="text-end"><span class="badge bg-light text-dark">$1,870.00</span></td></tr>
+              <tr><td>3&nbsp;&nbsp;Full Body Massage With Essential Oils 全身精油按摩</td><td class="text-end">16</td><td class="text-end"><span class="badge bg-light text-dark">$1,248.00</span></td></tr>
+              <tr><td>4&nbsp;&nbsp;Facial Cleansing and Head Spa面部清洁+头疗</td><td class="text-end">16</td><td class="text-end"><span class="badge bg-light text-dark">$1,248.00</span></td></tr>
+              <tr><td>5&nbsp;&nbsp;Firming and Lifting Facial Treatment plus Head Spa 面&hellip;</td><td class="text-end">7</td><td class="text-end"><span class="badge bg-light text-dark">$966.00</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-4">
+        <div class="ad-card h-100">
+          <h2 class="h6 fw-bold mb-3">Booking Quantity</h2>
+          <p class="text-muted mb-3">Total Booking: 123</p>
+          <div class="d-flex align-items-center gap-4">
+            <!-- VERIFY: source pie slices (Cancelled 21 / No Show 0 / In Progress 100 /
+                 Completed 0) sum to 121, one short of the labeled Total Booking: 123 -->
+            <div class="ad-pie" style="background: conic-gradient(var(--ad-red) 0% 17%, var(--ad-green) 17% 98%, #e6e8ea 98% 100%);"></div>
+            <ul class="list-unstyled mb-0">
+              <li><span class="text-danger">&#9679;</span> Cancelled: 21</li>
+              <li><span style="color:var(--ad-lavender);">&#9679;</span> No Show: 0</li>
+              <li><span style="color:var(--ad-green);">&#9679;</span> In Progress: 100</li>
+              <li><span class="text-body-tertiary">&#9679;</span> Completed: 0</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="ad-card h-100">
+          <h2 class="h6 fw-bold mb-3">Waitlist Quantity</h2>
+          <p class="text-muted text-center py-5 mb-0">NO WAITLIST(S) MADE DURING THIS TIME</p>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="ad-card h-100">
+          <h2 class="h6 fw-bold mb-3">SMS Usage Count</h2>
+          <p class="text-muted text-center py-5 mb-0">NO SMS(S) MADE DURING THIS TIME</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<button class="ad-scrolltop"><i class="bi bi-arrow-up"></i></button>
+
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

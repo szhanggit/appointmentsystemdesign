@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wallet balance - Fresha</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: WalletBalance.png -->
+<div class="phone-shell no-bottom-pad">
+  <div class="text-white p-3" style="background: linear-gradient(135deg, #5b4fe5, #d24fe5);">
+    <a href="39-profile-home.html" class="btn btn-outline-light btn-sm rounded-circle mb-4"><i class="bi bi-arrow-left"></i></a>
+    <div class="display-6 fw-bold">CN&yen;0.00</div>
+    <div class="mb-3">Wallet balance</div>
+    <!-- VERIFY: "Add a gift" likely means redeeming a gift code, distinct
+         from buying one - reusing the gift-purchase flow here as a stand-in. -->
+    <a href="22-choose-a-gift.html" class="btn btn-outline-light rounded-pill px-4">+ Add a gift</a>
+  </div>
+  <div class="p-3">
+    <div class="fr-card d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <div class="fw-bold mb-1">Send a gift card</div>
+        <div class="text-muted mb-3">You can now buy someone a gift card to use at Fresha venues</div>
+        <a href="45-send-a-gift-card-intro.html" class="btn btn-fresha">Send gift card</a>
+      </div>
+      <div class="fs-1">&#127873;</div>
+    </div>
+
+    <h2 class="h6 fw-bold mb-2">Cards</h2>
+    <a href="#" class="d-flex align-items-center gap-3 text-decoration-none text-dark">
+      <span class="fr-avatar" style="background:var(--fr-purple-light);"><i class="bi bi-credit-card" style="color:var(--fr-purple);"></i></span>
+      <span class="flex-fill" style="color:var(--fr-purple);">Add debit/credit card</span>
+      <i class="bi bi-chevron-right"></i>
+    </a>
+  </div>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

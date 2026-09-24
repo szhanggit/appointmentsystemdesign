@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staffs - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: StaffOverview.png (Alice example - archived, 3 services) -->
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="brand-row">
+      <a href="0-home.html" class="brand"><span class="brand-mark d-inline-flex align-items-center justify-content-center"><i class="bi bi-emoji-smile"></i></span>byChronos</a>
+      <button class="btn btn-sm btn-link text-dark"><i class="bi bi-chevron-double-left"></i></button>
+    </div>
+    <a href="00-locations.html" class="back-btn"><i class="bi bi-chevron-left"></i> BACK</a>
+    <div class="location-name">SELAH HEAD SPA</div>
+    <div class="nav-group-label">APPS &amp; SERVICES</div>
+    <a href="0-home.html" class="nav-link-item"><i class="bi bi-house-door"></i> Home</a>
+    <a href="appt-01-calendar.html" class="nav-link-item"><i class="bi bi-calendar3"></i> Appointments</a>
+    <a href="hist-01-list.html" class="nav-link-item"><i class="bi bi-calendar-check"></i> Appointments History</a>
+    <a href="wait-01-overview.html" class="nav-link-item"><i class="bi bi-clipboard"></i> Waitlist</a>
+    <a href="checkout-01-manual.html" class="nav-link-item"><i class="bi bi-credit-card"></i> Checkout</a>
+    <a href="sales-01-overview.html" class="nav-link-item"><i class="bi bi-cash-stack"></i> Sales</a>
+    <a href="cust-01-overview.html" class="nav-link-item"><i class="bi bi-person-vcard"></i> Customers</a>
+    <a href="inv-01-services.html" class="nav-link-item"><i class="bi bi-grid"></i> Inventory</a>
+    <a href="staff-01-overview.html" class="nav-link-item active"><i class="bi bi-people"></i> Staffs</a>
+    <a href="mkt-01-overview.html" class="nav-link-item"><i class="bi bi-tags"></i> Marketing</a>
+    <a href="rpt-01-overview.html" class="nav-link-item"><i class="bi bi-bar-chart"></i> Reports</a>
+    <div class="nav-group-label mt-3">SETTINGS</div>
+    <a href="bset-01-overview.html" class="nav-link-item"><i class="bi bi-gear"></i> Business Settings</a>
+    <a href="lock-01-screen.html" class="nav-link-item"><i class="bi bi-box-arrow-in-right"></i> Lock Screen</a>
+    <div class="sidebar-footer"><button class="btn btn-sm btn-light rounded-circle"><i class="bi bi-translate"></i></button><span class="sidebar-avatar">SZ</span></div>
+  </aside>
+
+  <main class="admin-main" style="padding-right:0;">
+    <div class="row g-0">
+      <div class="col-lg-4 pe-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h1 class="h4 fw-bold mb-0">Staffs</h1>
+          <div class="d-flex gap-2">
+            <a href="staff-12-add-staff.html" class="btn btn-ad"><i class="bi bi-plus-lg"></i> NEW</a>
+            <button class="btn btn-ad-outline border"><i class="bi bi-percent"></i> TEMPLATES</button>
+          </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <input type="text" class="form-control" style="max-width:260px;" placeholder="Search by name">
+          <div class="form-check form-switch mb-0 d-flex align-items-center gap-2"><span>Show Archived</span><input class="form-check-input" type="checkbox"></div>
+        </div>
+        <div class="d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-center py-2"><span><i class="bi bi-grip-vertical text-muted"></i> <span class="fr-avatar" style="width:32px;height:32px;font-size:.8rem;">A</span> ANNA</span><span class="badge" style="background:var(--ad-lavender); color:#fff;">idle</span></div>
+          <div class="d-flex justify-content-between align-items-center py-2"><span><i class="bi bi-grip-vertical text-muted"></i> <span class="fr-avatar" style="width:32px;height:32px;font-size:.8rem;">A</span> Any Professional</span><span class="badge" style="background:var(--ad-lavender); color:#fff;">idle</span></div>
+          <div class="d-flex justify-content-between align-items-center py-2 bg-light rounded px-2"><span><i class="bi bi-grip-vertical text-muted"></i> <span class="fr-avatar" style="width:32px;height:32px;font-size:.8rem;">A</span> ASHER OMT</span><span class="badge" style="background:var(--ad-lavender); color:#fff;">idle</span></div>
+          <div class="d-flex justify-content-between align-items-center py-2"><span><i class="bi bi-grip-vertical text-muted"></i> <span class="fr-avatar" style="width:32px;height:32px;font-size:.8rem;">C</span> CONNIE</span><span class="badge" style="background:var(--ad-lavender); color:#fff;">idle</span></div>
+          <div class="d-flex justify-content-between align-items-center py-2"><span><i class="bi bi-grip-vertical text-muted"></i> <span class="fr-avatar" style="width:32px;height:32px;font-size:.8rem;">E</span> Emily</span><span class="badge" style="background:var(--ad-lavender); color:#fff;">idle</span></div>
+          <div class="d-flex justify-content-between align-items-center py-2"><span><i class="bi bi-grip-vertical text-muted"></i> <span class="fr-avatar" style="width:32px;height:32px;font-size:.8rem;">E</span> EVA</span><span class="badge" style="background:var(--ad-lavender); color:#fff;">idle</span></div>
+        </div>
+      </div>
+
+      <div class="col-lg-8 border-start ps-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div class="d-flex align-items-center gap-3">
+            <span class="fr-avatar" style="width:70px;height:70px;font-size:1.6rem; position:relative;">A
+              <button class="btn btn-sm btn-ad rounded-circle position-absolute bottom-0 end-0" style="width:26px;height:26px; padding:0;"><i class="bi bi-pencil"></i></button>
+            </span>
+            <div>
+              <h2 class="h4 fw-bold mb-0">Alice</h2>
+              <div class="text-warning small"><i class="bi bi-star-fill"></i> Staffer</div>
+              <div class="text-muted small">Created:May 29, 2026 8:25 PM</div>
+              <div class="text-muted small">Last Updated:Aug 25, 2026 6:47 PM</div>
+            </div>
+          </div>
+          <span class="badge" style="background:#f2777b;">archived</span>
+        </div>
+
+        <ul class="nav nav-tabs mb-3">
+          <li class="nav-item"><a class="nav-link active" href="staff-01-overview.html">SERVICES (3)</a></li>
+          <li class="nav-item"><a class="nav-link" href="staff-04-commissions.html">COMMISSIONS</a></li>
+          <li class="nav-item"><a class="nav-link" href="staff-06-hours.html">HOURS</a></li>
+          <li class="nav-item"><a class="nav-link" href="staff-07-special-hours.html">SPECIAL HOURS</a></li>
+          <li class="nav-item"><a class="nav-link" href="staff-09-time-offs.html">TIME OFFS</a></li>
+        </ul>
+        <input type="text" class="form-control mb-3" placeholder="Search services">
+        <div class="d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-center py-3 border-bottom border-start ps-3" style="border-color: var(--ad-teal) !important;"><span>30 Mins Foot Massage</span><div><span class="text-muted me-3">30 mins</span><strong>$40.00</strong></div></div>
+          <div class="d-flex justify-content-between align-items-center py-3 border-bottom border-start ps-3" style="border-color: var(--ad-teal) !important;"><span>30 Mins Body Massage</span><div><span class="text-muted me-3">30 mins</span><strong>$48.00</strong></div></div>
+          <div class="d-flex justify-content-between align-items-center py-3 border-start ps-3" style="border-color: var(--ad-teal) !important;"><span>Scalp Guasha + Head Spa + Shoulder Massage 头部拨筋+头疗+肩颈按摩</span><div><span class="text-muted me-3">90 mins</span><strong>$110.00</strong></div></div>
+        </div>
+        <a href="staff-03-edit-services.html" class="btn btn-ad w-100 mt-4">EDIT</a>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

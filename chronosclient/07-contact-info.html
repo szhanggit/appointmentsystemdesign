@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact info - Selah Head Spa</title>
+  <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+  <!-- Source: confirm.png (breadcrumb says "Confirm" but this step actually
+       collects contact info / signs the guest in via phone or Google) -->
+
+  <header class="bc-header">
+    <a href="06-select-time.html" class="text-decoration-none text-dark">
+      <i class="bi bi-arrow-left"></i> <strong>Selah Head Spa</strong>
+    </a>
+  </header>
+
+  <main class="container py-4">
+    <nav class="bc-steps mb-3">
+      <span>Services</span><span class="divider">&gt;</span>
+      <span>Add guests</span><span class="divider">&gt;</span>
+      <span>Specialist</span><span class="divider">&gt;</span>
+      <span>Time</span><span class="divider">&gt;</span>
+      <span class="active">Confirm</span>
+    </nav>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <h1 class="fw-bold mb-4">Contact info</h1>
+
+        <div class="bc-service-card">
+          <h2 class="h5 fw-bold mb-3">Enter your phone</h2>
+
+          <div class="mb-3 row g-2">
+            <div class="col-auto">
+              <select class="form-select">
+                <option>CA +1</option>
+              </select>
+            </div>
+            <div class="col">
+              <input type="tel" class="form-control" placeholder="Phone number">
+            </div>
+          </div>
+
+          <div class="mb-2 row g-2">
+            <div class="col-8">
+              <input type="text" class="form-control" placeholder="6 digit sms code">
+            </div>
+            <div class="col-4">
+              <button class="btn btn-outline-secondary w-100">Get code</button>
+            </div>
+          </div>
+          <p class="text-muted small mb-3">Please click "Get code" to continue</p>
+
+          <a href="08-review-confirm.html" class="btn btn-brand w-100 mb-3">Continue</a>
+
+          <div class="text-center text-muted small mb-3">OR</div>
+
+          <button class="btn btn-outline-secondary w-100 mb-3">
+            <i class="bi bi-google"></i> Continue with Google
+          </button>
+
+          <p class="text-muted small mb-0">byChronos uses your details for appointment booking purposes. You agree to allow us to send you text messages or email with updates.</p>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="bc-summary sticky-top" style="top: 1rem;">
+          <div class="bc-summary-header">
+            <div class="fw-bold">Selah Head Spa</div>
+            <div class="small text-muted">280 West Beaver Creek Rd Lower Floor Unit 11-12<br>Richmond Hill, ON L4B 3B1Canada</div>
+            <div class="small text-muted">(437) 994-8777</div>
+          </div>
+          <div class="p-3 border-bottom d-flex align-items-center gap-2">
+            <i class="bi bi-calendar-event"></i> <strong>Mon, Sep 21 @ 4:00 PM</strong>
+          </div>
+          <div class="bc-guest-block">
+            <div class="bc-guest-title d-flex justify-content-between">
+              <span>Me</span> <i class="bi bi-chevron-up"></i>
+            </div>
+            <div class="bc-guest-body mt-2 d-flex justify-content-between">
+              <div>
+                <div>Scalp Guasha + Head Spa + Shoulder Massage</div>
+                <div class="small text-muted">1 hour 30 min with ANNA</div>
+              </div>
+              <div class="fw-bold">CA$110</div>
+            </div>
+          </div>
+          <div class="bc-guest-block">
+            <div class="bc-guest-title d-flex justify-content-between">
+              <span>Guest 2</span> <i class="bi bi-chevron-down"></i>
+            </div>
+          </div>
+          <div class="bc-total">
+            <span>Total</span> <span>CA$175</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appointments - Selah Head Spa</title>
+  <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+  <!-- Source: appointments2overview.png (list + detail panel) and
+       appointments2detail.png (the detail panel's Cancel/Reschedule area,
+       folded into the same panel here since it's just a scrolled-down view
+       of the same page). Cancel modal source: confirmcancel.png. -->
+
+  <header class="bc-header d-flex justify-content-between align-items-center">
+    <a href="01-business-overview.html" class="text-decoration-none text-dark">
+      <i class="bi bi-arrow-left"></i> Back
+    </a>
+    <div class="dropdown">
+      <a href="#" class="dropdown-toggle text-decoration-none text-dark" data-bs-toggle="dropdown">
+        <i class="bi bi-person-circle"></i> Hi, Steven Zhang
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="12-profile.html">Profile</a></li>
+        <li><a class="dropdown-item" href="13-waitlist.html">Waitlists</a></li>
+        <li><a class="dropdown-item active" href="15-appointments.html">Appointments</a></li>
+        <li><a class="dropdown-item" href="18-membership.html">Membership</a></li>
+        <li><a class="dropdown-item" href="12-profile.html">Payment methods</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="10-signin.html">Log out</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main class="container py-4">
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <h1 class="fw-bold mb-3">Appointments</h1>
+
+        <h2 class="h6 fw-bold mb-2">Upcoming <span class="badge bg-light text-dark border">1</span></h2>
+        <div class="bc-service-card selected mb-4 position-relative">
+          <span class="position-absolute top-0 end-0 translate-middle badge rounded-circle bc-badge-confirmed p-2">
+            <i class="bi bi-check-lg"></i>
+          </span>
+          <div class="text-muted small">Fri, Sep 25, 2026 @ 1:30 PM</div>
+          <div class="fw-bold">Selah Head Spa</div>
+          <div class="text-muted small">Scalp Guasha + Head Spa + Shoulder Massage...</div>
+        </div>
+
+        <h2 class="h6 fw-bold mb-2">Past</h2>
+        <p class="text-muted">You don't have past appointments.</p>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="bc-service-card">
+          <span class="badge bc-badge-confirmed mb-3"><i class="bi bi-check-lg"></i> Confirmed</span>
+          <h3 class="h5 fw-bold">Friday, Sep 25, 2026 @ 1:30 PM</h3>
+
+          <h4 class="h6 fw-bold mt-4">Selah Head Spa</h4>
+          <p class="mb-1"><a href="#">280 West Beaver Creek Rd Lower Floor Unit 11-12 Richmond Hill, ON L4B 3B1Canada</a></p>
+          <p><a href="#">+1 437-994-8777</a></p>
+
+          <h4 class="h6 fw-bold mt-4">Appointment details</h4>
+
+          <div class="d-flex align-items-center gap-2 mt-3">
+            <i class="bi bi-person-circle fs-4"></i> <strong>Steven Zhang</strong>
+          </div>
+          <div class="d-flex justify-content-between mt-1 mb-3">
+            <div>
+              <div>Scalp Guasha + Head Spa + Shoulder Massage 头部拨筋+头疗+肩颈按摩</div>
+              <div class="text-muted small">1 hour 30 min with ANNA</div>
+            </div>
+            <div class="fw-bold">CA$110</div>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-person-circle fs-4"></i> <strong>Guest 2</strong>
+          </div>
+          <div class="d-flex justify-content-between mt-1 mb-4">
+            <div>
+              <div>Signature Soothing Head Spa 特色舒缓头疗</div>
+              <div class="text-muted small">1 hour with EVA</div>
+            </div>
+            <div class="fw-bold">from CA$65</div>
+          </div>
+
+          <div class="d-flex gap-3">
+            <button type="button" class="btn btn-outline-danger flex-fill" data-bs-toggle="modal" data-bs-target="#cancelModal">Cancel</button>
+            <button type="button" class="btn btn-outline-brand flex-fill" data-bs-toggle="modal" data-bs-target="#rescheduleModal">Reschedule</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Cancel confirmation - source: confirmcancel.png -->
+  <div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold">Are you sure you want to cancel all appointments?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="border rounded p-3 mb-3">
+            <div class="fw-bold">Fri, Sep 25, 2026 @ 1:30 PM</div>
+            <div>Selah Head Spa</div>
+          </div>
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            <a href="16-appointments-cancelled.html" class="btn btn-danger">Yes, cancel</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reschedule picker - same pattern as 09-booking-confirmation.html -->
+  <div class="modal fade" id="rescheduleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-bold mb-0">Reschedule time</h5>
+            <div style="color: var(--bc-teal-dark);">Fri, Sep 25, 2026 @ 1:30 PM</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="fw-semibold text-muted mb-2">Afternoon</p>
+          <div class="row row-cols-4 g-2">
+            <div class="col"><button class="btn btn-outline-secondary btn-sm w-100 bc-reschedule-slot">1:00 PM</button></div>
+            <div class="col"><button class="btn btn-outline-secondary btn-sm w-100 bc-reschedule-slot">1:15 PM</button></div>
+            <div class="col"><button class="btn btn-outline-secondary btn-sm w-100 bc-reschedule-slot">1:45 PM</button></div>
+            <div class="col"><button class="btn btn-outline-secondary btn-sm w-100 bc-reschedule-slot">2:00 PM</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="rescheduleConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center">
+        <div class="modal-body p-4">
+          <i class="bi bi-clock" style="font-size: 2.5rem; color: var(--bc-teal);"></i>
+          <h5 class="fw-bold mt-3">Reschedule time is</h5>
+          <p class="fs-5 mb-4">Fri, Sep 25, 2026 @ 1:30 PM</p>
+          <div class="d-flex gap-3 justify-content-center">
+            <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Back</button>
+            <button type="button" class="btn btn-brand px-4" data-bs-dismiss="modal">Reschedule</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="js/site.js"></script>
+</body>
+</html>

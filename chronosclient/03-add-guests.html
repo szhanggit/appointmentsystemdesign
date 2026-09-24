@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add guests - Selah Head Spa</title>
+  <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+  <!-- Source: addAguest.png (page + "Add guest" modal), selectSame.png (list
+       after choosing "Select same"). NOTE: the ongoing example on this page
+       follows the "Select other" branch (selectOther.png) instead, so Guest 2
+       has their own different service and the totals stay consistent with
+       every later screen in the flow (specialist/time/confirm/thank you all
+       show CA$175, Guest 2 = Signature Soothing Head Spa). The "Select same"
+       result (Guest 2 = same CA$110 service, Total CA$220) is a branch shown
+       in selectSame.png - see the modal below for that choice. -->
+
+  <header class="bc-header">
+    <a href="02-select-services.html" class="text-decoration-none text-dark">
+      <i class="bi bi-arrow-left"></i> <strong>Selah Head Spa</strong>
+    </a>
+  </header>
+
+  <main class="container py-4">
+    <nav class="bc-steps mb-3">
+      <span>Services</span><span class="divider">&gt;</span>
+      <span class="active">Add guests</span><span class="divider">&gt;</span>
+      <span>Specialist</span><span class="divider">&gt;</span>
+      <span>Time</span><span class="divider">&gt;</span>
+      <span>Confirm</span>
+    </nav>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <h1 class="fw-bold mb-1">Add guests</h1>
+        <p class="text-muted mb-4">Book a group appointment for up to 12 guests</p>
+
+        <div class="d-flex flex-column gap-3 mb-3">
+          <div class="bc-service-card d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-person-circle fs-3"></i>
+              <div>
+                <div class="fw-semibold">Me</div>
+                <div class="text-muted small">Scalp Guasha + Head Spa + Shoulder Massage 头部拨筋+头疗+...</div>
+              </div>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm">Options <i class="bi bi-chevron-down"></i></button>
+          </div>
+
+          <div class="bc-service-card d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-person-circle fs-3"></i>
+              <div>
+                <div class="fw-semibold">Guest 2</div>
+                <div class="text-muted small">Signature Soothing Head Spa 特色舒缓头疗</div>
+              </div>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm">Options <i class="bi bi-chevron-down"></i></button>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addGuestModal">
+          <i class="bi bi-plus-circle"></i> Add guest
+        </button>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="bc-summary sticky-top" style="top: 1rem;">
+          <div class="bc-summary-header">
+            <div class="fw-bold">Selah Head Spa</div>
+            <div class="small text-muted">280 West Beaver Creek Rd Lower Floor Unit 11-12<br>Richmond Hill, ON L4B 3B1Canada</div>
+            <div class="small text-muted">(437) 994-8777</div>
+          </div>
+          <div class="bc-guest-block">
+            <div class="bc-guest-title d-flex justify-content-between">
+              <span>Me</span> <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="bc-guest-body mt-2 d-flex justify-content-between" style="display:none;">
+              <div>
+                <div>Scalp Guasha + Head Spa + Shoulder Massage</div>
+                <div class="small text-muted">1 hour 30 min with any specialist</div>
+              </div>
+              <div class="fw-bold">CA$110</div>
+            </div>
+          </div>
+          <div class="bc-guest-block">
+            <div class="bc-guest-title d-flex justify-content-between">
+              <span>Guest 2</span> <i class="bi bi-chevron-up"></i>
+            </div>
+            <div class="bc-guest-body mt-2 d-flex justify-content-between">
+              <div>
+                <div>Signature Soothing Head Spa 特色舒缓头疗</div>
+                <div class="small text-muted">1 hour with any specialist</div>
+              </div>
+              <div class="fw-bold">from CA$65</div>
+            </div>
+          </div>
+          <div class="bc-total">
+            <span>Total</span> <span>CA$175</span>
+          </div>
+          <div class="p-3 pt-0">
+            <a href="04-select-specialist.html" class="btn btn-brand w-100">Next</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- "Add guest" modal - source: addAguest.png -->
+  <div class="modal fade" id="addGuestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold">Add guest</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-4">Do you want to select the same services for this guest?</p>
+          <div class="d-flex gap-3">
+            <a href="02-select-services.html" class="btn btn-outline-secondary flex-fill">Select other</a>
+            <!-- "Select same" would copy Me's services onto the new guest (see
+                 selectSame.png: Guest 2 = same service, Total CA$220) -->
+            <button type="button" class="btn btn-brand flex-fill" data-bs-dismiss="modal">Select same</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="js/site.js"></script>
+</body>
+</html>

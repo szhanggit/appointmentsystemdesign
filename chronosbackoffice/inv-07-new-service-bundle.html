@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New service bundle - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: CreateServiceBundleDetail.png -->
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="brand-row">
+      <a href="0-home.html" class="brand"><span class="brand-mark d-inline-flex align-items-center justify-content-center"><i class="bi bi-emoji-smile"></i></span>byChronos</a>
+      <button class="btn btn-sm btn-link text-dark"><i class="bi bi-chevron-double-left"></i></button>
+    </div>
+    <a href="00-locations.html" class="back-btn"><i class="bi bi-chevron-left"></i> BACK</a>
+    <div class="location-name">SELAH HEAD SPA</div>
+    <div class="nav-group-label">APPS &amp; SERVICES</div>
+    <a href="0-home.html" class="nav-link-item"><i class="bi bi-house-door"></i> Home</a>
+    <a href="appt-01-calendar.html" class="nav-link-item"><i class="bi bi-calendar3"></i> Appointments</a>
+    <a href="hist-01-list.html" class="nav-link-item"><i class="bi bi-calendar-check"></i> Appointments History</a>
+    <a href="wait-01-overview.html" class="nav-link-item"><i class="bi bi-clipboard"></i> Waitlist</a>
+    <a href="checkout-01-manual.html" class="nav-link-item"><i class="bi bi-credit-card"></i> Checkout</a>
+    <a href="sales-01-overview.html" class="nav-link-item"><i class="bi bi-cash-stack"></i> Sales</a>
+    <a href="cust-01-overview.html" class="nav-link-item"><i class="bi bi-person-vcard"></i> Customers</a>
+    <a href="inv-01-services.html" class="nav-link-item active"><i class="bi bi-grid"></i> Inventory</a>
+    <a href="staff-01-overview.html" class="nav-link-item"><i class="bi bi-people"></i> Staffs</a>
+    <a href="mkt-01-overview.html" class="nav-link-item"><i class="bi bi-tags"></i> Marketing</a>
+    <a href="rpt-01-overview.html" class="nav-link-item"><i class="bi bi-bar-chart"></i> Reports</a>
+    <div class="nav-group-label mt-3">SETTINGS</div>
+    <a href="bset-01-overview.html" class="nav-link-item"><i class="bi bi-gear"></i> Business Settings</a>
+    <a href="lock-01-screen.html" class="nav-link-item"><i class="bi bi-box-arrow-in-right"></i> Lock Screen</a>
+    <div class="sidebar-footer"><button class="btn btn-sm btn-light rounded-circle"><i class="bi bi-translate"></i></button><span class="sidebar-avatar">SZ</span></div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="ad-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h4 fw-bold mb-0">New service bundle</h1>
+        <a href="inv-06-service-bundles.html" class="btn" style="background:#6c7a86; color:#fff;"><i class="bi bi-arrow-left"></i> BACK</a>
+      </div>
+      <div class="mb-3"><select class="form-select"><option>Select a bundle category</option></select></div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-8"><label class="form-label text-muted small">Bundle Name *</label><input type="text" class="form-control"></div>
+        <div class="col-md-4">
+          <label class="form-label text-muted small">Sort Order</label><input type="text" class="form-control" value="0">
+          <div class="form-text">This controls the order of the service in relation to the other services. The lowest number shows first, and the highest number shows last.</div>
+        </div>
+      </div>
+      <div class="mb-3"><textarea class="form-control" rows="3" placeholder="Description"></textarea></div>
+      <div class="form-check mb-4"><input type="checkbox" class="form-check-input"><label class="form-check-label">Pos Only</label></div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-6"><label class="form-label text-muted small">Original Price($)</label><input type="text" class="form-control" value="$0.00" disabled></div>
+        <div class="col-md-6"><label class="form-label text-muted small">Price($)</label><input type="text" class="form-control" value="$0.00" disabled></div>
+      </div>
+      <div class="mb-3">
+        <div class="text-muted small mb-2">Pricing Type($)</div>
+        <div class="d-flex gap-4">
+          <div class="form-check"><input type="radio" class="form-check-input" name="pt" checked><label class="form-check-label">Service Pricing</label></div>
+          <div class="form-check"><input type="radio" class="form-check-input" name="pt"><label class="form-check-label">Custom Pricing</label></div>
+          <div class="form-check"><input type="radio" class="form-check-input" name="pt"><label class="form-check-label">Percentage Discount</label></div>
+          <div class="form-check"><input type="radio" class="form-check-input" name="pt"><label class="form-check-label">Free</label></div>
+        </div>
+      </div>
+      <div class="ad-card mb-3">
+        <h2 class="h6 fw-bold mb-2">Services</h2>
+        <a href="inv-08-add-service-for-bundle.html" class="btn btn-ad"><i class="bi bi-plus-lg"></i> Add Services</a>
+      </div>
+      <div class="mb-4">
+        <div class="text-muted small mb-2">Schedule Type</div>
+        <div class="d-flex gap-4">
+          <div class="form-check"><input type="radio" class="form-check-input" name="st" checked><label class="form-check-label">Sequence</label></div>
+          <div class="form-check"><input type="radio" class="form-check-input" name="st"><label class="form-check-label">Parallel</label></div>
+        </div>
+      </div>
+      <button class="btn btn-ad">SUBMIT</button>
+    </div>
+  </main>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

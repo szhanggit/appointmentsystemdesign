@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select services - Selah Head Spa</title>
+  <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+  <!-- Source: ClientsideOverview.png, ClientsideServiceDetail.png, addservices.png,
+       bookmore.png (all land on this same page). selectOther.png is this same
+       page reused per-guest (guest chip swaps from "Me" to "Guest 2"). -->
+
+  <!-- Plain top header (booking step 1 only - no back arrow) -->
+  <header class="bc-header d-flex justify-content-between align-items-center">
+    <a href="01-business-overview.html" class="bc-logo">Selah Head Spa</a>
+    <!-- VERIFY: ClientsideOverview.png shows "Sign in" here (anonymous browsing).
+         addservices.png / ProfileDropdown.png show "Hi, Steven Zhang" instead -
+         i.e. the same page in a logged-in state. Confirm which is the real
+         default before sign-in happens later in the flow. -->
+    <a href="10-signin.html" class="text-decoration-none">
+      <i class="bi bi-person"></i> Sign in
+    </a>
+  </header>
+
+  <main class="container py-4">
+    <nav class="bc-steps mb-3">
+      <span class="active">Services</span><span class="divider">&gt;</span>
+      <span>Add guests</span><span class="divider">&gt;</span>
+      <span>Specialist</span><span class="divider">&gt;</span>
+      <span>Time</span><span class="divider">&gt;</span>
+      <span>Confirm</span>
+    </nav>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <h1 class="fw-bold mb-3">Select services</h1>
+
+        <div class="bg-light rounded p-3 d-flex align-items-center gap-2 mb-3">
+          <i class="bi bi-person-circle fs-4"></i>
+          <strong>Me</strong>
+        </div>
+
+        <div class="bc-category-tabs d-flex align-items-center gap-2 mb-4">
+          <button class="bc-tabs-prev btn btn-sm btn-outline-secondary rounded-circle"><i class="bi bi-chevron-left"></i></button>
+          <button class="btn btn-brand">Signature Head Spa</button>
+          <button class="btn btn-outline-secondary">Facial Care</button>
+          <button class="btn btn-outline-secondary">Body Care</button>
+          <button class="btn btn-outline-secondary">Foot Massage</button>
+          <button class="btn btn-outline-secondary">Registered Massage Therapist</button>
+          <button class="bc-tabs-next btn btn-sm btn-outline-secondary rounded-circle"><i class="bi bi-chevron-right"></i></button>
+        </div>
+
+        <h2 class="h5 fw-bold mb-3">Signature Head Spa</h2>
+        <div class="d-flex flex-column gap-3 mb-4">
+
+          <div class="bc-service-card selected d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Scalp Guasha + Head Spa + Shoulder Massage 头部拨筋+头疗+肩颈按摩</div>
+              <div class="text-muted small">1 hour 30 min</div>
+              <div class="fw-bold mt-2">CA$110</div>
+            </div>
+            <button class="bc-add-btn selected"><i class="bi bi-check-lg"></i></button>
+          </div>
+
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Signature Soothing Head Spa 特色舒缓头疗</div>
+              <div class="text-muted small">1 hour</div>
+              <div class="fw-bold mt-2">from CA$65</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Facial Cleansing and Head Spa面部清洁+头疗</div>
+              <div class="text-muted small">1 hour</div>
+              <div class="fw-bold mt-2">CA$78</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Aroma Essential Oil Scalp Guasha 芳香精油头部拨筋</div>
+              <div class="text-muted small">30 min</div>
+              <div class="fw-bold mt-2">CA$48</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+        </div>
+
+        <h2 class="h5 fw-bold mb-3">Facial Care</h2>
+        <div class="d-flex flex-column gap-3 mb-4">
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Facial Cleansing and Hydrating Care 面部清洁补水护理</div>
+              <div class="text-muted small">1 hour</div>
+              <div class="fw-bold mt-2">CA$85</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Firming and Lifting Facial Treatment 面部紧致提升护理</div>
+              <div class="text-muted small">1 hour</div>
+              <div class="fw-bold mt-2">CA$118</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Firming and Lifting Facial Treatment plus Head Spa 面部紧致提升头疗</div>
+              <div class="text-muted small">1 hour 30 min</div>
+              <div class="fw-bold mt-2">CA$138</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+        </div>
+
+        <h2 class="h5 fw-bold mb-3">Body Care</h2>
+        <div class="d-flex flex-column gap-3 mb-4">
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">30 Mins Body Massage</div>
+              <div class="text-muted small">30 min</div>
+              <div class="fw-bold mt-2">CA$48</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Full Body Massage With Essential Oils 全身精油按摩</div>
+              <div class="text-muted small">1 hour</div>
+              <div class="fw-bold mt-2">CA$78</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Womens Essential Oil Ovarian Care and Breast Care 精油卵巢保养和胸部保养</div>
+              <div class="text-muted small">1 hour</div>
+              <div class="fw-bold mt-2">CA$118</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Back Massage with Oil and Head Spa背部精油按摩头疗</div>
+              <div class="text-muted small">1 hour 30 min</div>
+              <div class="fw-bold mt-2">CA$138</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Womens Breast Detoxification Care and Head Spa女士胸部排毒保养加头疗</div>
+              <div class="text-muted small">1 hour 30 min</div>
+              <div class="fw-bold mt-2">CA$148</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+        </div>
+
+        <h2 class="h5 fw-bold mb-3">Foot Massage</h2>
+        <div class="d-flex flex-column gap-3 mb-4">
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">30 Mins Foot Massage</div>
+              <div class="text-muted small">30 min</div>
+              <div class="fw-bold mt-2">CA$40</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Foot Reflexology Massage 足底反射按摩</div>
+              <div class="text-muted small">1 hour &middot; Includes 15 Mins Shoulder and Neck Massage含15分钟肩颈按摩</div>
+              <div class="fw-bold mt-2">CA$69</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Foot Reflexology Massage and Head Spa足底反射按摩加头疗</div>
+              <div class="text-muted small">1 hour 30 min</div>
+              <div class="fw-bold mt-2">CA$118</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+        </div>
+
+        <h2 class="h5 fw-bold mb-3">Registered Massage Therapist</h2>
+        <div class="d-flex flex-column gap-3 mb-4">
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">60mins Swedish Massage(OMT)瑞典式按摩</div>
+              <div class="text-muted small">1 hour</div>
+              <div class="fw-bold mt-2">CA$125</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">90mins Swedish Massage(OMT)瑞典式按摩</div>
+              <div class="text-muted small">1 hour 30 min</div>
+              <div class="fw-bold mt-2">CA$185</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">60mins Deep Tissue Massage(OMT)深层组织按摩</div>
+              <div class="text-muted small">1 hour</div>
+              <div class="fw-bold mt-2">CA$125</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">90mins Deep Tissue Massage(OMT)深层组织按摩</div>
+              <div class="text-muted small">1 hour 30 min</div>
+              <div class="fw-bold mt-2">CA$185</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">60mins Aromatherapy Massage(OMT)芳香疗法按摩</div>
+              <div class="text-muted small">1 hour</div>
+              <div class="fw-bold mt-2">CA$125</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">90mins Aromatherapy Massage(OMT)芳香疗法按摩</div>
+              <div class="text-muted small">1 hour 30 min</div>
+              <div class="fw-bold mt-2">CA$185</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <div class="bc-service-card d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">60mins Lymphatic Drainage Massage(OMT)淋巴引流按摩</div>
+              <div class="text-muted small">1 hour</div>
+              <div class="fw-bold mt-2">CA$145</div>
+            </div>
+            <button class="bc-add-btn"><i class="bi bi-plus"></i></button>
+          </div>
+          <!-- VERIFY: this category list continues below the fold in the
+               source screenshot (cut off) - there may be more services here. -->
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="bc-summary sticky-top" style="top: 1rem;">
+          <div class="bc-summary-header">
+            <div class="fw-bold">Selah Head Spa</div>
+            <div class="small text-muted">280 West Beaver Creek Rd Lower Floor Unit 11-12<br>Richmond Hill, ON L4B 3B1Canada</div>
+            <div class="small text-muted">(437) 994-8777</div>
+          </div>
+          <div class="bc-guest-block">
+            <div class="bc-guest-title d-flex justify-content-between">
+              <span>Me</span> <i class="bi bi-chevron-up"></i>
+            </div>
+            <div class="bc-guest-body mt-2 d-flex justify-content-between">
+              <div>
+                <div>Scalp Guasha + Head Spa + Shoulder Massage 头部拨筋+头疗+肩颈按摩</div>
+                <div class="small text-muted">1 hour 30 min with any specialist</div>
+              </div>
+              <div class="fw-bold">CA$110</div>
+            </div>
+          </div>
+          <div class="bc-total">
+            <span>Total</span> <span>CA$110</span>
+          </div>
+          <div class="p-3 pt-0">
+            <a href="03-add-guests.html" class="btn btn-brand w-100">Next</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="js/site.js"></script>
+</body>
+</html>

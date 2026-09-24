@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory - Services - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: InventoryOverview.png, InventoryHistory.png (same scrolling table,
+     "1-10 of 27") -->
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="brand-row">
+      <a href="0-home.html" class="brand"><span class="brand-mark d-inline-flex align-items-center justify-content-center"><i class="bi bi-emoji-smile"></i></span>byChronos</a>
+      <button class="btn btn-sm btn-link text-dark"><i class="bi bi-chevron-double-left"></i></button>
+    </div>
+    <a href="00-locations.html" class="back-btn"><i class="bi bi-chevron-left"></i> BACK</a>
+    <div class="location-name">SELAH HEAD SPA</div>
+    <div class="nav-group-label">APPS &amp; SERVICES</div>
+    <a href="0-home.html" class="nav-link-item"><i class="bi bi-house-door"></i> Home</a>
+    <a href="appt-01-calendar.html" class="nav-link-item"><i class="bi bi-calendar3"></i> Appointments</a>
+    <a href="hist-01-list.html" class="nav-link-item"><i class="bi bi-calendar-check"></i> Appointments History</a>
+    <a href="wait-01-overview.html" class="nav-link-item"><i class="bi bi-clipboard"></i> Waitlist</a>
+    <a href="checkout-01-manual.html" class="nav-link-item"><i class="bi bi-credit-card"></i> Checkout</a>
+    <a href="sales-01-overview.html" class="nav-link-item"><i class="bi bi-cash-stack"></i> Sales</a>
+    <a href="cust-01-overview.html" class="nav-link-item"><i class="bi bi-person-vcard"></i> Customers</a>
+    <a href="inv-01-services.html" class="nav-link-item active"><i class="bi bi-grid"></i> Inventory</a>
+    <a href="staff-01-overview.html" class="nav-link-item"><i class="bi bi-people"></i> Staffs</a>
+    <a href="mkt-01-overview.html" class="nav-link-item"><i class="bi bi-tags"></i> Marketing</a>
+    <a href="rpt-01-overview.html" class="nav-link-item"><i class="bi bi-bar-chart"></i> Reports</a>
+    <div class="nav-group-label mt-3">SETTINGS</div>
+    <a href="bset-01-overview.html" class="nav-link-item"><i class="bi bi-gear"></i> Business Settings</a>
+    <a href="lock-01-screen.html" class="nav-link-item"><i class="bi bi-box-arrow-in-right"></i> Lock Screen</a>
+    <div class="sidebar-footer"><button class="btn btn-sm btn-light rounded-circle"><i class="bi bi-translate"></i></button><span class="sidebar-avatar">SZ</span></div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="d-flex gap-2 mb-4 flex-wrap">
+      <a href="inv-01-services.html" class="btn btn-ad">SERVICES</a>
+      <a href="inv-06-service-bundles.html" class="btn btn-ad-outline border">SERVICE BUNDLES</a>
+      <a href="inv-09-addons.html" class="btn btn-ad-outline border">ADD-ONS</a>
+      <a href="inv-11-products.html" class="btn btn-ad-outline border">PRODUCTS</a>
+      <a href="inv-13-giftcards.html" class="btn btn-ad-outline border">GIFT CARDS</a>
+      <a href="inv-17-package-cards.html" class="btn btn-ad-outline border">PACKAGE CARDS</a>
+      <a href="inv-20-rewards.html" class="btn btn-ad-outline border">REWARDS</a>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h5 fw-bold mb-0">Categories</h2>
+          <a href="inv-02-add-category.html" class="btn btn-ad btn-sm"><i class="bi bi-plus-lg"></i> NEW</a>
+        </div>
+        <div class="d-flex flex-column">
+          <a href="inv-03-edit-category.html" class="d-flex justify-content-between align-items-center py-2 border-bottom text-decoration-none text-dark"><span><i class="bi bi-grip-vertical text-muted"></i> Signature Head Spa</span><i class="bi bi-pencil text-muted"></i></a>
+          <a href="inv-03-edit-category.html" class="d-flex justify-content-between align-items-center py-2 border-bottom text-decoration-none text-dark"><span><i class="bi bi-grip-vertical text-muted"></i> Facial Care</span><i class="bi bi-pencil text-muted"></i></a>
+          <a href="inv-03-edit-category.html" class="d-flex justify-content-between align-items-center py-2 border-bottom text-decoration-none text-dark"><span><i class="bi bi-grip-vertical text-muted"></i> Body Care</span><i class="bi bi-pencil text-muted"></i></a>
+          <a href="inv-03-edit-category.html" class="d-flex justify-content-between align-items-center py-2 border-bottom text-decoration-none text-dark"><span><i class="bi bi-grip-vertical text-muted"></i> Foot Massage</span><i class="bi bi-pencil text-muted"></i></a>
+          <a href="inv-03-edit-category.html" class="d-flex justify-content-between align-items-center py-2 text-decoration-none text-dark"><span><i class="bi bi-grip-vertical text-muted"></i> REGISTERED MASSAGE THERAPIST</span><i class="bi bi-pencil text-muted"></i></a>
+        </div>
+      </div>
+
+      <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div style="max-width:260px;">
+            <label class="form-label text-muted small mb-0">Service Category</label>
+            <select class="form-select"><option>All</option></select>
+          </div>
+          <div class="d-flex gap-2">
+            <input type="text" class="form-control" placeholder="Search by name">
+            <a href="inv-04-new-service.html" class="btn btn-ad text-nowrap"><i class="bi bi-plus-lg"></i> NEW</a>
+          </div>
+        </div>
+        <p class="text-muted small"><i class="bi bi-info-circle"></i> Select a category to enable service sorting</p>
+
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr class="text-muted small"><th>SERVICE NAME</th><th>CATEGORY</th><th>PRICE</th><th>DURATION</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+            <tbody>
+              <tr><td><a href="inv-05-edit-service.html">Scalp Guasha + Head Spa + Shoulder Mas&hellip;</a></td><td>Signature Head Spa</td><td>$110.00</td><td>90 mins</td><td><span class="badge bg-success">&#9679;</span></td><td><i class="bi bi-trash text-muted me-2"></i><a href="inv-05-edit-service.html"><i class="bi bi-pencil text-muted me-2"></i></a><i class="bi bi-copy text-muted"></i></td></tr>
+              <tr><td><a href="inv-05-edit-service.html">30 Mins Foot Massage</a></td><td>Foot Massage</td><td>$40.00</td><td>30 mins</td><td><span class="badge bg-success">&#9679;</span></td><td><i class="bi bi-trash text-muted me-2"></i><a href="inv-05-edit-service.html"><i class="bi bi-pencil text-muted me-2"></i></a><i class="bi bi-copy text-muted"></i></td></tr>
+              <tr><td><a href="inv-05-edit-service.html">30 Mins Body Massage</a></td><td>Body Care</td><td>$48.00</td><td>30 mins</td><td><span class="badge bg-success">&#9679;</span></td><td><i class="bi bi-trash text-muted me-2"></i><a href="inv-05-edit-service.html"><i class="bi bi-pencil text-muted me-2"></i></a><i class="bi bi-copy text-muted"></i></td></tr>
+              <tr><td><a href="inv-05-edit-service.html">Signature Soothing Head Spa 特色舒缓头疗</a></td><td>Signature Head Spa</td><td>$65.00</td><td>60 mins</td><td><span class="badge bg-success">&#9679;</span></td><td><i class="bi bi-trash text-muted me-2"></i><a href="inv-05-edit-service.html"><i class="bi bi-pencil text-muted me-2"></i></a><i class="bi bi-copy text-muted"></i></td></tr>
+              <tr><td><a href="inv-05-edit-service.html">60mins Swedish Massage(OMT)瑞典式按摩</a></td><td>REGISTERED MASSAG&hellip;</td><td>$125.00</td><td>60 mins</td><td><span class="badge bg-success">&#9679;</span></td><td><i class="bi bi-trash text-muted me-2"></i><a href="inv-05-edit-service.html"><i class="bi bi-pencil text-muted me-2"></i></a><i class="bi bi-copy text-muted"></i></td></tr>
+              <tr><td><a href="inv-05-edit-service.html">90mins Swedish Massage(OMT)瑞典式按摩</a></td><td>REGISTERED MASSAG&hellip;</td><td>$185.00</td><td>90 mins</td><td><span class="badge bg-success">&#9679;</span></td><td><i class="bi bi-trash text-muted me-2"></i><a href="inv-05-edit-service.html"><i class="bi bi-pencil text-muted me-2"></i></a><i class="bi bi-copy text-muted"></i></td></tr>
+              <tr><td><a href="inv-05-edit-service.html">Facial Cleansing and Head Spa面部清洁+头疗</a></td><td>Signature Head Spa</td><td>$78.00</td><td>60 mins</td><td><span class="badge bg-success">&#9679;</span></td><td><i class="bi bi-trash text-muted me-2"></i><a href="inv-05-edit-service.html"><i class="bi bi-pencil text-muted me-2"></i></a><i class="bi bi-copy text-muted"></i></td></tr>
+              <tr><td><a href="inv-05-edit-service.html">Aroma Essential Oil Scalp Guasha 芳香精油&hellip;</a></td><td>Signature Head Spa</td><td>$48.00</td><td>30 mins</td><td><span class="badge bg-success">&#9679;</span></td><td><i class="bi bi-trash text-muted me-2"></i><a href="inv-05-edit-service.html"><i class="bi bi-pencil text-muted me-2"></i></a><i class="bi bi-copy text-muted"></i></td></tr>
+              <tr><td><a href="inv-05-edit-service.html">60mins Deep Tissue Massage(OMT)深层组织&hellip;</a></td><td>REGISTERED MASSAG&hellip;</td><td>$125.00</td><td>60 mins</td><td><span class="badge bg-success">&#9679;</span></td><td><i class="bi bi-trash text-muted me-2"></i><a href="inv-05-edit-service.html"><i class="bi bi-pencil text-muted me-2"></i></a><i class="bi bi-copy text-muted"></i></td></tr>
+              <tr><td><a href="inv-05-edit-service.html">Facial Cleansing and Hydrating Care 面&hellip;</a></td><td>Facial Care</td><td>$85.00</td><td>60 mins</td><td><span class="badge bg-success">&#9679;</span></td><td><i class="bi bi-trash text-muted me-2"></i><a href="inv-05-edit-service.html"><i class="bi bi-pencil text-muted me-2"></i></a><i class="bi bi-copy text-muted"></i></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-end align-items-center gap-3 text-muted small">
+          <span>Rows per page: <strong>10</strong></span>
+          <span>1&ndash;10 of 27</span>
+          <button class="btn btn-sm btn-ad-outline border"><i class="bi bi-chevron-left"></i></button>
+          <button class="btn btn-sm btn-ad-outline border"><i class="bi bi-chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

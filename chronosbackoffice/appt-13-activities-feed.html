@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appointment Activities - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: bell.png (the bell icon that opens this, shown on the calendar
+     toolbar in appt-01-calendar.html), AppointmentActivities.png. Clicking a
+     list item opens a detail drawer like appt-06 (Appointment.png showed one
+     such example, for an EVA appointment, structurally identical to the
+     other detail pages already built - not rebuilt separately). -->
+<div class="p-4" style="max-width:640px;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 fw-bold mb-0">Appointment Activities</h1>
+    <a href="appt-01-calendar.html" class="text-dark"><i class="bi bi-x-lg fs-5"></i></a>
+  </div>
+
+  <div class="d-flex gap-2 mb-4">
+    <div class="input-group">
+      <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+      <input type="text" class="form-control" placeholder="Search by name, email or phone">
+    </div>
+    <select class="form-select w-auto"><option>All</option></select>
+    <button class="btn btn-ad-outline border"><i class="bi bi-check2-all"></i></button>
+  </div>
+
+  <div class="d-flex flex-column gap-3">
+    <div class="border-bottom pb-3">
+      <div class="text-muted small">created by client</div>
+      <div class="fw-semibold">Vincent Colico</div>
+      <div class="text-muted">647-326-9826</div>
+      <div>New appointment has been scheduled on 09/25 06:45 PM</div>
+    </div>
+    <div class="border-start ps-3" style="border-color: var(--ad-purple) !important;">
+      <div class="d-flex justify-content-between"><span><i class="bi bi-stars"></i> <strong>New Appointment</strong></span><span class="text-muted small">09/18 08:16 AM</span></div>
+      <div class="text-muted small">created by client</div>
+      <div class="fw-semibold">安 tran</div>
+      <div class="text-muted">249-989-0197</div>
+      <div>Appointment has been rescheduled from 09/18 07:00 PM to 09/18 07:00 PM</div>
+    </div>
+    <div class="border-start ps-3" style="border-color: var(--ad-purple) !important;">
+      <div class="d-flex justify-content-between"><span><i class="bi bi-stars"></i> <strong>New Appointment</strong></span><span class="text-muted small">09/18 05:51 PM</span></div>
+      <div class="text-muted small">created by staff</div>
+      <div class="fw-semibold">Joyce Canido</div>
+      <div class="text-muted">416-569-5811</div>
+      <div>New appointment has been scheduled on 09/19 02:00 PM</div>
+    </div>
+    <div class="border-start ps-3" style="border-color: #3d6de0 !important;">
+      <div class="d-flex justify-content-between"><span><i class="bi bi-arrow-repeat"></i> <strong>Appointment Rescheduled</strong></span><span class="text-muted small">09/18 05:51 PM</span></div>
+      <div class="text-muted small">created by staff</div>
+      <div class="fw-semibold">Walk-In</div>
+      <div>Appointment has been rescheduled from 09/18 07:00 PM to 09/18 08:00 PM</div>
+    </div>
+    <a href="appt-06-detail-appointments-tab.html" class="border-start ps-3 text-decoration-none text-dark" style="border-color: var(--ad-purple) !important;">
+      <div class="d-flex justify-content-between"><span><i class="bi bi-stars"></i> <strong>New Appointment</strong></span><span class="text-muted small">09/18 06:24 PM</span></div>
+      <div class="text-muted small">created by staff</div>
+      <div class="fw-semibold">Walk-In</div>
+      <div>New appointment has been scheduled on 09/18 07:00 PM</div>
+    </a>
+  </div>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

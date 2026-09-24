@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Transactions - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body style="background:#1c2b3399;">
+<!-- Source: staffella.png (drill-in for ELLA) -->
+<div class="d-flex align-items-center justify-content-center" style="min-height:100vh;">
+  <div class="ad-card bg-white" style="width:960px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h4 fw-bold mb-0">Staff Transactions</h1>
+      <a href="rpt-06-staffpayments.html" class="text-dark"><i class="bi bi-x-lg fs-5"></i></a>
+    </div>
+    <div class="row g-3 mb-4">
+      <div class="col-md-4"><label class="form-label text-muted small">Range</label><select class="form-select"><option>This Week</option></select></div>
+      <div class="col-md-4"><label class="form-label text-muted small">From</label><input type="text" class="form-control" value="2026-09-20"></div>
+      <div class="col-md-4"><label class="form-label text-muted small">To</label><input type="text" class="form-control" value="2026-09-26"></div>
+    </div>
+    <hr>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="d-flex align-items-center gap-2"><span class="fr-avatar" style="background:var(--ad-teal-light); color:var(--ad-teal);">E</span><h2 class="h5 fw-bold mb-0">ELLA</h2></div>
+      <button class="btn btn-ad-outline border" disabled><i class="bi bi-printer"></i> PRINT STAFF REPORT</button>
+    </div>
+    <table class="table">
+      <thead><tr class="text-muted small"><th>DATE &amp; TIME</th><th>SALE TOTAL</th><th>SERVICES</th><th>CONTRIBUTION</th><th>COMMISSION</th><th>TIP</th></tr></thead>
+      <tbody><tr><td colspan="6" class="text-center text-muted py-4">No record to display</td></tr></tbody>
+    </table>
+    <div class="ad-card d-flex justify-content-between align-items-center mt-3">
+      <strong style="color: var(--ad-teal);">ELLA</strong>
+      <span>$0.00</span><span>0</span><span>$0.00</span><span>$0.00</span><span>$0.00</span>
+    </div>
+  </div>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

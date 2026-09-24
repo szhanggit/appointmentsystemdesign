@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Customer - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: ClickInACustomer.png -->
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="brand-row">
+      <a href="0-home.html" class="brand"><span class="brand-mark d-inline-flex align-items-center justify-content-center"><i class="bi bi-emoji-smile"></i></span>byChronos</a>
+      <button class="btn btn-sm btn-link text-dark"><i class="bi bi-chevron-double-left"></i></button>
+    </div>
+    <a href="00-locations.html" class="back-btn"><i class="bi bi-chevron-left"></i> BACK</a>
+    <div class="location-name">SELAH HEAD SPA</div>
+    <div class="nav-group-label">APPS &amp; SERVICES</div>
+    <a href="0-home.html" class="nav-link-item"><i class="bi bi-house-door"></i> Home</a>
+    <a href="appt-01-calendar.html" class="nav-link-item"><i class="bi bi-calendar3"></i> Appointments</a>
+    <a href="hist-01-list.html" class="nav-link-item"><i class="bi bi-calendar-check"></i> Appointments History</a>
+    <a href="wait-01-overview.html" class="nav-link-item"><i class="bi bi-clipboard"></i> Waitlist</a>
+    <a href="checkout-01-manual.html" class="nav-link-item"><i class="bi bi-credit-card"></i> Checkout</a>
+    <a href="sales-01-overview.html" class="nav-link-item"><i class="bi bi-cash-stack"></i> Sales</a>
+    <a href="cust-01-overview.html" class="nav-link-item active"><i class="bi bi-person-vcard"></i> Customers</a>
+    <a href="inv-01-services.html" class="nav-link-item"><i class="bi bi-grid"></i> Inventory</a>
+    <a href="staff-01-overview.html" class="nav-link-item"><i class="bi bi-people"></i> Staffs</a>
+    <a href="mkt-01-overview.html" class="nav-link-item"><i class="bi bi-tags"></i> Marketing</a>
+    <a href="rpt-01-overview.html" class="nav-link-item"><i class="bi bi-bar-chart"></i> Reports</a>
+    <div class="nav-group-label mt-3">SETTINGS</div>
+    <a href="bset-01-overview.html" class="nav-link-item"><i class="bi bi-gear"></i> Business Settings</a>
+    <a href="lock-01-screen.html" class="nav-link-item"><i class="bi bi-box-arrow-in-right"></i> Lock Screen</a>
+    <div class="sidebar-footer"><button class="btn btn-sm btn-light rounded-circle"><i class="bi bi-translate"></i></button><span class="sidebar-avatar">SZ</span></div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h4 fw-bold mb-0">Edit Customer</h1>
+      <div class="d-flex gap-2">
+        <a href="cust-01-overview.html" class="btn btn-ad-outline border"><i class="bi bi-arrow-left"></i> BACK</a>
+        <button class="btn btn-ad"><i class="bi bi-list-ul"></i> APPOINTMENT HISTORY</button>
+        <button class="btn btn-ad"><i class="bi bi-basket"></i> SALES HISTORY</button>
+        <button class="btn btn-ad"><i class="bi bi-credit-card"></i> PACKAGE CARDS</button>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-3"><label class="form-label text-muted small">Phone Number *</label><input type="text" class="form-control" value="+1 6479166337"></div>
+      <div class="col-md-3"><input type="text" class="form-control mt-4" placeholder="Name"></div>
+      <div class="col-md-3"><input type="email" class="form-control mt-4" placeholder="Email"></div>
+      <div class="col-md-3"><input type="text" class="form-control mt-4" placeholder="Birthday"></div>
+    </div>
+    <div class="mb-4"><textarea class="form-control" rows="3" placeholder="Note"></textarea></div>
+    <div class="text-end mb-4"><button class="btn btn-ad">SUBMIT</button></div>
+
+    <div class="row g-3 mb-4 text-center">
+      <div class="col-md-3"><div class="ad-card"><div class="fs-3" style="color:var(--ad-purple);">DEFAULT</div><div class="text-muted small">Membership Level</div></div></div>
+      <div class="col-md-3"><div class="ad-card"><div class="fs-3 fw-bold">$0.00</div><div class="text-muted small">Cumulative Consumption</div></div></div>
+      <div class="col-md-3"><div class="ad-card"><div class="fs-3 fw-bold">$0.00</div><div class="text-muted small">Balance</div></div></div>
+      <div class="col-md-3"><div class="ad-card"><div class="fs-3 fw-bold"><i class="bi bi-star"></i> 0</div><div class="text-muted small">Points</div></div></div>
+    </div>
+    <div class="ad-card text-center mb-4">
+      <div class="fs-4 fw-bold">Sat, 12 Sep 2026, 8:40 PM</div>
+      <div class="text-muted">Last Appointment Created At</div>
+    </div>
+
+    <div class="row g-2 mb-4">
+      <div class="col-md-3"><button class="btn w-100 py-3" style="background:var(--ad-lavender); color:#fff;">REDEEM GIFT CARD</button></div>
+      <div class="col-md-3"><button class="btn w-100 py-3" style="background:var(--ad-teal); color:#fff;">MANAGE BALANCE</button></div>
+      <div class="col-md-3"><button class="btn w-100 py-3" style="background:var(--ad-yellow); color:#5a4300;">MANAGE POINTS</button></div>
+      <div class="col-md-3"><button class="btn w-100 py-3" style="background:#8a6d1e; color:#fff;">CONVERT</button></div>
+    </div>
+
+    <div class="ad-card mb-4">
+      <div class="d-flex justify-content-end mb-3"><input type="text" class="form-control" style="max-width:280px;" placeholder="Search by transaction code or desc"></div>
+      <table class="table">
+        <thead><tr class="text-muted small"><th>#</th><th>TYPE</th><th>AMOUNT</th><th>DESCRIPTION</th><th>STATUS</th><th>CREATED AT</th></tr></thead>
+        <tbody><tr><td colspan="6" class="text-center text-muted py-4">No rows</td></tr></tbody>
+      </table>
+      <div class="text-muted small text-end">Rows per page: 10 &nbsp; 0&ndash;0 of 0</div>
+    </div>
+
+    <div class="rounded p-4 d-flex justify-content-between align-items-center" style="background:#fdeceb;">
+      <h2 class="h5 fw-bold text-muted mb-0">Danger Zone</h2>
+      <button class="btn text-white" style="background:#f2777b;">DELETE MEMBERSHIP</button>
+    </div>
+  </main>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

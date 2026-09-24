@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appointments - Selah Head Spa</title>
+  <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+  <!-- Source: cancelledAppointment.png. NOTE: the source screenshot's Past
+       list appears to show the same appointment repeated 3-4 times, which
+       looks like a scroll-capture artifact rather than real distinct data -
+       shown here as a single Past entry instead. Please confirm against the
+       real app. -->
+
+  <header class="bc-header d-flex justify-content-between align-items-center">
+    <a href="01-business-overview.html" class="text-decoration-none text-dark">
+      <i class="bi bi-arrow-left"></i> Back
+    </a>
+    <div class="dropdown">
+      <a href="#" class="dropdown-toggle text-decoration-none text-dark" data-bs-toggle="dropdown">
+        <i class="bi bi-person-circle"></i> Hi, Steven Zhang
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="12-profile.html">Profile</a></li>
+        <li><a class="dropdown-item" href="13-waitlist.html">Waitlists</a></li>
+        <li><a class="dropdown-item active" href="16-appointments-cancelled.html">Appointments</a></li>
+        <li><a class="dropdown-item" href="18-membership.html">Membership</a></li>
+        <li><a class="dropdown-item" href="12-profile.html">Payment methods</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="10-signin.html">Log out</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main class="container py-4">
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <h1 class="fw-bold mb-2">Appointments</h1>
+        <h2 class="h6 fw-bold mb-1">No upcoming appointments</h2>
+        <p class="text-muted mb-4">You don't have upcoming appointments. Once you do, they'll show up here. Now get booking!</p>
+
+        <h2 class="h6 fw-bold mb-2">Past</h2>
+        <div class="bc-service-card selected position-relative">
+          <span class="position-absolute top-0 end-0 translate-middle badge rounded-circle bc-badge-cancelled p-2">
+            <i class="bi bi-slash-circle"></i>
+          </span>
+          <div class="text-muted small">Fri, Sep 25, 2026 @ 1:30 PM</div>
+          <div class="fw-bold">Selah Head Spa</div>
+          <div class="text-muted small">Scalp Guasha + Head Spa + Shoulder...</div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="bc-service-card">
+          <span class="badge bc-badge-cancelled mb-3"><i class="bi bi-slash-circle"></i> Cancelled</span>
+          <h3 class="h5 fw-bold">Friday, Sep 25, 2026 @ 1:30 PM</h3>
+
+          <h4 class="h6 fw-bold mt-4">Selah Head Spa</h4>
+          <p class="mb-1"><a href="#">280 West Beaver Creek Rd Lower Floor Unit 11-12 Richmond Hill, ON L4B 3B1Canada</a></p>
+          <p><a href="#">+1 437-994-8777</a></p>
+
+          <h4 class="h6 fw-bold mt-4">Appointment details</h4>
+
+          <div class="d-flex align-items-center gap-2 mt-3">
+            <i class="bi bi-person-circle fs-4"></i> <strong>Steven Zhang</strong>
+          </div>
+          <div class="d-flex justify-content-between mt-1 mb-3">
+            <div>
+              <div>Scalp Guasha + Head Spa + Shoulder Massage 头部拨筋+头疗+肩颈按摩</div>
+              <div class="text-muted small">1 hour 30 min with ANNA</div>
+            </div>
+            <div class="fw-bold">CA$110</div>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-person-circle fs-4"></i> <strong>Guest 2</strong>
+          </div>
+          <div class="d-flex justify-content-between mt-1 mb-4">
+            <div>
+              <div>Signature Soothing Head Spa 特色舒缓头疗</div>
+              <div class="text-muted small">1 hour with EVA</div>
+            </div>
+            <div class="fw-bold">from CA$65</div>
+          </div>
+
+          <a href="02-select-services.html" class="btn btn-brand w-100">Rebook</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="js/site.js"></script>
+</body>
+</html>

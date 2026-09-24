@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Customer Details - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body style="background:#1c2b3399;">
+<!-- Source: selectACustomer.png - this "Add Customer Details" phone-keypad +
+     customer list picker is used both from New Waitlist (here) and from
+     Checkout's "Select a customer" flow. -->
+<div class="d-flex align-items-center justify-content-center" style="min-height:100vh;">
+  <div class="ad-card bg-white" style="width:900px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h4 fw-bold mb-0">Add Customer Details</h1>
+      <a href="wait-02-new.html" class="text-dark"><i class="bi bi-x-lg fs-5"></i></a>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="text-center fs-3 mb-3" style="color: var(--ad-teal);">(___)-___-____</div>
+        <div class="row row-cols-3 g-2">
+          <div class="col"><button class="btn btn-ad-outline border w-100 py-3 fs-4">1</button></div>
+          <div class="col"><button class="btn btn-ad-outline border w-100 py-3 fs-4">2</button></div>
+          <div class="col"><button class="btn btn-ad-outline border w-100 py-3 fs-4">3</button></div>
+          <div class="col"><button class="btn btn-ad-outline border w-100 py-3 fs-4">4</button></div>
+          <div class="col"><button class="btn btn-ad-outline border w-100 py-3 fs-4">5</button></div>
+          <div class="col"><button class="btn btn-ad-outline border w-100 py-3 fs-4">6</button></div>
+          <div class="col"><button class="btn btn-ad-outline border w-100 py-3 fs-4">7</button></div>
+          <div class="col"><button class="btn btn-ad-outline border w-100 py-3 fs-4">8</button></div>
+          <div class="col"><button class="btn btn-ad-outline border w-100 py-3 fs-4">9</button></div>
+          <div class="col"><button class="btn btn-outline-danger w-100 py-3 fs-4">C</button></div>
+          <div class="col"><button class="btn btn-ad-outline border w-100 py-3 fs-4">0</button></div>
+          <div class="col"><button class="btn btn-outline-danger w-100 py-3 fs-4"><i class="bi bi-backspace"></i></button></div>
+        </div>
+      </div>
+      <div class="col-md-2 d-flex flex-column gap-2">
+        <button class="btn" style="background:#f4b740; color:#1c2b33; flex:1;"><i class="bi bi-arrow-left"></i><br>BACK</button>
+        <button class="btn btn-ad" style="flex:1;"><i class="bi bi-search"></i><br>SEARCH</button>
+        <button class="btn btn-light" style="flex:1;"><i class="bi bi-calendar3"></i><br>APPOINTMENTS</button>
+        <button class="btn btn-light" style="flex:1;"><i class="bi bi-currency-dollar"></i><br>SALES</button>
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h2 class="h6 fw-bold mb-0" style="color: var(--ad-teal);">Customer List</h2>
+          <button class="btn btn-ad btn-sm"><i class="bi bi-plus-lg"></i> ADD CUSTOMER</button>
+        </div>
+        <input type="text" class="form-control mb-2" placeholder="Name, Phone No.">
+        <div class="list-group">
+          <div class="list-group-item d-flex justify-content-between">
+            <div><div>(905)-325-0304</div><div class="text-muted small">n/a</div></div>
+            <div class="text-end"><div>$0.00</div><div class="text-warning small">&#9733; 0</div><span class="badge" style="background:var(--ad-purple-light); color:var(--ad-purple);">DEFAULT</span></div>
+          </div>
+          <div class="list-group-item d-flex justify-content-between active" style="background:var(--ad-purple-light); color:#1c2b33;">
+            <div><div>(416)-520-7678</div><div class="text-muted small">n/a</div></div>
+            <div class="text-end"><div>$0.00</div><div class="text-warning small">&#9733; 0</div><span class="badge" style="background:var(--ad-purple); color:#fff;">DEFAULT</span></div>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <div><div>(437)-326-2123</div><div class="text-muted small">n/a</div></div>
+            <div class="text-end"><div>$0.00</div><div class="text-warning small">&#9733; 0</div><span class="badge" style="background:var(--ad-purple-light); color:var(--ad-purple);">DEFAULT</span></div>
+          </div>
+        </div>
+        <div class="text-center mt-2"><button class="btn btn-link"><i class="bi bi-arrow-down-circle"></i><br>LOAD MORE</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>General Setting - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body class="p-4">
+<!-- Source: general.png -->
+<div class="d-flex justify-content-between align-items-start mb-1">
+  <div>
+    <h1 class="h4 fw-bold mb-1">General Setting</h1>
+    <p class="text-muted mb-1">Customize customer and business settings, including service visibility, staff selection options, and master account pincode management.</p>
+  </div>
+  <a href="bset-01-overview.html" class="btn btn-ad-outline border text-nowrap"><i class="bi bi-chevron-left"></i> BACK</a>
+</div>
+<div class="text-muted mb-4"><a href="bset-01-overview.html">Business Settings</a> <i class="bi bi-chevron-right small"></i> <strong>General</strong></div>
+
+<div class="ad-card">
+  <h2 class="h5 fw-bold mb-3">Customer Side Settings</h2>
+
+  <div class="mb-3">
+    <div class="fw-semibold">Hide Service Price</div>
+    <div class="form-check form-switch"><input class="form-check-input" type="checkbox"><label class="form-check-label">Hide</label></div>
+    <div class="text-muted small">Hide the services' price on the appointment page for customers</div>
+  </div>
+  <div class="mb-3">
+    <div class="fw-semibold">Hide Service Duration</div>
+    <div class="form-check form-switch"><input class="form-check-input" type="checkbox"><label class="form-check-label">Hide</label></div>
+    <div class="text-muted small">Hide the services' duration on the appointment page for customers</div>
+  </div>
+  <div class="mb-3">
+    <div class="fw-semibold">Staffer Selectable</div>
+    <div class="form-check form-switch"><input class="form-check-input" type="checkbox" checked><label class="form-check-label">Allow</label></div>
+    <div class="text-muted small">Allow Customer to select the staffer whenever making an appointment or joining the waitlist</div>
+  </div>
+  <div class="mb-3">
+    <div class="fw-semibold">Refund Online</div>
+    <div class="form-check form-switch"><input class="form-check-input" type="checkbox"><label class="form-check-label">Allow</label></div>
+    <div class="text-muted small">Allow customer to refund deposit online after canceling the appointment</div>
+  </div>
+  <div class="mb-4">
+    <div class="fw-semibold">Skip tip on cash checkout</div>
+    <div class="form-check form-switch"><input class="form-check-input" type="checkbox" checked><label class="form-check-label">Cash skip tip</label></div>
+    <div class="text-muted small">Skip tipping when the payment method is cash. Won't be prompted to add a tip during cash transactions</div>
+  </div>
+
+  <h2 class="h5 fw-bold mb-3">Business Side Settings</h2>
+  <div class="mb-3">
+    <div class="fw-semibold">Calendar Color Source</div>
+    <div class="text-muted small mb-2">Determines the background color of appointments in the calendar.</div>
+    <select class="form-select" style="max-width:320px;"><option>Service Color</option></select>
+  </div>
+  <div class="mb-3">
+    <div class="fw-semibold">Staffer Required</div>
+    <div class="form-check form-switch"><input class="form-check-input" type="checkbox"><label class="form-check-label">Enable</label></div>
+    <div class="text-muted small">When enabled, the Assign Staff modal will appear each time an item is added to the cart.</div>
+  </div>
+  <div class="mb-4">
+    <div class="fw-semibold">Master Pincode</div>
+    <label class="form-label text-muted small mt-2">Master Pincode *</label>
+    <input type="text" class="form-control" style="max-width:320px;" value="9527">
+    <div class="text-muted small mt-1">Master account passcode. Use the master account passcode to switch from a staff account to the master account.</div>
+  </div>
+  <button class="btn btn-ad">UPDATE</button>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

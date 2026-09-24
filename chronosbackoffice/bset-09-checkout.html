@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout - Taxes - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: checkouttaxes.png -->
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="brand-row">
+      <a href="0-home.html" class="brand"><span class="brand-mark d-inline-flex align-items-center justify-content-center"><i class="bi bi-emoji-smile"></i></span>byChronos</a>
+      <button class="btn btn-sm btn-link text-dark"><i class="bi bi-chevron-double-left"></i></button>
+    </div>
+    <a href="00-locations.html" class="back-btn"><i class="bi bi-chevron-left"></i> BACK</a>
+    <div class="location-name">SELAH HEAD SPA</div>
+    <div class="nav-group-label">APPS &amp; SERVICES</div>
+    <a href="0-home.html" class="nav-link-item"><i class="bi bi-house-door"></i> Home</a>
+    <a href="appt-01-calendar.html" class="nav-link-item"><i class="bi bi-calendar3"></i> Appointments</a>
+    <a href="hist-01-list.html" class="nav-link-item"><i class="bi bi-calendar-check"></i> Appointments History</a>
+    <a href="wait-01-overview.html" class="nav-link-item"><i class="bi bi-clipboard"></i> Waitlist</a>
+    <a href="checkout-01-manual.html" class="nav-link-item"><i class="bi bi-credit-card"></i> Checkout</a>
+    <a href="sales-01-overview.html" class="nav-link-item"><i class="bi bi-cash-stack"></i> Sales</a>
+    <a href="cust-01-overview.html" class="nav-link-item"><i class="bi bi-person-vcard"></i> Customers</a>
+    <a href="inv-01-services.html" class="nav-link-item"><i class="bi bi-grid"></i> Inventory</a>
+    <a href="staff-01-overview.html" class="nav-link-item"><i class="bi bi-people"></i> Staffs</a>
+    <a href="mkt-01-overview.html" class="nav-link-item"><i class="bi bi-tags"></i> Marketing</a>
+    <a href="rpt-01-overview.html" class="nav-link-item"><i class="bi bi-bar-chart"></i> Reports</a>
+    <div class="nav-group-label mt-3">SETTINGS</div>
+    <a href="bset-01-overview.html" class="nav-link-item active"><i class="bi bi-gear"></i> Business Settings</a>
+    <a href="lock-01-screen.html" class="nav-link-item"><i class="bi bi-box-arrow-in-right"></i> Lock Screen</a>
+    <div class="sidebar-footer"><button class="btn btn-sm btn-light rounded-circle"><i class="bi bi-translate"></i></button><span class="sidebar-avatar">SZ</span></div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="d-flex justify-content-between align-items-start mb-1">
+      <div>
+        <h1 class="h4 fw-bold mb-1">Checkout</h1>
+        <p class="text-muted mb-1">Configure checkout options, including taxes, tips, payment terminals, pricing strategies, and receipt preferences</p>
+      </div>
+      <a href="bset-01-overview.html" class="btn btn-ad-outline border text-nowrap"><i class="bi bi-chevron-left"></i> BACK</a>
+    </div>
+    <div class="text-muted mb-4"><a href="bset-01-overview.html">Business Settings</a> <i class="bi bi-chevron-right small"></i> <strong>Checkout</strong></div>
+
+    <div class="row g-4">
+      <div class="col-lg-3">
+        <div class="list-group">
+          <a href="bset-09-checkout.html" class="list-group-item list-group-item-action active d-flex justify-content-between" style="background:var(--ad-teal-light); color:var(--ad-teal-dark); border-color:var(--ad-teal);">TAXES <i class="bi bi-chevron-right"></i></a>
+          <a href="bset-13-tip-suggestion.html" class="list-group-item list-group-item-action d-flex justify-content-between">TIP SUGGESTION <i class="bi bi-chevron-right"></i></a>
+          <a href="bset-15-terminals.html" class="list-group-item list-group-item-action d-flex justify-content-between">TERMINALS <i class="bi bi-chevron-right"></i></a>
+          <a href="bset-16-dual-pricing.html" class="list-group-item list-group-item-action d-flex justify-content-between">DUAL PRICING STRATEGY <i class="bi bi-chevron-right"></i></a>
+          <a href="bset-17-receipt-settings.html" class="list-group-item list-group-item-action d-flex justify-content-between">RECEIPT SETTINGS <i class="bi bi-chevron-right"></i></a>
+          <a href="bset-18-payment-types.html" class="list-group-item list-group-item-action d-flex justify-content-between">PAYMENT TYPES <i class="bi bi-chevron-right"></i></a>
+        </div>
+      </div>
+      <div class="col-lg-9">
+        <div class="ad-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 fw-bold mb-0">Taxes</h2>
+            <a href="bset-10-add-tax.html" class="btn btn-ad"><i class="bi bi-plus-lg"></i></a>
+          </div>
+          <hr>
+          <h3 class="h6 fw-bold mb-1">Tax Defaults</h3>
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <p class="text-muted">Setup the default taxes for your business, you can still override defaults in the settings of individual products and services</p>
+            <button class="btn btn-ad text-nowrap">APPLY DEFAULTS</button>
+          </div>
+          <div class="d-flex justify-content-between align-items-center py-1"><span>Service Tax: No tax</span><a href="bset-12-select-default-tax.html"><i class="bi bi-pencil"></i></a></div>
+          <div class="d-flex justify-content-between align-items-center py-1"><span>Product Tax: No tax</span><a href="bset-12-select-default-tax.html"><i class="bi bi-pencil"></i></a></div>
+          <div class="d-flex justify-content-between align-items-center py-1 mb-3"><span>Amount Tax: No tax</span><a href="bset-12-select-default-tax.html"><i class="bi bi-pencil"></i></a></div>
+          <hr>
+          <div class="d-flex justify-content-between align-items-center">
+            <h3 class="h6 fw-bold mb-0">Tax Calculation</h3>
+            <a href="bset-11-tax-calculation.html" style="color: var(--ad-teal);"><i class="bi bi-pencil"></i> CHANGE</a>
+          </div>
+          <div style="color: var(--ad-yellow);">Calculate tax on price before discount</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

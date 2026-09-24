@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Select services - Fresha</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: selectservicesforgroup.png (primary content below - the group
+     flow, since Continue here leads into 14-add-guests.html).
+     This same page/URL is also reached for a single (non-group) booking -
+     see selectServices.png, which showed a different venue/service set
+     (Quick Trim, Wash & Blow Dry, Medium Box Braids, from CA$95, 2 items) -
+     and for Guest 2 individually (Guest2SelectServices.png, guest chip
+     "Guest 2" with just Acne Facial checked). In a single-guest booking,
+     Continue would instead skip straight to 17-select-date-time.html. -->
+<div class="phone-shell no-bottom-pad">
+  <div class="sheet-header">
+    <a href="12-select-an-option.html"><i class="bi bi-arrow-left"></i></a>
+    <a href="12-select-an-option.html"><i class="bi bi-x-lg"></i></a>
+  </div>
+  <div class="p-3">
+    <h1 class="fw-bold mb-3">Select services</h1>
+    <div class="fr-list-card d-flex align-items-center gap-3 p-3 mb-3">
+      <span class="fr-avatar">SZ</span>
+      <strong>Steven Zhang</strong>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <div class="d-flex gap-2 flex-fill" style="overflow-x:auto;">
+        <span class="badge rounded-pill bg-dark px-3 py-2">Featured</span>
+        <span class="badge rounded-pill bg-light text-dark px-3 py-2">Promotions</span>
+        <span class="badge rounded-pill bg-light text-dark px-3 py-2">Advanced Tr&hellip;</span>
+      </div>
+      <button class="btn btn-light rounded-circle btn-sm"><i class="bi bi-list-ul"></i></button>
+    </div>
+
+    <h2 class="h6 fw-bold mb-2">Featured</h2>
+    <div class="d-flex flex-column gap-3">
+      <div class="fr-card d-flex justify-content-between align-items-start" style="border-color:var(--fr-purple); border-width:2px;">
+        <div>
+          <div class="fw-semibold">Acne Facial</div>
+          <div class="text-muted small mb-2">1 hr, 30 min</div>
+          <div class="fw-bold">CA$175</div>
+        </div>
+        <button class="fr-add-btn active btn p-0 fs-3" style="color:var(--fr-purple); line-height:1;"><i class="bi bi-check-circle-fill"></i></button>
+      </div>
+      <div class="fr-card d-flex justify-content-between align-items-start" style="border-color:var(--fr-purple); border-width:2px;">
+        <div>
+          <div class="fw-semibold">Korean Glass Facial and Forma Bundle Promo</div>
+          <div class="text-muted small mb-2">1 hr, 40 min</div>
+          <div class="text-muted small mb-2">A special treatment for a limited time! Grab the ra&hellip;</div>
+          <div class="fw-bold">CA$299</div>
+        </div>
+        <button class="fr-add-btn active btn p-0 fs-3" style="color:var(--fr-purple); line-height:1;"><i class="bi bi-check-circle-fill"></i></button>
+      </div>
+    </div>
+  </div>
+  <div class="cart-bar">
+    <div>
+      <div class="cart-bar-price">CA$474</div>
+      <div class="cart-bar-meta"><i class="bi bi-cart"></i> 2 items &middot; 3 hr, 10 min</div>
+    </div>
+    <a href="14-add-guests.html" class="btn btn-fresha px-4">Continue <i class="bi bi-arrow-right"></i></a>
+  </div>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

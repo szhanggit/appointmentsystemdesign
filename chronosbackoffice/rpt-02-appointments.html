@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appointments Report - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body class="p-4">
+<!-- Source: appointments.png (this is a cropped content-only capture, no
+     sidebar - shown here as a standalone report page) -->
+<div class="d-flex justify-content-between align-items-center mb-1">
+  <h1 class="h4 fw-bold mb-0">Appointments</h1>
+  <a href="rpt-01-overview.html" class="btn btn-ad-outline border"><i class="bi bi-chevron-left"></i> BACK</a>
+</div>
+<div class="text-muted mb-4"><a href="rpt-01-overview.html">Reports</a> <i class="bi bi-chevron-right small"></i> <strong>Appointments</strong></div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><label class="form-label text-muted small">Range</label><select class="form-select"><option>This Week</option></select></div>
+  <div class="col-md-4"><label class="form-label text-muted small">From</label><input type="text" class="form-control" value="2026-09-20"></div>
+  <div class="col-md-4"><label class="form-label text-muted small">To</label><input type="text" class="form-control" value="2026-09-26"></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="ad-card h-100">
+      <h2 class="h6 fw-bold mb-3">Waitlist Quantity</h2>
+      <p class="text-muted text-center py-5">NO WAITLIST(S) MADE DURING THIS TIME</p>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="ad-card h-100">
+      <h2 class="h6 fw-bold mb-3">Booking Quantity</h2>
+      <p class="text-muted mb-3">Total Booking: 18</p>
+      <div class="d-flex align-items-center gap-4">
+        <div class="ad-pie" style="background: conic-gradient(var(--ad-red) 0% 11%, var(--ad-green) 11% 100%);"></div>
+        <ul class="list-unstyled mb-0">
+          <li><span class="text-danger">&#9679;</span> Cancelled: 2</li>
+          <li><span style="color:var(--ad-lavender);">&#9679;</span> No Show: 0</li>
+          <li><span style="color:var(--ad-green);">&#9679;</span> In Progress: 16</li>
+          <li><span class="text-body-tertiary">&#9679;</span> Completed: 0</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="ad-card h-100">
+      <h2 class="h6 fw-bold mb-3">SMS Usage Count</h2>
+      <p class="text-muted text-center py-5">NO SMS(S) MADE DURING THIS TIME</p>
+    </div>
+  </div>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

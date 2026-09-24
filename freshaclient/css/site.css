@@ -1,0 +1,322 @@
+/* =========================================================================
+   Fresha client app - reference wireframe (phone-width layout)
+   -------------------------------------------------------------------------
+   This is a structural wireframe, not a final visual design.
+   Colors below are an approximate read of the reference screenshots -
+   please correct the exact hex values by hand during your review pass.
+   ========================================================================= */
+
+:root {
+  --fr-purple: #5b4fe5;
+  --fr-purple-dark: #4438c9;
+  --fr-purple-light: #eeecfd;
+  --fr-ink: #17181a;
+  --fr-muted: #6c7075;
+  --fr-border: #e7e7ea;
+  --fr-yellow: #f5c945;
+  --fr-red: #e0245e;
+  --phone-width: 430px;
+}
+
+body {
+  color: var(--fr-ink);
+  background-color: #d9d9de; /* backdrop behind the phone frame */
+}
+
+a {
+  color: var(--fr-purple);
+}
+
+/* ---- Phone frame ------------------------------------------------------- */
+.phone-shell {
+  max-width: var(--phone-width);
+  margin: 0 auto;
+  background: #ffffff;
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: 90px; /* room for bottom tab bar / cart bar */
+  box-shadow: 0 0 24px rgba(0,0,0,.15);
+}
+.phone-shell.no-bottom-pad {
+  padding-bottom: 0;
+}
+
+/* ---- Plain app header (back arrow [+ title] [+ right icons]) ----------- */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1rem .75rem;
+  gap: .75rem;
+}
+.app-header .app-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fr-ink);
+  text-decoration: none;
+  flex: 0 0 auto;
+}
+.app-header .app-header-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-header .app-header-actions {
+  display: flex;
+  gap: .5rem;
+  flex: 0 0 auto;
+}
+
+/* ---- Bottom-sheet style header (back arrow left, X close right) -------- */
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0;
+}
+.sheet-header a {
+  color: var(--fr-ink);
+  text-decoration: none;
+  font-size: 1.3rem;
+}
+.sheet-title {
+  font-weight: 800;
+  font-size: 1.6rem;
+  padding: 1.25rem 1.25rem .25rem;
+}
+.sheet-step {
+  color: var(--fr-muted);
+  padding: 0 1.25rem;
+  font-size: .95rem;
+}
+
+/* ---- Bottom fixed tab bar (Home / Search / Activity / Profile) --------- */
+.bottom-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--phone-width);
+  background: #fff;
+  border-top: 1px solid var(--fr-border);
+  display: flex;
+  padding: .6rem 0 .8rem;
+}
+.bottom-tabbar a {
+  flex: 1;
+  text-align: center;
+  color: var(--fr-muted);
+  text-decoration: none;
+  font-size: .8rem;
+}
+.bottom-tabbar a i {
+  display: block;
+  font-size: 1.3rem;
+  margin-bottom: .1rem;
+}
+.bottom-tabbar a.active {
+  color: var(--fr-purple);
+}
+
+/* ---- Sticky bottom cart / continue bar ---------------------------------- */
+.cart-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--phone-width);
+  background: #fff;
+  border-top: 1px solid var(--fr-border);
+  padding: .9rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cart-bar .cart-bar-price {
+  font-weight: 700;
+}
+.cart-bar .cart-bar-meta {
+  color: var(--fr-muted);
+  font-size: .85rem;
+}
+
+/* ---- Buttons ------------------------------------------------------------ */
+.btn-fresha {
+  background-color: var(--fr-ink);
+  border-color: var(--fr-ink);
+  color: #fff;
+  border-radius: 2rem;
+}
+.btn-fresha:hover, .btn-fresha:focus {
+  background-color: #000;
+  border-color: #000;
+  color: #fff;
+}
+.btn-fresha-outline {
+  background-color: #fff;
+  border: 1px solid var(--fr-border);
+  color: var(--fr-ink);
+  border-radius: 2rem;
+}
+.btn-purple {
+  background-color: var(--fr-purple);
+  border-color: var(--fr-purple);
+  color: #fff;
+  border-radius: 2rem;
+}
+
+/* ---- Cards --------------------------------------------------------------- */
+.fr-card {
+  border: 1px solid var(--fr-border);
+  border-radius: .9rem;
+  padding: 1rem;
+}
+.fr-list-card {
+  border: 1px solid var(--fr-border);
+  border-radius: .9rem;
+  overflow: hidden;
+}
+.fr-thumb {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: .6rem;
+  background: #eee;
+}
+.fr-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--fr-purple-light);
+  color: var(--fr-purple);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+/* ---- Category icon grid (Home) ------------------------------------------- */
+.fr-category {
+  text-align: center;
+  text-decoration: none;
+  color: var(--fr-ink);
+}
+.fr-category .fr-category-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: .9rem;
+  background: #f2f2f4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  margin-bottom: .35rem;
+}
+.fr-category span {
+  font-size: .8rem;
+  display: block;
+}
+
+/* ---- Tab pills (venue / professional profile) ---------------------------- */
+.fr-tabs {
+  display: flex;
+  gap: .5rem;
+  overflow-x: auto;
+  padding: 0 1.25rem .75rem;
+  border-bottom: 1px solid var(--fr-border);
+}
+.fr-tabs a {
+  flex: 0 0 auto;
+  padding: .5rem 1rem;
+  border-radius: 2rem;
+  text-decoration: none;
+  color: var(--fr-ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fr-tabs a.active {
+  background: var(--fr-ink);
+  color: #fff;
+}
+
+/* ---- Date carousel (select date & time) ----------------------------------- */
+.fr-date-pill {
+  min-width: 64px;
+  text-align: center;
+  border-radius: .8rem;
+  padding: .6rem .3rem;
+  border: 1px solid var(--fr-border);
+  color: var(--fr-ink);
+  text-decoration: none;
+  flex: 0 0 auto;
+}
+.fr-date-pill.active {
+  background: var(--fr-purple);
+  border-color: var(--fr-purple);
+  color: #fff;
+}
+.fr-date-pill.disabled {
+  color: #c7c7cc;
+  text-decoration: line-through;
+}
+.fr-time-slot {
+  border: 1px solid var(--fr-border);
+  border-radius: .6rem;
+  padding: .6rem;
+  text-align: center;
+  text-decoration: none;
+  color: var(--fr-ink);
+  display: block;
+}
+.fr-time-slot.active {
+  border-color: var(--fr-purple);
+  border-width: 2px;
+  color: var(--fr-purple);
+  font-weight: 600;
+}
+
+/* ---- Empty state ------------------------------------------------------------ */
+.fr-empty-icon {
+  font-size: 3rem;
+  margin-bottom: .5rem;
+}
+
+/* ---- Step option card (Select an option / Select professional) -------------- */
+.fr-option-card {
+  border: 1px solid var(--fr-border);
+  border-radius: .9rem;
+  padding: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none;
+  color: var(--fr-ink);
+}
+.fr-option-card.selected {
+  border-color: var(--fr-purple);
+  border-width: 2px;
+}
+
+/* ---- Gradient promo card (package / gift card) ------------------------------- */
+.fr-gradient-card {
+  background: linear-gradient(135deg, #5b4fe5, #b04fe5);
+  color: #fff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.fr-footer-note {
+  padding: 1rem 1.25rem 2rem;
+  color: var(--fr-muted);
+  font-size: .85rem;
+}

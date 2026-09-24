@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appointment List - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: AppointmentHistoryOverview.png, AppointmentHistoryDetail.png
+     (single scrolling table - "Showing 1-100 of 136", only a representative
+     sample of rows is reproduced here) -->
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="brand-row">
+      <a href="0-home.html" class="brand">
+        <span class="brand-mark d-inline-flex align-items-center justify-content-center"><i class="bi bi-emoji-smile"></i></span>
+        byChronos
+      </a>
+      <button class="btn btn-sm btn-link text-dark"><i class="bi bi-chevron-double-left"></i></button>
+    </div>
+    <a href="00-locations.html" class="back-btn"><i class="bi bi-chevron-left"></i> BACK</a>
+    <div class="location-name">SELAH HEAD SPA</div>
+
+    <div class="nav-group-label">APPS &amp; SERVICES</div>
+    <a href="0-home.html" class="nav-link-item"><i class="bi bi-house-door"></i> Home</a>
+    <a href="appt-01-calendar.html" class="nav-link-item"><i class="bi bi-calendar3"></i> Appointments</a>
+    <a href="hist-01-list.html" class="nav-link-item active"><i class="bi bi-calendar-check"></i> Appointments History</a>
+    <a href="wait-01-overview.html" class="nav-link-item"><i class="bi bi-clipboard"></i> Waitlist</a>
+    <a href="checkout-01-manual.html" class="nav-link-item"><i class="bi bi-credit-card"></i> Checkout</a>
+    <a href="sales-01-overview.html" class="nav-link-item"><i class="bi bi-cash-stack"></i> Sales</a>
+    <a href="cust-01-overview.html" class="nav-link-item"><i class="bi bi-person-vcard"></i> Customers</a>
+    <a href="inv-01-services.html" class="nav-link-item"><i class="bi bi-grid"></i> Inventory</a>
+    <a href="staff-01-overview.html" class="nav-link-item"><i class="bi bi-people"></i> Staffs</a>
+    <a href="mkt-01-overview.html" class="nav-link-item"><i class="bi bi-tags"></i> Marketing</a>
+    <a href="rpt-01-overview.html" class="nav-link-item"><i class="bi bi-bar-chart"></i> Reports</a>
+
+    <div class="nav-group-label mt-3">SETTINGS</div>
+    <a href="bset-01-overview.html" class="nav-link-item"><i class="bi bi-gear"></i> Business Settings</a>
+    <a href="lock-01-screen.html" class="nav-link-item"><i class="bi bi-box-arrow-in-right"></i> Lock Screen</a>
+
+    <div class="sidebar-footer">
+      <button class="btn btn-sm btn-light rounded-circle"><i class="bi bi-translate"></i></button>
+      <span class="sidebar-avatar">SZ</span>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <h1 class="h4 fw-bold mb-1">Appointment List</h1>
+    <div class="text-muted mb-4"><a href="appt-01-calendar.html">Appointments</a> <i class="bi bi-chevron-right small"></i> <strong>History</strong></div>
+
+    <div class="ad-card mb-4">
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label text-muted small">Range</label>
+          <select class="form-select"><option>This Week</option></select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-muted small">Status</label>
+          <select class="form-select"><option>All Status</option></select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-muted small">Source</label>
+          <select class="form-select"><option>All Sources</option></select>
+        </div>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label text-muted small">From</label>
+          <div class="input-group"><input type="text" class="form-control" value="2026-09-13"><span class="input-group-text bg-white"><i class="bi bi-calendar3"></i></span></div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label text-muted small">To</label>
+          <div class="input-group"><input type="text" class="form-control" value="2026-09-19"><span class="input-group-text bg-white"><i class="bi bi-calendar3"></i></span></div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label text-muted small">&nbsp;</label>
+          <input type="text" class="form-control" placeholder="Search by Appointment ID# and Customer Name">
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr class="text-muted small">
+            <th>APPOINTMENT#</th><th>CUSTOMER</th><th>CREATED DATE</th><th>DATE FROM</th><th>DATE END</th><th>SOURCE</th><th>STATUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><a href="hist-02-detail.html">3213659</a></td><td>nino lu</td><td>September 18, 2026 4:12 PM</td><td>Fri, 18 Sep 2026, 4:30 PM</td><td>Fri, 18 Sep 2026, 5:30 PM</td><td>BYCHRONOS FLEX</td><td><span class="badge" style="background:var(--ad-teal-light); color:var(--ad-teal-dark);">Confirmed</span></td></tr>
+          <tr><td><a href="hist-02-detail.html">3213380</a></td><td>安 tran</td><td>September 18, 2026 3:52 PM</td><td>Fri, 18 Sep 2026, 4:15 PM</td><td>Fri, 18 Sep 2026, 5:45 PM</td><td>BYCHRONOS FLEX</td><td><span class="badge" style="background:var(--ad-teal-light); color:var(--ad-teal-dark);">Confirmed</span></td></tr>
+          <tr><td><a href="hist-02-detail.html">3213158</a></td><td>Walk-In</td><td>September 18, 2026 3:32 PM</td><td>Fri, 18 Sep 2026, 4:00 PM</td><td>Fri, 18 Sep 2026, 5:00 PM</td><td>BYCHRONOS FLEX</td><td><span class="badge" style="background:var(--ad-teal-light); color:var(--ad-teal-dark);">Confirmed</span></td></tr>
+          <tr><td><a href="hist-02-detail.html">3212912</a></td><td>eve</td><td>September 18, 2026 3:13 PM</td><td>Tue, 22 Sep 2026, 10:30 AM</td><td>Tue, 22 Sep 2026, 11:30 AM</td><td>BYCHRONOS FLEX</td><td><span class="badge" style="background:var(--ad-teal-light); color:var(--ad-teal-dark);">Confirmed</span></td></tr>
+          <tr><td><a href="hist-02-detail.html">3212482</a></td><td>Mohamed</td><td>September 18, 2026 2:33 PM</td><td>Fri, 18 Sep 2026, 7:30 PM</td><td>Fri, 18 Sep 2026, 8:30 PM</td><td>BYCHRONOS FLEX</td><td><span class="badge" style="background:var(--ad-teal-light); color:var(--ad-teal-dark);">Confirmed</span></td></tr>
+          <tr><td><a href="hist-02-detail.html">3209436</a></td><td>Vincent Colico</td><td>September 18, 2026 10:35 AM</td><td>Fri, 25 Sep 2026, 6:45 PM</td><td>Fri, 25 Sep 2026, 7:45 PM</td><td>ONLINE BOOKING</td><td><span class="badge" style="background:var(--ad-teal-light); color:var(--ad-teal-dark);">Confirmed</span></td></tr>
+          <tr><td><a href="hist-02-detail.html">3209347</a></td><td>Vincent Colico</td><td>September 18, 2026 10:28 AM</td><td>Fri, 25 Sep 2026, 7:15 PM</td><td>Fri, 25 Sep 2026, 7:45 PM</td><td>ONLINE BOOKING</td><td><span class="badge" style="background:var(--ad-red-light); color:var(--ad-red);">Cancelled</span></td></tr>
+          <tr><td><a href="hist-02-detail.html">3208493</a></td><td>Brianna Zabel</td><td>September 18, 2026 8:16 AM</td><td>Fri, 18 Sep 2026, 10:15 AM</td><td>Fri, 18 Sep 2026, 11:15 AM</td><td>GOOGLE RESERVE</td><td><span class="badge" style="background:var(--ad-teal-light); color:var(--ad-teal-dark);">Confirmed</span></td></tr>
+          <tr><td><a href="hist-02-detail.html">3207505</a></td><td>Faith Tuzon</td><td>September 17, 2026 9:40 PM</td><td>Sat, 26 Sep 2026, 5:00 PM</td><td>Sat, 26 Sep 2026, 6:00 PM</td><td>GOOGLE RESERVE</td><td><span class="badge" style="background:var(--ad-teal-light); color:var(--ad-teal-dark);">Confirmed</span></td></tr>
+          <tr><td><a href="hist-02-detail.html">3198815</a></td><td>Dian</td><td>September 16, 2026 7:30 PM</td><td>Thu, 17 Sep 2026, 5:00 PM</td><td>Thu, 17 Sep 2026, 6:00 PM</td><td>BYCHRONOS FLEX</td><td><span class="badge" style="background:var(--ad-teal-light); color:var(--ad-teal-dark);">Confirmed</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="text-muted small">Showing 1&ndash;100 / 136</div>
+  </main>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

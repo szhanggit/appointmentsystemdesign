@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: login.png -->
+<div class="container-fluid">
+  <div class="row min-vh-100">
+    <div class="col-lg-7 d-none d-lg-block position-relative py-4 px-5">
+      <a href="00-login.html" class="auth-brand text-decoration-none text-dark">
+        <span class="brand-mark d-inline-flex align-items-center justify-content-center"><i class="bi bi-emoji-smile"></i></span>
+        byChronos
+      </a>
+      <div class="d-flex flex-wrap gap-4 mt-5">
+        <div class="ad-card" style="width:260px;">
+          <div class="ad-kpi-icon mb-3" style="background:var(--ad-purple-light); color:var(--ad-purple);"><i class="bi bi-cart3"></i></div>
+          <div class="text-success small fw-semibold mb-2"><i class="bi bi-arrow-up"></i> +22%</div>
+          <div class="fs-3 fw-bold">155k</div>
+          <div class="text-muted mb-2">Total Order</div>
+          <span class="badge bg-light text-dark">Last 4 Month</span>
+        </div>
+        <div class="ad-card" style="width:300px;">
+          <div class="d-flex align-items-center gap-3">
+            <div class="ad-kpi-icon" style="background:var(--ad-purple-light); color:var(--ad-purple);"><i class="bi bi-person"></i></div>
+            <div>
+              <div class="fs-3 fw-bold d-inline">8,458</div>
+              <span class="text-danger small fw-semibold ms-2"><i class="bi bi-arrow-down"></i> 8.10%</span>
+              <div class="text-muted">New Customers</div>
+            </div>
+          </div>
+        </div>
+        <div class="ad-card" style="width:220px;">
+          <div class="fs-3 fw-bold d-inline">$42.5k</div>
+          <span class="text-success small fw-semibold ms-2">+62%</span>
+          <div class="text-muted mb-2">Sessions</div>
+          <svg viewBox="0 0 200 60" width="100%" height="60">
+            <polyline points="0,45 30,20 60,40 90,10 120,35 150,15 180,25 200,5" fill="none" stroke="#3fa9dd" stroke-width="3"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5 d-flex align-items-center">
+      <div class="w-100 px-4 px-lg-5" style="max-width:460px; margin:0 auto;">
+        <h1 class="h3 fw-bold mb-2">Welcome to byChronos! &#128075;</h1>
+        <p class="text-muted mb-4">Please sign-in to your account and start the adventure</p>
+
+        <form action="00-locations.html">
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control form-control-lg" value="selahheadspa4u@gmail.com">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <div class="input-group input-group-lg">
+              <input type="password" class="form-control" id="loginPassword" value="password">
+              <span class="input-group-text bg-white ad-toggle-password" data-target="#loginPassword" role="button"><i class="bi bi-eye-slash"></i></span>
+            </div>
+          </div>
+          <div class="form-check mb-4">
+            <input type="checkbox" class="form-check-input" id="rememberMe" checked>
+            <label class="form-check-label" for="rememberMe">Remember Me</label>
+          </div>
+          <button type="submit" class="btn btn-ad btn-lg w-100">LOGIN</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

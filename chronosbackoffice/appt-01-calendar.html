@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appointments - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+<style>
+  .cal-grid { display: grid; grid-template-columns: 70px repeat(6, 1fr); border-top:1px solid var(--ad-border); border-left:1px solid var(--ad-border); min-width: 900px; }
+  .cal-cell { border-right:1px solid var(--ad-border); border-bottom:1px solid var(--ad-border); height:60px; position:relative; }
+  .cal-time { border-right:1px solid var(--ad-border); border-bottom:1px solid var(--ad-border); height:60px; font-size:.8rem; color:var(--ad-muted); padding:.25rem .5rem; }
+  .cal-staff-header { text-align:center; padding: .75rem 0; }
+  .cal-avatar { width:56px; height:56px; border-radius:50%; background:var(--ad-teal); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:700; position:relative; }
+  .cal-avatar .badge-count { position:absolute; top:-4px; right:-4px; background:#f2777b; color:#fff; border-radius:50%; width:22px; height:22px; font-size:.7rem; display:inline-flex; align-items:center; justify-content:center; }
+  .cal-appt { position:absolute; left:2px; right:2px; border-radius:.3rem; padding:.35rem; font-size:.75rem; color:#1c2b33; overflow:hidden; }
+  .cal-unavailable { position:absolute; left:2px; right:2px; background:#dcdfe2; z-index:1; }
+  .cal-now-line { position:absolute; left:0; right:0; height:2px; background:#e0245e; z-index:2; }
+  .cal-tooltip { display:none; position:absolute; z-index:5; background:#2c2c2c; color:#fff; padding:.6rem .75rem; border-radius:.4rem; font-size:.78rem; width:230px; top:100%; left:0; }
+  .cal-appt:hover .cal-tooltip { display:block; }
+</style>
+</head>
+<body>
+<!-- Source: AppointmentOverview.png, AppointmentDetail.png (single scrolling
+     calendar), TopDropdownList.png (status filter dropdown, built here as a
+     functional Bootstrap dropdown). Sample appointments combine the several
+     Task examples (Task1 Victoria Chai/Connie, Task2 JiHae Jeon/Nina, Task3
+     Brianna Zabel/Amy, Task4 walk-in, Task5 "安 tran") into one representative
+     day so the calendar's visual language (color coding, unavailable block,
+     now-line, hover tooltip) is all visible at once. -->
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="brand-row">
+      <a href="0-home.html" class="brand">
+        <span class="brand-mark d-inline-flex align-items-center justify-content-center"><i class="bi bi-emoji-smile"></i></span>
+        byChronos
+      </a>
+      <button class="btn btn-sm btn-link text-dark"><i class="bi bi-chevron-double-left"></i></button>
+    </div>
+    <a href="00-locations.html" class="back-btn"><i class="bi bi-chevron-left"></i> BACK</a>
+    <div class="location-name">SELAH HEAD SPA</div>
+
+    <div class="nav-group-label">APPS &amp; SERVICES</div>
+    <a href="0-home.html" class="nav-link-item"><i class="bi bi-house-door"></i> Home</a>
+    <a href="appt-01-calendar.html" class="nav-link-item active"><i class="bi bi-calendar3"></i> Appointments</a>
+    <a href="hist-01-list.html" class="nav-link-item"><i class="bi bi-calendar-check"></i> Appointments History</a>
+    <a href="wait-01-overview.html" class="nav-link-item"><i class="bi bi-clipboard"></i> Waitlist</a>
+    <a href="checkout-01-manual.html" class="nav-link-item"><i class="bi bi-credit-card"></i> Checkout</a>
+    <a href="sales-01-overview.html" class="nav-link-item"><i class="bi bi-cash-stack"></i> Sales</a>
+    <a href="cust-01-overview.html" class="nav-link-item"><i class="bi bi-person-vcard"></i> Customers</a>
+    <a href="inv-01-services.html" class="nav-link-item"><i class="bi bi-grid"></i> Inventory</a>
+    <a href="staff-01-overview.html" class="nav-link-item"><i class="bi bi-people"></i> Staffs</a>
+    <a href="mkt-01-overview.html" class="nav-link-item"><i class="bi bi-tags"></i> Marketing</a>
+    <a href="rpt-01-overview.html" class="nav-link-item"><i class="bi bi-bar-chart"></i> Reports</a>
+
+    <div class="nav-group-label mt-3">SETTINGS</div>
+    <a href="bset-01-overview.html" class="nav-link-item"><i class="bi bi-gear"></i> Business Settings</a>
+    <a href="lock-01-screen.html" class="nav-link-item"><i class="bi bi-box-arrow-in-right"></i> Lock Screen</a>
+
+    <div class="sidebar-footer">
+      <button class="btn btn-sm btn-light rounded-circle"><i class="bi bi-translate"></i></button>
+      <span class="sidebar-avatar">SZ</span>
+    </div>
+  </aside>
+
+  <main class="admin-main" style="padding-right:0;">
+    <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+      <button class="btn" style="background:#f4b740; color:#1c2b33; font-weight:600;">CLOCK IN/OUT</button>
+      <button class="btn" style="background:#6c7a86; color:#fff; font-weight:600;">FILTER STAFFER</button>
+
+      <div class="dropdown">
+        <button class="btn btn-ad-outline border dropdown-toggle" data-bs-toggle="dropdown">New, Confi&hellip;</button>
+        <div class="dropdown-menu p-2">
+          <div class="form-check"><input class="form-check-input" type="checkbox" checked id="stNew"><label class="form-check-label" for="stNew">New</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" checked id="stConf"><label class="form-check-label" for="stConf">Confirmed</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="stArr"><label class="form-check-label" for="stArr">Arrived</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="stServ"><label class="form-check-label" for="stServ">Serving</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="stComp"><label class="form-check-label" for="stComp">Completed</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="stCanc"><label class="form-check-label" for="stCanc">Cancelled</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="stNoShow"><label class="form-check-label" for="stNoShow">No-Show</label></div>
+        </div>
+      </div>
+
+      <button class="btn btn-ad-outline border"><i class="bi bi-chevron-left"></i></button>
+      <button class="btn btn-ad-outline border text-primary fw-bold">TODAY</button>
+      <span class="fw-semibold">FRI, SEP 18, 2026</span>
+      <button class="btn btn-ad-outline border"><i class="bi bi-chevron-right"></i></button>
+      <span class="d-inline-flex align-items-center gap-1"><i class="bi bi-calendar3"></i> <strong>10</strong></span>
+
+      <select class="form-select w-auto"><option>Day</option><option>Week</option><option>Month</option></select>
+      <a href="appt-02-new-menu.html" class="btn btn-ad"><i class="bi bi-plus-lg"></i> NEW</a>
+      <button class="btn btn-ad-outline border"><i class="bi bi-search"></i></button>
+      <a href="appt-13-activities-feed.html" class="btn btn-ad-outline border position-relative"><i class="bi bi-bell"></i><span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">&nbsp;</span></a>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <div class="cal-staff-header cal-grid" style="height:auto;">
+        <div></div>
+        <div><span class="cal-avatar">A</span><div class="fw-semibold mt-1">ANNA</div></div>
+        <div><span class="cal-avatar" style="background:#8a97a3;">A</span><div class="fw-semibold mt-1">Any Professional</div></div>
+        <div><span class="cal-avatar">C<span class="badge-count">2</span></span><div class="fw-semibold mt-1">CONNIE</div></div>
+        <div><span class="cal-avatar">E</span><div class="fw-semibold mt-1">Emily</div></div>
+        <div><span class="cal-avatar">A<span class="badge-count">2</span></span><div class="fw-semibold mt-1">Amy</div></div>
+        <div><span class="cal-avatar">N<span class="badge-count">1</span></span><div class="fw-semibold mt-1">Nina</div></div>
+      </div>
+
+      <div class="cal-grid" style="position:relative;">
+        <div class="cal-unavailable" style="grid-column:2; top:0; height:660px;">
+          <div class="p-1 small"><strong>Unavailable</strong></div>
+        </div>
+        <div class="cal-now-line" style="top:330px; grid-column: 1 / -1;"></div>
+
+        <div class="cal-time">10 AM</div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+        <div class="cal-cell">
+          <div class="cal-appt" style="top:2px; height:118px; background:#2b2f6b; color:#fff;">
+            <strong>Brianna Zabel</strong> &#10024;<br>Foot Reflexology Massage 足底反射按摩
+            <div class="cal-tooltip">
+              <div>&#128100;: Brianna Zabel</div>
+              <div>&#128222;: 647-471-2779</div>
+              <div>&#9993;: brianazabel@hotmail.ca</div>
+              <div>&#9986;&#65039;: Foot Reflexology Massage 足底反射按摩</div>
+              <div>&#128119;&#128188;: Amy</div>
+            </div>
+          </div>
+        </div>
+        <div class="cal-cell"></div><div class="cal-cell"></div>
+
+        <div class="cal-time">11 AM</div><div class="cal-cell"></div><div class="cal-cell"></div>
+        <div class="cal-cell">
+          <div class="cal-appt" style="top:2px; height:118px; background:#b3b8f5;">
+            <strong>Victoria Chai</strong> &#10024; #57053<br>Signature Soothing Head Spa 特色舒缓头疗
+            <div class="cal-tooltip">
+              <div>&#128100;: Victoria Chai</div>
+              <div>&#128222;: 416-666-7074</div>
+              <div>&#9993;: chai.tori@gmail.com</div>
+              <div>&#9986;&#65039;: Signature Soothing Head Spa 特色舒缓头疗</div>
+              <div>&#128119;&#128188;: CONNIE</div>
+            </div>
+          </div>
+        </div>
+        <div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+
+        <div class="cal-time">12 PM</div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+        <div class="cal-time">1 PM</div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+
+        <div class="cal-time">2 PM</div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+        <div class="cal-cell">
+          <div class="cal-appt" style="top:2px; height:118px; background:#b3b8f5;">
+            <strong>JiHae Jeon</strong> &#10024; #57992<br>Signature Soothing Head Spa 特色舒缓头疗
+            <div class="cal-tooltip">
+              <div>&#128100;: JiHae Jeon</div>
+              <div>&#128222;: 647-778-0717</div>
+              <div>&#9993;: jjhc0925@gmail.com</div>
+              <div>&#9986;&#65039;: Signature Soothing Head Spa 特色舒缓头疗</div>
+              <div>&#128119;&#128188;: Nina</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cal-time">3 PM</div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+        <div class="cal-cell">
+          <div class="cal-appt" style="top:2px; height:60px; background:#8f8fe0; color:#fff;">
+            <strong>Walk-In</strong><br>Signature Soothing Head Spa
+          </div>
+        </div>
+
+        <div class="cal-time">4 PM</div><div class="cal-cell"></div>
+        <div class="cal-cell">
+          <div class="cal-appt" style="top:2px; height:180px; background:#8fce9e;">
+            <strong>安 tran</strong><br>Back Massage with Oil and Head Spa背部精油按摩头疗
+          </div>
+        </div>
+        <div class="cal-cell"></div><div class="cal-cell"></div>
+        <div class="cal-cell">
+          <div class="cal-appt" style="top:2px; height:60px; background:#6c5ce7; color:#fff;">
+            <strong>Walk-In</strong><br>60mins Aromatherapy Massage(OMT)
+          </div>
+        </div>
+
+        <div class="cal-time">5 PM</div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+        <div class="cal-time">6 PM</div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

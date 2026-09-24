@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Service - byChronos</title>
+<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<!-- Source: InventoryDetail.png, EditServiceItem.png (near-duplicate captures
+     of the same page) -->
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="brand-row">
+      <a href="0-home.html" class="brand"><span class="brand-mark d-inline-flex align-items-center justify-content-center"><i class="bi bi-emoji-smile"></i></span>byChronos</a>
+      <button class="btn btn-sm btn-link text-dark"><i class="bi bi-chevron-double-left"></i></button>
+    </div>
+    <a href="00-locations.html" class="back-btn"><i class="bi bi-chevron-left"></i> BACK</a>
+    <div class="location-name">SELAH HEAD SPA</div>
+    <div class="nav-group-label">APPS &amp; SERVICES</div>
+    <a href="0-home.html" class="nav-link-item"><i class="bi bi-house-door"></i> Home</a>
+    <a href="appt-01-calendar.html" class="nav-link-item"><i class="bi bi-calendar3"></i> Appointments</a>
+    <a href="hist-01-list.html" class="nav-link-item"><i class="bi bi-calendar-check"></i> Appointments History</a>
+    <a href="wait-01-overview.html" class="nav-link-item"><i class="bi bi-clipboard"></i> Waitlist</a>
+    <a href="checkout-01-manual.html" class="nav-link-item"><i class="bi bi-credit-card"></i> Checkout</a>
+    <a href="sales-01-overview.html" class="nav-link-item"><i class="bi bi-cash-stack"></i> Sales</a>
+    <a href="cust-01-overview.html" class="nav-link-item"><i class="bi bi-person-vcard"></i> Customers</a>
+    <a href="inv-01-services.html" class="nav-link-item active"><i class="bi bi-grid"></i> Inventory</a>
+    <a href="staff-01-overview.html" class="nav-link-item"><i class="bi bi-people"></i> Staffs</a>
+    <a href="mkt-01-overview.html" class="nav-link-item"><i class="bi bi-tags"></i> Marketing</a>
+    <a href="rpt-01-overview.html" class="nav-link-item"><i class="bi bi-bar-chart"></i> Reports</a>
+    <div class="nav-group-label mt-3">SETTINGS</div>
+    <a href="bset-01-overview.html" class="nav-link-item"><i class="bi bi-gear"></i> Business Settings</a>
+    <a href="lock-01-screen.html" class="nav-link-item"><i class="bi bi-box-arrow-in-right"></i> Lock Screen</a>
+    <div class="sidebar-footer"><button class="btn btn-sm btn-light rounded-circle"><i class="bi bi-translate"></i></button><span class="sidebar-avatar">SZ</span></div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="row g-4 mb-4">
+      <div class="col-lg-6">
+        <div class="ad-card h-100">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h4 fw-bold mb-0">Edit Service</h1>
+            <a href="inv-01-services.html" class="btn" style="background:#6c7a86; color:#fff;"><i class="bi bi-arrow-left"></i> BACK</a>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6"><label class="form-label text-muted small">Name *</label><input type="text" class="form-control" value="Signature Soothing Head Spa 特色舒缓头疗"></div>
+            <div class="col-md-6"><label class="form-label text-muted small">Service Category</label><select class="form-select"><option>Signature Head Spa</option></select></div>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6"><label class="form-label text-muted small">Price *</label><input type="text" class="form-control" value="65"></div>
+            <div class="col-md-6"><label class="form-label text-muted small">Tax Rate</label><select class="form-select"><option>No Tax</option></select></div>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6"><label class="form-label text-muted small">Duration *</label><input type="text" class="form-control" value="60"></div>
+            <div class="col-md-6">
+              <label class="form-label text-muted small">Expense ($)</label><input type="text" class="form-control" value="0">
+              <div class="form-text">The service expense will be deducted from the staffer's payout</div>
+            </div>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6"><label class="form-label text-muted small">Sort Order *</label><input type="text" class="form-control" value="1"></div>
+            <div class="col-md-6">
+              <label class="form-label text-muted small">Extra time</label><select class="form-select"><option>0 mins</option></select>
+              <div class="form-text">Automatically add blocked time after each appointment</div>
+            </div>
+          </div>
+          <div class="mb-3"><textarea class="form-control" rows="2" placeholder="Description"></textarea></div>
+          <div class="mb-2 fw-semibold">Select Service Providers</div>
+          <div class="form-check mb-2"><input type="checkbox" class="form-check-input"><label class="form-check-label">Select All</label></div>
+          <select class="form-select mb-3" multiple style="height:auto;"><option>ANNA</option><option>Any Professional</option><option>ASHER OMT</option><option selected>CONNIE</option><option selected>EVA</option><option>Lisa</option><option>Amy</option><option>Coco</option></select>
+          <div class="form-check mb-2"><input type="checkbox" class="form-check-input" checked><label class="form-check-label">Variable Price</label></div>
+          <div class="form-check mb-3"><input type="checkbox" class="form-check-input"><label class="form-check-label">POS Only</label></div>
+          <button class="btn btn-ad">SUBMIT</button>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="ad-card h-100">
+          <ul class="nav nav-tabs mb-3">
+            <li class="nav-item"><a class="nav-link active" href="#">OPTION</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">ADD-ON</a></li>
+          </ul>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h6 fw-bold mb-0">Service Option</h2>
+            <button class="btn btn-ad btn-sm">NEW</button>
+          </div>
+          <table class="table"><thead><tr class="text-muted small"><th>#</th><th>OPTION NAME</th><th>PRICE</th><th>ACTIONS</th></tr></thead><tbody><tr><td colspan="4" class="text-center text-muted py-4">No options yet</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="ad-card mb-4">
+      <h2 class="h6 fw-bold mb-3">Service Image</h2>
+      <div class="border rounded d-flex align-items-center justify-content-center gap-4 p-5" style="border-style:dashed !important; background:#fafafa;">
+        <i class="bi bi-image text-muted" style="font-size:4rem;"></i>
+        <div>
+          <div class="fw-semibold">Drop files here or click to upload.</div>
+          <div class="text-muted small">Drop files here or click <a href="#">browse</a> thorough your machine</div>
+        </div>
+      </div>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button class="btn btn-secondary" disabled>DELETE</button>
+        <button class="btn btn-secondary" disabled>SUBMIT</button>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="ad-card h-100">
+          <h2 class="h6 fw-bold mb-1">Available Hours</h2>
+          <p class="text-muted small">Available hours are the hours that services can be booked. If not set, they will align with the business hours and is reflected on the online booking page</p>
+          <button class="btn btn-ad mb-3">USE LOCATION HOURS</button>
+          <div class="border rounded p-3 mb-2 d-flex justify-content-between align-items-center">
+            <strong>Monday</strong>
+            <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" checked></div>
+          </div>
+          <div class="d-flex gap-2 align-items-center mb-2">
+            <div class="input-group"><label class="input-group-text bg-white">From</label><input type="text" class="form-control" value="10:00 AM"></div>
+            <span>to</span>
+            <div class="input-group"><label class="input-group-text bg-white">To</label><input type="text" class="form-control" value="11:00 PM"></div>
+          </div>
+          <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-ad btn-sm">ADD TIME RANGE</button>
+            <button class="btn btn-sm" style="background:var(--ad-lavender); color:#fff;">APPLY TO WHOLE WEEK</button>
+          </div>
+          <p class="text-muted small">&hellip; (Tuesday through Sunday repeat the same pattern)</p>
+          <button class="btn btn-ad">SUBMIT</button>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="ad-card h-100">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="h6 fw-bold mb-0">Special Hours and Closure</h2>
+            <button class="btn btn-ad btn-sm"><i class="bi bi-plus-lg"></i></button>
+          </div>
+          <p class="text-muted small">Add special hours or closure for holidays, special events or other exceptional events. This will temporarily replace your regular business hours</p>
+          <p class="text-center text-muted py-4">No upcoming specials hours closure.</p>
+          <p class="text-center"><a href="#"><i class="bi bi-plus-lg"></i> ADD SPECIAL HOURS OR CLOSURE</a></p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<button class="ad-scrolltop"><i class="bi bi-arrow-up"></i></button>
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

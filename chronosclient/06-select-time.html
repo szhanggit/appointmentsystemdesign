@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select time - Selah Head Spa</title>
+  <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+  <!-- Source: time2.png (available-slots state, shown below). time.png shows
+       an alternate state for Sun Sep 20 ("One of our specialists is all
+       booked. but you can book for 21 Sep" + a "Go to Mon, Sep 21" button) -
+       that empty-state message is noted here but not built as a separate
+       page since it's the same page with a different selected date. -->
+
+  <header class="bc-header">
+    <a href="05-select-specialist-per-service.html" class="text-decoration-none text-dark">
+      <i class="bi bi-arrow-left"></i> <strong>Selah Head Spa</strong>
+    </a>
+  </header>
+
+  <main class="container py-4">
+    <nav class="bc-steps mb-3">
+      <span>Services</span><span class="divider">&gt;</span>
+      <span>Add guests</span><span class="divider">&gt;</span>
+      <span>Specialist</span><span class="divider">&gt;</span>
+      <span class="active">Time</span><span class="divider">&gt;</span>
+      <span>Confirm</span>
+    </nav>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <h1 class="fw-bold mb-4">Select time</h1>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <button class="btn btn-outline-secondary rounded-pill">
+            <span class="badge rounded-circle" style="background:#8bc34a;">A</span>
+            <span class="badge rounded-circle" style="background:#c0392b;">E</span>
+            Multiple specialists <i class="bi bi-chevron-down"></i>
+          </button>
+          <button class="btn btn-outline-secondary rounded-circle"><i class="bi bi-calendar3"></i></button>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>September 2026</strong>
+          <div>
+            <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></button>
+            <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></button>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mb-4" style="overflow-x:auto;">
+          <div class="text-center text-muted small text-decoration-line-through px-2">Sun<br><span class="fs-5">20</span></div>
+          <button class="btn btn-brand text-center px-3">Mon<br><span class="fs-5">21</span></button>
+          <div class="text-center text-muted small text-decoration-line-through px-2">Tue<br><span class="fs-5">22</span></div>
+          <div class="text-center text-muted small text-decoration-line-through px-2">Wed<br><span class="fs-5">23</span></div>
+          <div class="text-center text-muted small text-decoration-line-through px-2">Thu<br><span class="fs-5">24</span></div>
+          <button class="btn btn-outline-secondary text-center px-3">Fri<br><span class="fs-5">25</span></button>
+          <button class="btn btn-outline-secondary text-center px-3">Sat<br><span class="fs-5">26</span></button>
+          <button class="btn btn-outline-secondary text-center px-3">Sun<br><span class="fs-5">27</span></button>
+        </div>
+
+        <p class="fw-semibold text-muted mb-2">Morning</p>
+        <div class="row row-cols-4 g-2 mb-3">
+          <div class="col"><button class="btn btn-outline-secondary w-100">10:00 AM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">10:15 AM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">10:30 AM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">10:45 AM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">11:00 AM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">11:15 AM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">11:30 AM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">11:45 AM</button></div>
+        </div>
+
+        <p class="fw-semibold text-muted mb-2">Afternoon</p>
+        <div class="row row-cols-4 g-2 mb-3">
+          <div class="col"><button class="btn btn-outline-secondary w-100">12:00 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">12:15 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">12:30 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">12:45 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">1:00 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">1:15 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">1:30 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">1:45 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">2:00 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">2:15 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">2:30 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">2:45 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">3:00 PM</button></div>
+          <div class="col"><a href="07-contact-info.html" class="btn btn-brand w-100">4:00 PM</a></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">3:30 PM</button></div>
+          <div class="col"><button class="btn btn-outline-secondary w-100">3:45 PM</button></div>
+        </div>
+        <!-- 4:00 PM is highlighted/linked here because that is the time used
+             for the rest of the flow (see confirm.png / thankyouforyourbooking.png) -->
+      </div>
+
+      <div class="col-lg-4">
+        <div class="bc-summary sticky-top" style="top: 1rem;">
+          <div class="bc-summary-header">
+            <div class="fw-bold">Selah Head Spa</div>
+            <div class="small text-muted">280 West Beaver Creek Rd Lower Floor Unit 11-12<br>Richmond Hill, ON L4B 3B1Canada</div>
+            <div class="small text-muted">(437) 994-8777</div>
+          </div>
+          <div class="bc-guest-block">
+            <div class="bc-guest-title d-flex justify-content-between">
+              <span>Me</span> <i class="bi bi-chevron-up"></i>
+            </div>
+            <div class="bc-guest-body mt-2 d-flex justify-content-between">
+              <div>
+                <div>Scalp Guasha + Head Spa + Shoulder Massage</div>
+                <div class="small text-muted">1 hour 30 min with ANNA</div>
+              </div>
+              <div class="fw-bold">CA$110</div>
+            </div>
+          </div>
+          <div class="bc-guest-block">
+            <div class="bc-guest-title d-flex justify-content-between">
+              <span>Guest 2</span> <i class="bi bi-chevron-up"></i>
+            </div>
+            <div class="bc-guest-body mt-2 d-flex justify-content-between">
+              <div>
+                <div>Signature Soothing Head Spa 特色舒缓头疗</div>
+                <div class="small text-muted">1 hour with EVA</div>
+              </div>
+              <div class="fw-bold">from CA$65</div>
+            </div>
+          </div>
+          <div class="bc-total">
+            <span>Total</span> <span>CA$175</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="js/site.js"></script>
+</body>
+</html>
