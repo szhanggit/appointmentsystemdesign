@@ -597,7 +597,7 @@ Tuesday 1–3 PM
 
 ---
 
-# 11. 最终可以形成一个非常漂亮的 AI Loop
+# <span style="color:blue">11. 最终可以形成一个非常漂亮的 AI Loop</span>
 
 你以后跟投资人讲，可以画成：
 
