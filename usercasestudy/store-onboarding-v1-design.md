@@ -422,7 +422,7 @@ sequenceDiagram
     participant DB as PostgreSQL (store schema)
 
     CA->>GW: POST /api/store/stores/{targetStoreId}/services/copy<br/>{ sourceStoreId }
-    GW->>SM: (in-process, StoreSession, caller.appRole must be 'chain_admin')
+    GW->>SM: (in-process, StoreSession)
     alt targetStoreId == sourceStoreId
         SM-->>CA: 400 Bad Request
     else sourceStoreId or targetStoreId not in caller.AuthorizedStoreIds
@@ -447,6 +447,8 @@ sequenceDiagram
         SM-->>CA: 200 OK { categoriesCreated, servicesCreated, servicesSkipped }
     end
 ```
+
+**No `caller.appRole == 'chain_admin'` check, deliberately** — an earlier version of this diagram had one, contradicting §6's rule that authorization is always `storeId ∈ caller.AuthorizedStoreIds`, never a literal role check. It's also redundant here: a `store_admin`'s `AuthorizedStoreIds` contains exactly one store, so no `store_admin` session can ever supply two *distinct* stores that are both in scope — the existing `alt`/`else` branches above already exclude them structurally, without needing to ask what role they hold.
 
 **Name-matched idempotency, not sync.** Calling this twice never duplicates anything — categories are reused by name, services are skipped if a same-named one already exists in the matched category. It also never touches data already at the target: a service already customized at the target store is left alone, and a later price change at the source is **not** propagated (that would be a sync feature, not a copy — out of scope). **Never copies `staff_services`** — staff differ per store, so the admin re-assigns via the same checkbox UI (§7.5) after copying.
 
