@@ -158,8 +158,13 @@ sequenceDiagram
     SCOG-->>SCOG: Create user (FORCE_CHANGE_PASSWORD), auto-generate + email temp password
     SCOG-->>SM: 200 OK { sub }
     SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role, created_by_admin_id, status='active')
+    alt appRole == 'store_admin' (this is a new chain, not an additional staff member)
+        SM->>DB: INSERT INTO store.billing_accounts<br/>(store_admin_id, plan='free')
+        Note over SM,DB: See groway-billing-workflow.md - every merchant<br/>created under this store_admin gets this billing_account_id.<br/>Free is permanent by default; no expiry is set here.
+    end
     loop for each { merchantId, staffId } in merchantAccess
         SM->>DB: INSERT INTO store.store_user_merchant_access (store_user_id, merchant_id, staff_id, is_primary)
+        SM->>DB: UPDATE store.merchants SET billing_account_id = <the store_admin's billing_account_id> WHERE id = merchantId
     end
     SM->>SQSQ: SendMessage { event_type:'ACCOUNT_CREATED', store_user_id, ... }
     SM-->>SM: return CreateStoreUserResult { storeUserId }
@@ -197,7 +202,7 @@ sequenceDiagram
 
 ### 6.3 Ordinary login (returning store user)
 
-Same shape as the Admin Module's §4.4 — `InitiateAuth(USER_PASSWORD_AUTH)`, success/deactivated/invalid-credentials branches, `SendMessage` to `store-activity-log` — not re-diagrammed.
+Same shape as the Admin Module's §4.4 — `InitiateAuth(USER_PASSWORD_AUTH)`, success/deactivated/invalid-credentials branches, `SendMessage` to `store-activity-log` — not re-diagrammed. **Billing state has no effect on login** (see `groway-billing-workflow.md`, which replaced an earlier version of that document that did gate login here). A Free-plan chain, a Paid-plan chain, and a chain that just got reverted from Paid to Free all log in exactly the same way — billing only ever affects whether a *new appointment* can be created (`groway-billing-workflow.md` §4), never authentication.
 
 ### 6.4 Forgot / reset password (self-service — the customer pattern, not the admin peer-reset pattern)
 
