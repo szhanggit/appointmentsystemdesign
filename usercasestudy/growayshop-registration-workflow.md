@@ -24,7 +24,8 @@
 | Stores accessible | **Every store in the chain** | Exactly one (their own store) | One or many, switchable |
 | Sees a store's whole calendar | Yes, any store in the chain | Yes, own store | Yes |
 | Can make/manage bookings | *(future feature)* | *(future feature)* | No |
-| Can request own time off | *(future feature)* | *(future feature)* | Yes — feeds `staff_time_offs` |
+| Can manage time off (`staff_time_offs`) | Yes — any staff in the chain (`staff-schedule-entry-workflow.md` §1) | Yes — any staff at their store | Yes — **own only**, self-service preferred (§3.4 there) |
+| Can manage staff schedules (`staff_schedules`) | Yes — any staff in the chain | Yes — any staff at their store | Yes — **own only**, at each store they work (same authorization shape as time off — `staff-schedule-entry-workflow.md` §1) |
 | Can invite `staff` | Yes, any store in the chain | Yes, own store only | No |
 | Can create a new `store_admin` | Yes — **only** when adding a new store (§7.2); no ongoing management power over it afterward | No | No |
 | Can add a new store to the chain | Yes, self-service (§7.2) | No | No |
