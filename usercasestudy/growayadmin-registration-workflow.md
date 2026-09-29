@@ -10,7 +10,7 @@
 
 ## 1. Identity boundary within the shared platform
 
-Groway admins are the highest-privilege population: authenticated on this module's routes at all *is* the "can see every store's data" grant — there is no additional per-request tenant-scoping logic here, unlike the Store Module needs (`growayshop-registration-workflow.md` §2). This module still gets its **own Cognito Pool** (per the architecture doc §6.1) even though it shares the Gateway, Postgres instance, and Redis with the other two modules.
+Groway admins are the highest-privilege population: authenticated on this module's routes at all *is* the "can see every merchant's data" grant — there is no additional per-request tenant-scoping logic here, unlike the Store Module needs (`growayshop-registration-workflow.md` §2). This module still gets its **own Cognito Pool** (per the architecture doc §6.1) even though it shares the Gateway, Postgres instance, and Redis with the other two modules.
 
 ---
 
@@ -29,7 +29,7 @@ Exactly two roles, no finer-grained permissions in this first version:
 | Deactivate an admin | **yes** | no |
 | Reactivate a deactivated admin | **yes** | no |
 | Deactivate/reactivate the superadmin | never | never |
-| View all stores (implicit, by being authenticated here) | yes | yes |
+| View all merchants (implicit, by being authenticated here) | yes | yes |
 
 **Nothing is ever hard-deleted** — an admin row is deactivated (`status='deactivated'`), never removed.
 
@@ -48,7 +48,7 @@ Exactly two roles, no finer-grained permissions in this first version:
 | `POST /api/admin/admins/{id}/reset-password` | Generate a new temp password for another admin | any admin, not targeting self | `AdminSetUserPassword` + `AdminUserGlobalSignOut` |
 | `POST /api/admin/admins/{id}/deactivate` | Deactivate an admin | **superadmin only**, never the superadmin itself | `AdminDisableUser` + `AdminUserGlobalSignOut` |
 | `POST /api/admin/admins/{id}/reactivate` | Reactivate a deactivated admin | **superadmin only** | `AdminEnableUser` |
-| `POST /api/admin/store-users` | Create a store-front account on a store's behalf | any admin | see `growayshop-registration-workflow.md` §3 — dispatches in-process into Store Module |
+| `POST /api/admin/store-users` | Create a store-front account on a merchant's behalf | any admin | see `growayshop-registration-workflow.md` §3 — dispatches in-process into Store Module |
 
 No phone number, no SMS OTP, no Google federation — admins are invited, never self-register, so there's nothing to verify beyond the email the invite reached.
 
