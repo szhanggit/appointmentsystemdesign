@@ -17,13 +17,18 @@
 ## 1. Two plans, no store/staff-count limits on either
 
 ```text
-store_admin (1) ──── billing_account (1) ──── merchants (many)
+billing_account (1 per chain)
+├── chain owner: billing_accounts.store_admin_id (usually the first store's admin)
+│   └── the ONE exception to one-admin-per-store: cross-store view + billing management
+├── merchants (many — unlimited on either plan, Free included)
+│   └── exactly one operational store_admin per merchant (DB-enforced: merchants.store_admin_id UNIQUE)
+└── 100-appointment/month quota pooled across ALL merchants in the chain (§4)
 ```
 
-One `billing_account` per chain (per `store_admin`), same as before — a chain pays once for everything it manages, never store-by-store. What's different this time:
+One `billing_account` per chain — a chain pays once for everything it manages, never store-by-store. `billing_accounts.store_admin_id` is the **chain owner** (usually the first store's admin). It is *not* one-billing-account-per-admin: a five-store chain has five `store_admin` accounts (one per store) but a single `billing_account`. What's different this time:
 
 - **Only two plans: `free` and `paid`.** No Studio/Growth split.
-- **Neither plan limits the number of stores or staff.** The "1 store / 1 person" language on the public pricing page describes the *typical* Free customer, not a technical cap — a five-location chain can sit on Free (and will simply share one 100-appointment/month quota across all five, §4).
+- **Neither plan limits the number of stores or staff.** The "1 store / 1 person" language on the public pricing page describes the *typical* Free customer, not a technical cap — a five-location chain can sit on Free (and will simply share one 100-appointment/month quota across all five, §4). Each store still gets exactly one operational `store_admin`.
 - **The only technical difference between the two plans is the appointment quota** (§4) and the feature rows already shown on the pricing page (member management, marketing tools) — nothing here introduces enforcement for those feature rows; they're a frontend/UI concern, not modeled in this document.
 
 ---
@@ -58,7 +63,7 @@ sequenceDiagram
 
 **Why one flag (`trial_used_at`) is enough:** the trial can only ever be triggered once per chain, for the lifetime of that `billing_account` — checked before anything else happens. This is a hard, permanent lock at the self-service layer. It does **not** mean the chain can never go Paid again after the trial lapses — only that they can't self-serve into a *second free trial*; going Paid a second time (or after ever lapsing) always goes through the manual `confirm-payment` path (§5), same as it would for a brand-new Paid customer. Resetting `trial_used_at` for a genuine exception is a direct, manual action by a Groway admin — not a designed endpoint, deliberately (this should stay rare and visible, not a self-service button).
 
-**Why this is chain-wide, not per-merchant:** the trial flips `plan` on the one `billing_account` row that already covers every merchant under that `store_admin` — every location gets full features and unlimited quota the instant the trial starts, and every location reverts together when it ends (§4.2). There's no per-merchant trial state to design, because there's no per-merchant billing state to begin with (§1).
+**Why this is chain-wide, not per-merchant:** the trial flips `plan` on the one `billing_account` row that already covers every merchant in the chain — every location gets full features and unlimited quota the instant the trial starts, and every location reverts together when it ends (§4.2). There's no per-merchant trial state to design, because there's no per-merchant billing state to begin with (§1).
 
 ---
 
