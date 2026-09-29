@@ -22,17 +22,23 @@
 | Can make/manage bookings | *(future feature)* | **No** |
 | Can request their own time off | *(future feature)* | Yes — feeds `staff_time_offs` |
 | Can invite additional `staff` accounts | Yes — `growayshop-staff-invite-workflow.md` | No |
-| Number of merchants accessible | One or many, switchable (§6) | One or many, same mechanism |
+| Number of merchants accessible | Exactly one (own store). Exception: the chain owner (billing_account holder) sees all chain stores | One or many, switchable (§6) |
 | Who creates this account | Groway admin (this document) or ongoing via `growayshop-staff-invite-workflow.md` | Groway admin (this document, initial batch) or a `store_admin` (`growayshop-staff-invite-workflow.md`) |
 | Password reset | Self-service, like a customer | Self-service, like a customer |
 
-Each `store.store_users` row has exactly one `app_role` — a person needing different roles at different merchants needs two separate accounts (§8 item 1). A `store_admin` can **never** create another `store_admin` through any flow in this system — one admin per chain in this version.
+Each `store.store_users` row has exactly one `app_role` — a person needing different roles at different merchants needs two separate accounts (§8 item 1). A `store_admin` can **never** create another `store_admin` through any flow in this system — one admin per store in this version. (Adding a store to an existing chain is done by the chain owner or a Groway admin, and reuses the chain's existing `billing_account` — see §6.1.)
 
 ---
 
-## 2. Multi-merchant access and store-switching
+## 2. Merchant access and store-switching
 
-A `store_admin` (or `staff`) account can be granted access to more than one merchant of the **same chain** (e.g. the same owner runs two locations). This is a many-to-many relationship (`store.store_user_merchant_access`, §5), not a single foreign key — never across unrelated companies, since a `store_admin` can only grant access to merchants they themselves already have access to. The session tracks **one active merchant at a time** (§4); switching (§6) updates context within the existing session, it never re-authenticates.
+**One store, one operational admin.** A `store_admin` account is tied to exactly one merchant — enforced at the database level (`store.merchants.store_admin_id UNIQUE`, §5). There is exactly one exception:
+
+- **The chain owner** — the `store_admin` referenced by `billing_accounts.store_admin_id` (usually the first store's admin) — gets a cross-store view over every merchant in the chain, plus billing management. This reuses the same `store.store_user_merchant_access` many-to-many rows (§5); it is the *only* `store_admin` account that may hold more than one.
+
+`staff` accounts are unaffected: a staff member may still work at one or many merchants of the same chain (e.g. Anna picking up shifts at two branches), via `store.store_user_merchant_access` — never across unrelated companies.
+
+The session tracks **one active merchant at a time** (§4); switching (§6.5) updates context within the existing session, it never re-authenticates. For a regular `store_admin` there is only one merchant to be active on, so switching is effectively a no-op for them.
 
 ---
 
@@ -135,6 +141,17 @@ CREATE TABLE store.store_user_activity_log (
 );
 
 CREATE INDEX idx_store_user_merchant_access_merchant ON store.store_user_merchant_access(merchant_id);
+
+**Amendment (2026-09-28) — one store, one operational admin.** `store.merchants` gains a new column, DB-enforcing that each merchant has exactly one operational `store_admin`:
+
+```sql
+-- One operational admin per store, DB-enforced (2026-09-28 decision).
+-- The chain owner's cross-store rows in store_user_merchant_access are unaffected.
+ALTER TABLE store.merchants
+    ADD COLUMN store_admin_id UUID UNIQUE REFERENCES store.store_users(id);
+```
+
+(The `merchants` table itself is defined in `merchant-onboarding-v1-design.md`, which needs the same amendment — that document is a fixed reference and is updated separately.)
 CREATE INDEX idx_store_user_activity_log_store_user_id ON store.store_user_activity_log(store_user_id);
 ```
 
@@ -158,13 +175,16 @@ sequenceDiagram
     SCOG-->>SCOG: Create user (FORCE_CHANGE_PASSWORD), auto-generate + email temp password
     SCOG-->>SM: 200 OK { sub }
     SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role, created_by_admin_id, status='active')
-    alt appRole == 'store_admin' (this is a new chain, not an additional staff member)
+    alt appRole == 'store_admin' AND this is a brand-new chain (no billing_account exists yet)
         SM->>DB: INSERT INTO store.billing_accounts<br/>(store_admin_id, plan='free')
-        Note over SM,DB: See groway-billing-workflow.md - every merchant<br/>created under this store_admin gets this billing_account_id.<br/>Free is permanent by default; no expiry is set here.
+        Note over SM,DB: This admin becomes the chain owner. See groway-billing-workflow.md - every merchant<br/>created under this chain gets this billing_account_id.<br/>Free is permanent by default; no expiry is set here.
+    else appRole == 'store_admin' AND the chain already has a billing_account (adding another store)
+        SM->>DB: (no new billing_account) reuse the chain's existing billing_account_id
+        Note over SM,DB: One chain, one billing_account, one shared 100/month quota -<br/>never one per store_admin.
     end
     loop for each { merchantId, staffId } in merchantAccess
         SM->>DB: INSERT INTO store.store_user_merchant_access (store_user_id, merchant_id, staff_id, is_primary)
-        SM->>DB: UPDATE store.merchants SET billing_account_id = <the store_admin's billing_account_id> WHERE id = merchantId
+        SM->>DB: UPDATE store.merchants SET billing_account_id = <the chain's billing_account_id>,<br/>store_admin_id = <the new store_user id> WHERE id = merchantId
     end
     SM->>SQSQ: SendMessage { event_type:'ACCOUNT_CREATED', store_user_id, ... }
     SM-->>SM: return CreateStoreUserResult { storeUserId }
@@ -260,7 +280,7 @@ sequenceDiagram
     end
 ```
 
-Session-context change only — no Cognito call, no new login.
+Session-context change only — no Cognito call, no new login. A regular `store_admin` holds exactly one access row, so switching is a no-op for them; the chain owner and multi-store `staff` are the ones who actually switch.
 
 ---
 
@@ -281,14 +301,22 @@ VALUES
      'a2222222-2222-2222-2222-222222222222',
      'active', '2026-09-20 10:05:00-04', '2026-09-24 09:00:00-04');
 
--- Owner runs a second branch of the same chain; Anna picks up shifts at both,
--- with a different staff_id per branch (different roster rows per branch).
+-- Owner is the chain owner (billing_accounts.store_admin_id): store_admin of branch 1,
+-- plus a cross-store view row for branch 2 (the one exception to one-admin-per-store).
+-- Branch 2's own operational admin is created via the same flow (not shown).
+-- Anna (staff) picks up shifts at both branches, with a different staff_id per branch
+-- (different roster rows per branch).
 INSERT INTO store.store_user_merchant_access (store_user_id, merchant_id, staff_id, is_primary, granted_by_admin_id)
 VALUES
     ('c1111111-1111-1111-1111-111111111111', '99999999-0000-0000-0000-000000000001', NULL, TRUE,  'a2222222-2222-2222-2222-222222222222'),
     ('c1111111-1111-1111-1111-111111111111', '99999999-0000-0000-0000-000000000002', NULL, FALSE, 'a2222222-2222-2222-2222-222222222222'),
     ('c2222222-2222-2222-2222-222222222222', '99999999-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', TRUE,  'a2222222-2222-2222-2222-222222222222'),
     ('c2222222-2222-2222-2222-222222222222', '99999999-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000002', FALSE, 'a2222222-2222-2222-2222-222222222222');
+
+-- One operational admin per store, DB-enforced (2026-09-28 decision).
+UPDATE store.merchants SET store_admin_id = 'c1111111-1111-1111-1111-111111111111'
+WHERE id = '99999999-0000-0000-0000-000000000001';
+-- Branch 2's store_admin_id points at its own operational admin (created via the same flow, not shown).
 
 INSERT INTO store.store_user_activity_log (store_user_id, event_type, event_detail, ip_address, created_at)
 VALUES
@@ -299,7 +327,7 @@ VALUES
     ('c2222222-2222-2222-2222-222222222222', 'LOGIN_SUCCESS', NULL, '198.51.100.31', '2026-09-24 09:00:00-04');
 ```
 
-*Both the owner and Anna have two `store_user_merchant_access` rows, one per branch. The owner's rows have no `staff_id` (pure management access, no service-performing role of her own); Anna's rows each carry a different `staff_id`, since her assignable services/schedule can differ by branch.*
+*Both the owner and Anna have two `store_user_merchant_access` rows, one per branch. The owner's rows have no `staff_id`: the branch-1 row is her operational-admin access, the branch-2 row is her chain-owner cross-store view (the one exception to one-admin-per-store). Anna's rows each carry a different `staff_id`, since her assignable services/schedule can differ by branch. Separately, `store.merchants.store_admin_id` pins exactly one operational admin per store.*
 
 ---
 
