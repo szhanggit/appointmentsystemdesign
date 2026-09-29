@@ -4,7 +4,7 @@
 
 **Architecture:** see `groway-v1-architecture.md`. Owned by the **Store Module**, `store` schema. `store.appointments.customer_id` is an **application-level reference** to `customer.customers` (Customer Module's schema) — never a cross-schema FK, per architecture doc §5.
 
-**Relationship to other documents:** this is the fixed reference for the booking-domain tables (stores, staff, services, schedules, appointments) and the Back Office / public booking APIs. `growayshop-registration-workflow.md` owns the *account/identity* layer (chains, chain_admin/store_admin/staff logins) and adds its own columns to `store.stores` via `ALTER TABLE` (`chain_id`, `store_admin_id`) rather than redefining this table — same pattern `groway-billing-workflow.md` uses for `billing_account_id`.
+**Relationship to other documents:** this is the fixed reference for the booking-domain tables (stores, staff, services, schedules, appointments) and the Back Office / public booking APIs. `growayshop-registration-workflow.md` owns the *account/identity* layer (chains, chain_admin/store_admin/staff logins) and adds its own columns to `store.stores` via `ALTER TABLE` (`chain_id`, `store_admin_id`) rather than redefining this table — same pattern `groway-billing-workflow.md` uses for `billing_account_id`. `staff-schedule-entry-workflow.md` (who fills `business_hours`/`staff_schedules`/`staff_time_offs`, and how) and `availability-slot-engine.md` (how those tables plus `services`/`appointments` get turned into bookable times, `GET /api/store/public/slots`) are separate documents built directly on the tables defined here — this document owns the schema, they own how it's populated and consumed.
 
 **V1 decision, unchanged from the retired document:** no self-service store registration. A chain's owner emails Groway → Groway admin enters everything into the Back Office (`growayshop-registration-workflow.md` §6.1 now does this at chain-creation time, one or more stores at once).
 
@@ -36,7 +36,7 @@ Per store: enter basic info → add services → add staff → assign staff↔se
 Generate each store's public booking link → hand off to the chain
 ```
 
-Store lifecycle (`store.stores.status`): `pending` (created) → `active` (delivered, bookable) → `suspended`.
+Store lifecycle (`store.stores.status`): `pending` (created) → `active` → `suspended` — a **manual** business decision by a Groway admin or `chain_admin`, never auto-flipped. It's orthogonal to (not a stand-in for) the derived operational-readiness condition in `staff-schedule-entry-workflow.md` §2.3 (business hours filled in, ≥1 bookable staff assignment, ≥1 bookable service). A store only accepts real customer bookings when **both** hold: `status='active'` AND that derived condition is true. `active` with an incomplete setup still can't be booked (the back office nudges the admin on what's missing); `suspended` is an unconditional kill switch regardless of how complete the setup is — an emergency close doesn't require touching schedules or the catalog.
 
 ---
 
@@ -158,6 +158,11 @@ CREATE TABLE store.services (
     price_type       VARCHAR(10) NOT NULL DEFAULT 'fixed' CHECK (price_type IN ('free', 'fixed', 'from')),
     status           VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     deleted_at       TIMESTAMPTZ,  -- soft delete (default DELETE); a separate hard "purge" is §8's concern, not a flag here
+    -- NULL = inherit the store's booking_settings.buffer_before/after_minutes;
+    -- non-NULL overrides it for this service. Not split by option - a 'from'
+    -- service's options share one buffer (availability-schema.md, 2026-09-29).
+    buffer_before_minutes INT CHECK (buffer_before_minutes >= 0),
+    buffer_after_minutes  INT CHECK (buffer_after_minutes >= 0),
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -195,42 +200,92 @@ CREATE TABLE store.staff_services (
 );
 
 -- Working hours differ per store for the same person, so this is keyed off
--- the assignment too, not staff_id directly.
+-- the assignment too, not staff_id directly (staff_services, above, is the
+-- same principle). One row per shift segment; a day with no rows is a day off.
 CREATE TABLE store.staff_schedules (
     id                         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_store_assignment_id  UUID NOT NULL REFERENCES store.staff_store_assignments(id),
     day_of_week                SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),  -- 0 = Sunday
     start_time                 TIME NOT NULL,
-    end_time                   TIME NOT NULL
+    end_time                   TIME NOT NULL CHECK (end_time > start_time),
+    created_at                 TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (staff_store_assignment_id, day_of_week, start_time)
+    -- Same-day rows must not overlap - application-level check (400
+    -- SCHEDULE_OVERLAP, staff-schedule-entry-workflow.md §5.1), not a DB
+    -- constraint: TIME-range exclusion needs btree_gist same as time_offs
+    -- below, but the semantics differ enough (weekly template vs. absolute
+    -- range) that v1 keeps this one in application code.
 );
+CREATE INDEX idx_staff_schedules_assignment_id ON store.staff_schedules(staff_store_assignment_id);
 
+-- Person-level (staff_id, not assignment) - taking time off means being
+-- unavailable at every store you work, not just one ("sick" doesn't have a
+-- store). tstzrange, not date+time, so a time-off can span midnight.
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 CREATE TABLE store.staff_time_offs (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_id    UUID NOT NULL REFERENCES store.staff(id),
     starts_at   TIMESTAMPTZ NOT NULL,
-    ends_at     TIMESTAMPTZ NOT NULL,
+    ends_at     TIMESTAMPTZ NOT NULL CHECK (ends_at > starts_at),
     reason      VARCHAR(200),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- Two time-off rows for the same person can never overlap, DB-enforced -
+    -- harder than an application check (staff-schedule-entry-workflow.md §5.1);
+    -- a violation raises Postgres's exclusion_violation, mapped to 409 TIME_OFF_OVERLAP.
+    EXCLUDE USING gist (staff_id WITH =, tstzrange(starts_at, ends_at) WITH &&)
 );
+CREATE INDEX idx_staff_time_offs_staff_id ON store.staff_time_offs(staff_id);
 
+-- One row per day; a day with no row (or NULL/NULL) is closed. Split/multi-segment
+-- hours (e.g. closed for lunch) are explicitly not a v1 feature - single
+-- continuous hours per day covers this business (a spa) well enough, and
+-- adding split hours later is a UI + constraint change, not an engine change
+-- (availability-slot-engine.md already operates on interval sets).
 CREATE TABLE store.business_hours (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_id    UUID NOT NULL REFERENCES store.stores(id),
     day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
     open_time   TIME,   -- NULL means closed that day
-    close_time  TIME
+    close_time  TIME,
+    CONSTRAINT chk_business_hours_null CHECK (
+        (open_time IS NULL AND close_time IS NULL) OR
+        (open_time IS NOT NULL AND close_time IS NOT NULL AND close_time > open_time)
+    ),
+    UNIQUE (store_id, day_of_week)
 );
 
 CREATE TABLE store.booking_settings (
-    store_id                UUID PRIMARY KEY REFERENCES store.stores(id),
+    store_id                 UUID PRIMARY KEY REFERENCES store.stores(id),
     slot_granularity_minutes INT NOT NULL DEFAULT 15,
     advance_booking_days     INT NOT NULL DEFAULT 90,
-    auto_confirm             BOOLEAN NOT NULL DEFAULT TRUE
+    auto_confirm             BOOLEAN NOT NULL DEFAULT TRUE,
+    -- Added 2026-09-29 (availability-schema.md). min_lead_minutes: how soon
+    -- before a slot it can still be booked today (now() + this, store tz).
+    -- buffer_before/after: store-level default prep/cleanup time around every
+    -- booking; a service can override via services.buffer_before/after_minutes.
+    min_lead_minutes      INT NOT NULL DEFAULT 60 CHECK (min_lead_minutes >= 0),
+    buffer_before_minutes INT NOT NULL DEFAULT 0  CHECK (buffer_before_minutes >= 0),
+    buffer_after_minutes  INT NOT NULL DEFAULT 0  CHECK (buffer_after_minutes >= 0),
+    -- payment_required/cancel_threshold_hours existed in an earlier draft,
+    -- were cut in the 2026-09-29 rewrite, and are restored here (Steven
+    -- confirmed): payment_required is what a future deposit/card-on-file
+    -- feature hangs off; cancel_threshold_hours (0 = cancel any time) is
+    -- consumed by the not-yet-written cancel/reschedule document.
+    -- max_guests/allow_group (group bookings) and max_appointment_minutes
+    -- (a redundant cap given service duration is already the cap) were
+    -- deliberately dropped, not just forgotten.
+    payment_required       BOOLEAN NOT NULL DEFAULT FALSE,
+    cancel_threshold_hours INT NOT NULL DEFAULT 0 CHECK (cancel_threshold_hours >= 0)
 );
 
 -- customer_id is an application-level reference to customer.customers - never
 -- an enforced FK (architecture doc §5). Quota enforcement (groway-billing-workflow.md
 -- §4.2) runs as one additive internal call at the start of whatever creates this row.
+-- Single-person, single-block model: one appointment = one staff_id + one
+-- starts_at/ends_at at the header, even when it covers several services
+-- (appointment_items, below) performed back-to-back by that same person.
+-- staff_id is person-level; occupancy for the slot engine is read from this
+-- header, never by drilling into appointment_items (availability-slot-engine.md §4 Step 5).
 CREATE TABLE store.appointments (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_id      UUID NOT NULL REFERENCES store.stores(id),
@@ -240,14 +295,31 @@ CREATE TABLE store.appointments (
     starts_at     TIMESTAMPTZ NOT NULL,
     ends_at       TIMESTAMPTZ NOT NULL,
     is_test       BOOLEAN NOT NULL DEFAULT FALSE,  -- staff-marked test booking; see §5 on quota interaction
+    -- Buffer snapshot, added 2026-09-29 (availability-schema.md): buffer_before
+    -- is the first service's Bb, buffer_after is the last service's Ba (rule
+    -- finalized in the not-yet-written create-appointment document). Snapshotted
+    -- at booking time and never recomputed - a later change to a service's
+    -- buffer doesn't retroactively touch existing appointments, same philosophy
+    -- as price/duration snapshots below.
+    buffer_before_minutes INT NOT NULL DEFAULT 0,
+    buffer_after_minutes  INT NOT NULL DEFAULT 0,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Snapshot columns (added 2026-09-29, service-catalog-design.md's "booking
+-- snapshot" decision): a service's name/price/duration/option can all change
+-- or soft-delete later without altering historical appointments. option_id is
+-- kept (not just option_name) so "how many times was this option ever booked"
+-- doesn't need joining a possibly-soft-deleted service_options row.
 CREATE TABLE store.appointment_items (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    appointment_id  UUID NOT NULL REFERENCES store.appointments(id),
-    service_id      UUID NOT NULL REFERENCES store.services(id),
-    price_cents     INT NOT NULL  -- snapshot of the price at booking time, not a live join to services
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    appointment_id    UUID NOT NULL REFERENCES store.appointments(id),
+    service_id        UUID NOT NULL REFERENCES store.services(id),
+    service_name      TEXT NOT NULL,           -- snapshot
+    option_id         UUID,                    -- NULL for free/fixed services
+    option_name       TEXT,                    -- snapshot; NULL for free/fixed services
+    duration_minutes  INT NOT NULL CHECK (duration_minutes BETWEEN 5 AND 720),  -- snapshot, pure service time (buffer excluded - that's the appointment header's concern)
+    price_cents       INT NOT NULL  -- snapshot of the price at booking time, not a live join to services
 );
 
 CREATE INDEX idx_staff_store_assignments_staff_id ON store.staff_store_assignments(staff_id);
@@ -383,7 +455,7 @@ sequenceDiagram
 ## 9. Open questions
 
 1. **Wireframe detail** was intentionally not reproduced at the same fidelity as the retired document — this is the schema/API contract; pixel-level Back Office UI can be redrawn separately if needed.
-2. **Multi-service, multi-staff appointments** (`appointment_items` allows several service lines per appointment) — whether they can span more than one staff member per appointment isn't addressed here.
+2. ~~Multi-service, multi-staff appointments~~ — **narrowed 2026-09-29**: the baseline model is single-person, single-block (`appointments.staff_id` is one person for the whole block) — a multi-service appointment is several `appointment_items` performed back-to-back by that *same* person, never split across staff. Exactly how multiple services get sequenced into one block is still open, deferred to the not-yet-written create-appointment document (`availability-slot-engine.md` §8 item 3).
 3. **Leaving one store while staying at another** (2026-09-29, from the `staff`/`staff_store_assignments` split) — removing a `staff_store_assignments` row for one store, while the person's `store.staff` row (and their login, if they have one) stays active for their other store(s), isn't designed as an endpoint yet. `store.staff.status` is person-level (mirrors their login being deactivated entirely, `growayshop-staff-invite-workflow.md` §4.2) — it does not mean "inactive at this one store."
 4. ~~Geocoding is not wired up~~ — **resolved 2026-09-29**: Groway uses **Mapbox only**, never Google Maps/Google Business Profile (confirmed explicitly — no Google integration is planned). The actual design — a Mapbox `retrieve` call at store creation/address-edit time, populating `formatted_address`/`latitude`/`longitude`/`geo_provider`/`geo_place_id` — lives in `growayshop-registration-workflow.md` §2.2, not here.
 5. **Chain-wide shared catalog** (one price list, edited once, applying to every store) is explicitly a v2 idea — §8's copy is a one-time seed, deliberately not a live sync, per store (§1 in `groway-architecture-decisions.md`'s spirit of not over-building for a hypothetical future need).
