@@ -9,7 +9,7 @@
 - `groway-billing-workflow.md`: reads `store.chains`/`store.stores` created here; billing is anchored to `chain_id` (created here, §6.1), never to any individual store or store_admin.
 - `store-onboarding-v1-design.md`: owns `store.stores`' address columns (§4 there); this document owns how those columns get populated — Mapbox address resolution (§2.2) — since that's an identity/data-entry concern, not a booking-domain one.
 
-**Terminology (2026-09-28, unifying prior inconsistent usage — `groway-architecture-decisions.md`):** **Chain** = the business as a whole, one or more stores, one billing account. **Store** = one physical location or one independent practitioner. "Merchant" is retired.
+**Terminology (2026-09-28, unifying prior inconsistent usage):** **Chain** = the business as a whole, one or more stores, one billing account. **Store** = one physical location or one independent practitioner. "Merchant" is retired.
 
 **Scope — deliberately narrow.** How a Groway admin creates a new chain (its `chain_admin` account plus one `store_admin` per store), how a `chain_admin` can self-service add a further store later, and the baseline login/session/password-reset mechanics shared by all three app roles. Out of scope: ongoing staff invitation (`growayshop-staff-invite-workflow.md`); any dashboard/calendar/booking feature API (`store-onboarding-v1-design.md` §6).
 

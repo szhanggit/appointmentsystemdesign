@@ -1,6 +1,6 @@
 # Store Onboarding & Booking Domain — V1 Design
 
-**Status:** replaces `merchant-onboarding-v1-design.md` entirely. That document used "merchant" for a single store location; Groway's terminology was unified on 2026-09-28 (`groway-architecture-decisions.md`) — **"chain"** is the top-level business, **"store"** is one location. "Merchant" is retired from this codebase and reserved for a different future use. This document is written fresh under the new terminology, not derived from the retired one.
+**Status:** replaces `merchant-onboarding-v1-design.md` entirely. That document used "merchant" for a single store location; Groway's terminology was unified on 2026-09-28 — **"chain"** is the top-level business, **"store"** is one location. "Merchant" is retired from this codebase and reserved for a different future use. This document is written fresh under the new terminology, not derived from the retired one.
 
 **Architecture:** see `groway-v1-architecture.md`. Owned by the **Store Module**, `store` schema. `store.appointments.customer_id` is an **application-level reference** to `customer.customers` (Customer Module's schema) — never a cross-schema FK, per architecture doc §5.
 
@@ -120,7 +120,7 @@ CREATE TABLE store.staff_store_assignments (
     UNIQUE (staff_id, store_id)
 );
 
--- Categories, added 2026-09-29 (store-service-catalog-workflow.md) - store-scoped,
+-- Categories, added 2026-09-29 (this document's own §7, the service catalog design) - store-scoped,
 -- like services. Chain-wide shared categories are a v2 "copy to other stores"
 -- feature (§8), not a shared catalog now. Soft-deleted (deleted_at, not a status
 -- flag) so a deleted category's name becomes reusable immediately - the partial
@@ -160,7 +160,7 @@ CREATE TABLE store.services (
     deleted_at       TIMESTAMPTZ,  -- soft delete (default DELETE); a separate hard "purge" is §8's concern, not a flag here
     -- NULL = inherit the store's booking_settings.buffer_before/after_minutes;
     -- non-NULL overrides it for this service. Not split by option - a 'from'
-    -- service's options share one buffer (availability-schema.md, 2026-09-29).
+    -- service's options share one buffer (2026-09-29 decision).
     buffer_before_minutes INT CHECK (buffer_before_minutes >= 0),
     buffer_after_minutes  INT CHECK (buffer_after_minutes >= 0),
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -259,7 +259,7 @@ CREATE TABLE store.booking_settings (
     slot_granularity_minutes INT NOT NULL DEFAULT 15,
     advance_booking_days     INT NOT NULL DEFAULT 90,
     auto_confirm             BOOLEAN NOT NULL DEFAULT TRUE,
-    -- Added 2026-09-29 (availability-schema.md). min_lead_minutes: how soon
+    -- Added 2026-09-29. min_lead_minutes: how soon
     -- before a slot it can still be booked today (now() + this, store tz).
     -- buffer_before/after: store-level default prep/cleanup time around every
     -- booking; a service can override via services.buffer_before/after_minutes.
@@ -295,7 +295,7 @@ CREATE TABLE store.appointments (
     starts_at     TIMESTAMPTZ NOT NULL,
     ends_at       TIMESTAMPTZ NOT NULL,
     is_test       BOOLEAN NOT NULL DEFAULT FALSE,  -- staff-marked test booking; see §5 on quota interaction
-    -- Buffer snapshot, added 2026-09-29 (availability-schema.md): buffer_before
+    -- Buffer snapshot, added 2026-09-29: buffer_before
     -- is the first service's Bb, buffer_after is the last service's Ba (rule
     -- finalized in the not-yet-written create-appointment document). Snapshotted
     -- at booking time and never recomputed - a later change to a service's
@@ -306,8 +306,8 @@ CREATE TABLE store.appointments (
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Snapshot columns (added 2026-09-29, service-catalog-design.md's "booking
--- snapshot" decision): a service's name/price/duration/option can all change
+-- Snapshot columns (added 2026-09-29, the "booking snapshot" decision):
+-- a service's name/price/duration/option can all change
 -- or soft-delete later without altering historical appointments. option_id is
 -- kept (not just option_name) so "how many times was this option ever booked"
 -- doesn't need joining a possibly-soft-deleted service_options row.
@@ -458,5 +458,5 @@ sequenceDiagram
 2. ~~Multi-service, multi-staff appointments~~ — **narrowed 2026-09-29**: the baseline model is single-person, single-block (`appointments.staff_id` is one person for the whole block) — a multi-service appointment is several `appointment_items` performed back-to-back by that *same* person, never split across staff. Exactly how multiple services get sequenced into one block is still open, deferred to the not-yet-written create-appointment document (`availability-slot-engine.md` §8 item 3).
 3. **Leaving one store while staying at another** (2026-09-29, from the `staff`/`staff_store_assignments` split) — removing a `staff_store_assignments` row for one store, while the person's `store.staff` row (and their login, if they have one) stays active for their other store(s), isn't designed as an endpoint yet. `store.staff.status` is person-level (mirrors their login being deactivated entirely, `growayshop-staff-invite-workflow.md` §4.2) — it does not mean "inactive at this one store."
 4. ~~Geocoding is not wired up~~ — **resolved 2026-09-29**: Groway uses **Mapbox only**, never Google Maps/Google Business Profile (confirmed explicitly — no Google integration is planned). The actual design — a Mapbox `retrieve` call at store creation/address-edit time, populating `formatted_address`/`latitude`/`longitude`/`geo_provider`/`geo_place_id` — lives in `growayshop-registration-workflow.md` §2.2, not here.
-5. **Chain-wide shared catalog** (one price list, edited once, applying to every store) is explicitly a v2 idea — §8's copy is a one-time seed, deliberately not a live sync, per store (§1 in `groway-architecture-decisions.md`'s spirit of not over-building for a hypothetical future need).
+5. **Chain-wide shared catalog** (one price list, edited once, applying to every store) is explicitly a v2 idea — §8's copy is a one-time seed, deliberately not a live sync, per store, following the project's general principle of not over-building for a hypothetical future need.
 6. Everything else the retired document left open (proration, etc.) is not reintroduced here unless it resurfaces.
