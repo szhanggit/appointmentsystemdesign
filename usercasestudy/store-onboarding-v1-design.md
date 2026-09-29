@@ -48,7 +48,7 @@ Subject: {Chain name}
 1. Chain name (public-facing):
 2. Owner contact / phone / email:
 3. Number of stores, and per store:
-   - Store name / address / timezone (default America/Toronto)
+   - Store name / address (street, city, region/province/state, postal code, country — default CA) / timezone (default America/Toronto)
    - Store type: [] solo practitioner (1 person) [] team store (multiple people)
    - Services (name | duration(min) | price | price type (fixed/variable) | category)
    - Staff (name | phone | which of the above services they perform)
@@ -68,7 +68,23 @@ Fields are stable enough to become a self-service web form later (V2) — the in
 CREATE TABLE store.stores (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name             VARCHAR(200) NOT NULL,
-    address          TEXT,
+    -- Structured, not a single text blob (2026-09-29 decision, revised same
+    -- day for the Mapbox integration - see growayshop-registration-workflow.md
+    -- §2.2). formatted_address/latitude/longitude/geo_provider/geo_place_id
+    -- are populated by a Mapbox "retrieve" call when the address comes from
+    -- the autocomplete suggestion box; they stay NULL for a manually-typed
+    -- fallback address (no coordinates is an accepted, valid state).
+    address_line1    VARCHAR(255) NOT NULL,
+    address_line2    VARCHAR(255),
+    city             VARCHAR(100) NOT NULL,
+    region           VARCHAR(50)  NOT NULL,  -- province/state; kept country-neutral, not called "province"
+    postal_code      VARCHAR(20)  NOT NULL,  -- stored as-typed/as-returned, not format-validated per country (growayshop-registration-workflow.md §2.2)
+    country_code     VARCHAR(2)   NOT NULL DEFAULT 'CA',  -- ISO 3166-1 alpha-2
+    formatted_address TEXT,        -- provider's display string, cached; NULL for manual entry
+    latitude         DECIMAL(9,6), -- NULL until geocoded via Mapbox, or if manually entered
+    longitude        DECIMAL(9,6), -- NULL until geocoded via Mapbox, or if manually entered
+    geo_provider     VARCHAR(20),  -- 'mapbox' once resolved; NULL for manual entry
+    geo_place_id     VARCHAR(255), -- Mapbox's id for this place - used to re-retrieve if the provider is ever migrated (a one-time ops script, not a recurring job)
     timezone         VARCHAR(64)  NOT NULL DEFAULT 'America/Toronto',
     status           VARCHAR(20)  NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'suspended')),
     created_at       TIMESTAMPTZ  NOT NULL DEFAULT now(),
@@ -211,4 +227,5 @@ CREATE INDEX idx_appointments_customer_id ON store.appointments(customer_id);
 1. **Wireframe detail** was intentionally not reproduced at the same fidelity as the retired document — this is the schema/API contract; pixel-level Back Office UI can be redrawn separately if needed.
 2. **Multi-service, multi-staff appointments** (`appointment_items` allows several service lines per appointment) — whether they can span more than one staff member per appointment isn't addressed here.
 3. **Leaving one store while staying at another** (2026-09-29, from the `staff`/`staff_store_assignments` split) — removing a `staff_store_assignments` row for one store, while the person's `store.staff` row (and their login, if they have one) stays active for their other store(s), isn't designed as an endpoint yet. `store.staff.status` is person-level (mirrors their login being deactivated entirely, `growayshop-staff-invite-workflow.md` §4.2) — it does not mean "inactive at this one store."
-3. Everything else the retired document left open (proration, cross-store service catalogs, etc.) is not reintroduced here unless it resurfaces.
+4. **Geocoding is not wired up** (2026-09-29) — `store.stores.latitude`/`longitude` exist as columns but nothing populates them yet; the intended flow is a call to Google's Geocoding API (or the Business Profile API, if that's the eventual integration) off `address_line1`/`city`/`province`/`postal_code`/`country_code` whenever a store's address is set or changed, writing back `formatted_address`/`latitude`/`longitude`. Not designed at the API/job level here — just the column shapes so it isn't a migration later.
+5. Everything else the retired document left open (proration, cross-store service catalogs, etc.) is not reintroduced here unless it resurfaces.

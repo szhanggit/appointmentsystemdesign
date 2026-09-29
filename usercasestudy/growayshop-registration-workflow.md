@@ -7,6 +7,7 @@
 - `growayadmin-registration-workflow.md`: a Groway admin is the actor who creates a chain (§7.1); the call reaches this module **in-process**, not over the network.
 - `growayshop-staff-invite-workflow.md`: covers the *ongoing* "invite a staff member" flow — this document covers chain creation (§7.1) and a chain_admin's own ongoing "add a store" flow (§7.2).
 - `groway-billing-workflow.md`: reads `store.chains`/`store.stores` created here; billing is anchored to `chain_id` (created here, §7.1), never to any individual store or store_admin.
+- `store-onboarding-v1-design.md`: owns `store.stores`' address columns (§4 there); this document owns how those columns get populated — Mapbox address resolution (§2.2) — since that's an identity/data-entry concern, not a booking-domain one.
 
 **Terminology (2026-09-28, unifying prior inconsistent usage — `groway-architecture-decisions.md`):** **Chain** = the business as a whole, one or more stores, one billing account. **Store** = one physical location or one independent practitioner. "Merchant" is retired.
 
@@ -28,6 +29,8 @@
 | Can create a new `store_admin` | Yes — **only** when adding a new store (§7.2); no ongoing management power over it afterward | No | No |
 | Can add a new store to the chain | Yes, self-service (§7.2) | No | No |
 | Billing self-service (start-trial / cancel / status) | **Yes — the only role that can** (`groway-billing-workflow.md`) | No — a store has no billing concept of its own | No |
+| Change the chain's `allowed_countries` (§7.7) | **Yes — the only role that can** | No (read-only, §7.7) | No |
+| Edit a store's address (§7.8) | Yes, any store in the chain | Yes, own store only | No |
 | Can deactivate/reactivate a `chain_admin` or `store_admin` | No — **only a Groway admin can** (`growayadmin-registration-workflow.md`) | No | No |
 | Who creates this account | Groway admin only (§7.1) | Groway admin (§7.1) or `chain_admin` (§7.2) | Groway admin, `chain_admin`, or `store_admin` (`growayshop-staff-invite-workflow.md`) |
 | Password reset | Self-service, like a customer | Self-service, like a customer | Self-service, like a customer |
@@ -61,6 +64,54 @@ SELECT id FROM store.chains WHERE chain_admin_id = <caller.PrincipalId>
 
 Since `chain_admin_id` is `UNIQUE NOT NULL` on `store.chains`, and the only way to become a `chain_admin` is §7.1/§7.2's flow, this always resolves to exactly one row for a genuine `chain_admin` caller — no ambiguity case to handle here (unlike the merchant-anchored resolution this document used briefly before the chain model existed).
 
+### 2.2 Resolving a store's address — Mapbox, used by §7.1, §7.2, and §7.8
+
+**Client side (not designed here):** the store-creation/edit form's address field is a single autocomplete input calling Mapbox's Search Box "suggest" endpoint directly from the browser, with a restricted public token — no backend round-trip per keystroke. `country=<chain's allowed_countries>` (§7.7) is passed to keep suggestions scoped to countries this chain actually operates in. A "enter it manually" fallback is always available, for addresses Mapbox can't complete.
+
+**Server side — one Mapbox call per store created/edited, not per keystroke.** Every request that sets a store's address carries **either** `geoPlaceId` (the user picked a suggestion) **or** `manualAddress` (the fallback form):
+
+```csharp
+// internal to Groway.Store - single consumer today (Store Module); if a
+// second module ever needs geocoding, promote this to Groway.Shared then,
+// not preemptively now (architecture doc §10).
+internal interface IGeocodingProvider
+{
+    Task<GeocodeResult> RetrieveAsync(string placeId);
+}
+internal sealed record GeocodeResult(
+    string AddressLine1, string? AddressLine2, string City, string Region,
+    string PostalCode, string CountryCode, string FormattedAddress,
+    decimal Latitude, decimal Longitude);
+
+services.AddScoped<IGeocodingProvider, MapboxGeocodingProvider>(); // V1: the only implementation
+```
+
+```mermaid
+sequenceDiagram
+    participant SM as Store Module
+    participant GEO as IGeocodingProvider (MapboxGeocodingProvider)
+    participant DB as PostgreSQL (store schema)
+
+    alt geoPlaceId provided
+        SM->>GEO: RetrieveAsync(geoPlaceId)
+        GEO-->>SM: GeocodeResult { addressLine1, addressLine2, city, region, postalCode, countryCode, formattedAddress, latitude, longitude }
+        SM-->>SM: Reject (422) unless countryCode is in the chain's allowed_countries (§7.7)
+        Note over SM: Mapbox's response is authoritative - never the frontend's<br/>own parse of what the user typed before selecting a suggestion.
+    else manualAddress provided
+        SM-->>SM: Loose validation only: addressLine1/city/postalCode required, no per-country format regex<br/>(no country_address_rules table in V1 - a not-yet-supported country just falls back to this same loose rule, in code, not via a table lookup)
+        SM-->>SM: Reject (422) unless the submitted countryCode is in the chain's allowed_countries (§7.7)
+        SM-->>SM: postalCode normalized (uppercased, whitespace trimmed) before writing
+        Note over SM: formattedAddress/latitude/longitude/geoProvider/geoPlaceId all stay NULL
+    end
+    SM->>DB: (the calling flow's own INSERT/UPDATE into store.stores, §7.1/§7.2/§7.8)
+```
+
+**Why retrieve, not the frontend's own parse:** Mapbox's suggestion payload during typing is optimized for display, not guaranteed to carry every structured field the same way `retrieve` does. Calling `retrieve` once, server-side, at the moment of commit gets the authoritative, current components and coordinates for that exact `place_id` — and gives the backend one true point to enforce `allowed_countries` against, rather than trusting whatever the client claims it parsed.
+
+**Why no `country_address_rules` table:** North America (`CA`/`US`) needs nothing beyond "required fields present" — a real rules table today would hold two identical "no rule" rows, which is noise, not extensibility. The *code* is still structured to check for a per-country override and fall back to the loose default if none exists — so a future country with real requirements (a stricter postal format, a different required-fields set) is a code change that adds one case, not a restructuring of this flow. The table itself is deferred until a country actually needs one.
+
+**Refreshing a stale address:** there is no periodic re-geocode job — addresses don't move on their own, and a store's address changes exactly when someone edits it (§7.8), which already re-runs this same resolution. `geo_place_id` is kept for the one scenario a recurring job can't help with anyway: migrating to a different geocoding provider, which is a one-time, manually-run ops script over existing rows, not a schedule.
+
 ---
 
 ## 3. Why creating these accounts is an in-process call, not a network call
@@ -74,7 +125,7 @@ sequenceDiagram
     participant AM as Admin Module
     participant SM as Store Module (IStoreUserService)
 
-    GA->>GW: POST /api/admin/chains<br/>{ chainName, chainAdminEmail, stores:[{name, address, storeAdminEmail}, ...] }<br/>(AdminSession)
+    GA->>GW: POST /api/admin/chains<br/>{ chainName, chainAdminEmail, stores:[{name, geoPlaceId?, manualAddress?, storeAdminEmail}, ...] }<br/>(AdminSession)
     GW->>AM: (AdminSession validated)
     AM->>SM: IStoreUserService.CreateChainAsync(request, callerContext)<br/>(in-process call across the Groway.Store.Contracts boundary)
     SM-->>AM: CreateChainResult { chainId, chainAdminStoreUserId, stores:[{storeId, storeAdminStoreUserId}, ...] }
@@ -136,6 +187,11 @@ CREATE TABLE store.chains (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name            VARCHAR(200) NOT NULL,
     chain_admin_id  UUID NOT NULL UNIQUE REFERENCES store.store_users(id),
+    -- Which countries this chain's stores can be in - filters the Mapbox
+    -- suggest box's country= param and validates every address resolution
+    -- (§2.2). A commercial/market-expansion setting, not a platform gate -
+    -- chain_admin manages it themselves (§7.7). ISO 3166-1 alpha-2 codes.
+    allowed_countries TEXT[] NOT NULL DEFAULT '{US,CA}' CHECK (cardinality(allowed_countries) > 0),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -213,7 +269,8 @@ sequenceDiagram
     SM->>DB: INSERT INTO store.billing_accounts (chain_id, plan='free') VALUES (<chain id>, 'free')
 
     loop for each store in the request
-        SM->>DB: INSERT INTO store.stores (chain_id, name, address, status='pending') RETURNING id
+        SM->>SM: Resolve store address (§2.2) - Mapbox retrieve or manual, validated against the chain's allowed_countries
+        SM->>DB: INSERT INTO store.stores<br/>(chain_id, name, address_line1, address_line2, city, region, postal_code, country_code,<br/>formatted_address, latitude, longitude, geo_provider, geo_place_id, status='pending') RETURNING id
         SM->>SCOG: AdminCreateUser(Username=store.storeAdminEmail, ...)
         SCOG-->>SM: 200 OK { sub }
         SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='store_admin', created_by_admin_id, status='active') RETURNING id
@@ -239,10 +296,11 @@ sequenceDiagram
     participant DB as PostgreSQL (store schema)
     participant SQSQ as SQS (store-activity-log)
 
-    CA->>GW: POST /api/store/chains/stores<br/>{ name, address, storeAdminEmail }
+    CA->>GW: POST /api/store/chains/stores<br/>{ name, geoPlaceId?, manualAddress?, storeAdminEmail }
     GW->>SM: (in-process, StoreSession, caller.appRole must be 'chain_admin')
     SM->>SM: Resolve caller's chain (§2.1)
-    SM->>DB: INSERT INTO store.stores (chain_id, name, address, status='pending') RETURNING id
+    SM->>SM: Resolve store address (§2.2) - Mapbox retrieve or manual, validated against the chain's allowed_countries
+    SM->>DB: INSERT INTO store.stores<br/>(chain_id, name, address_line1, address_line2, city, region, postal_code, country_code,<br/>formatted_address, latitude, longitude, geo_provider, geo_place_id, status='pending') RETURNING id
     SM->>SCOG: AdminCreateUser(Username=storeAdminEmail, ...)
     SCOG-->>SM: 200 OK { sub }
     SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='store_admin', created_by_store_user_id=CA.id, status='active') RETURNING id
@@ -345,6 +403,61 @@ sequenceDiagram
 
 Session-context change only — no Cognito call, no new login. A `store_admin` holds exactly one access row, so switching is a no-op for them.
 
+### 7.7 Chain settings: reading and changing `allowed_countries`
+
+```mermaid
+sequenceDiagram
+    actor U as store_admin or chain_admin
+    participant GW as Gateway
+    participant SM as Store Module
+    participant DB as PostgreSQL (store schema)
+
+    U->>GW: GET /api/store/chains/me
+    GW->>SM: (in-process, StoreSession)
+    SM->>SM: Resolve caller's chain (§2.1 for chain_admin; via caller's store's chain_id for store_admin)
+    SM->>DB: SELECT id, name, allowed_countries FROM store.chains WHERE id = <resolved chain_id>
+    SM-->>U: 200 OK { id, name, allowedCountries }
+```
+
+```mermaid
+sequenceDiagram
+    actor CA as chain_admin
+    participant GW as Gateway
+    participant SM as Store Module
+    participant DB as PostgreSQL (store schema)
+
+    CA->>GW: PUT /api/store/chains/me<br/>{ allowedCountries: ["US","CA"] }
+    GW->>SM: (in-process, StoreSession, caller.appRole must be 'chain_admin')
+    SM-->>SM: Reject (400) unless allowedCountries is non-empty and every entry is a 2-letter code
+    SM->>SM: Resolve caller's chain (§2.1)
+    SM->>DB: UPDATE store.chains SET allowed_countries = allowedCountries WHERE id = <resolved chain_id>
+    SM-->>CA: 200 OK { allowedCountries }
+```
+
+Read is open to both roles (a `store_admin` may reasonably want to see why the address box only offers certain countries); write is `chain_admin`-only — a market-expansion decision belongs to the chain, and this field carries no billing/compliance weight in V1, so it needs no Groway-admin gate. Changing it has **no retroactive effect** — existing stores' addresses are untouched; it only changes what the address box offers, and what `§2.2`'s validation accepts, for stores created or edited *after* the change.
+
+### 7.8 Editing a store's address
+
+```mermaid
+sequenceDiagram
+    actor U as store_admin (own store) or chain_admin (any store in their chain)
+    participant GW as Gateway
+    participant SM as Store Module
+    participant DB as PostgreSQL (store schema)
+
+    U->>GW: PUT /api/store/stores/{storeId}/address<br/>{ geoPlaceId? , manualAddress? }
+    GW->>SM: (in-process, StoreSession)
+    alt storeId not in caller.AuthorizedStoreIds
+        SM-->>U: 404 Not Found
+    else authorized
+        SM->>SM: Resolve store address (§2.2) - same Mapbox retrieve / manual logic and allowed_countries check as store creation
+        SM->>DB: UPDATE store.stores<br/>SET address_line1=..., address_line2=..., city=..., region=..., postal_code=..., country_code=...,<br/>formatted_address=..., latitude=..., longitude=..., geo_provider=..., geo_place_id=...<br/>WHERE id = storeId
+        SM-->>U: 200 OK
+    end
+```
+
+**404, not 403, for out-of-scope stores** — deliberately: a caller outside their scope shouldn't be able to distinguish "this store doesn't exist" from "this store exists but isn't yours" by the status code alone. This is a plain CRUD action with no business-policy baggage (unlike deactivating a store, §9 item 2) — it doesn't touch billing, doesn't affect existing appointments, and reuses §2.2's resolution logic exactly as store creation does.
+
 ---
 
 ## 8. Test data
@@ -377,9 +490,9 @@ VALUES
      'a2222222-2222-2222-2222-222222222222',
      'active', '2026-09-20 10:05:00-04', '2026-09-24 09:00:00-04');
 
-INSERT INTO store.chains (id, name, chain_admin_id, created_at)
+INSERT INTO store.chains (id, name, chain_admin_id, allowed_countries, created_at)
 VALUES ('cc111111-1111-1111-1111-111111111111', 'Selah Head Spa',
-        'c0000000-0000-0000-0000-000000000000', '2026-09-20 10:00:00-04');
+        'c0000000-0000-0000-0000-000000000000', '{CA}', '2026-09-20 10:00:00-04');
 
 -- store.stores rows themselves (99999999-...0001/0002) are assumed already
 -- present per store-onboarding-v1-design.md; this document only sets their
