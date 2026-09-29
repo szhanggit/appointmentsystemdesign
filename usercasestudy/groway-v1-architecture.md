@@ -6,7 +6,7 @@
 
 ## 1. The decision: modular monolith, not microservices
 
-Groway has three fundamentally different populations — **Customers** (external, self-registering), **Store Users** (external merchant admins/staff, manually onboarded), and **Groway Admins** (internal employees, highest privilege, cross-tenant). They are treated as **three security populations**, never as interchangeable rows in one shared user table.
+Groway has three fundamentally different populations — **Customers** (external, self-registering), **Store Users** (external chain/store admins and staff, manually onboarded), and **Groway Admins** (internal employees, highest privilege, cross-tenant). They are treated as **three security populations**, never as interchangeable rows in one shared user table.
 
 V1 consists of:
 
@@ -131,7 +131,7 @@ PostgreSQL
 ```
 
 - **Separate `DbContext` per module** (`CustomerDbContext`, `StoreDbContext`, `AdminDbContext`) — never one shared `GrowayDbContext`. Each context only knows about its own schema's tables.
-- **Foreign keys within a schema are normal and encouraged** — e.g. `store.store_user_merchant_access.merchant_id → store.merchants.id` is a real, enforced FK; both tables are owned by Store and live in the same schema.
+- **Foreign keys within a schema are normal and encouraged** — e.g. `store.store_user_store_access.store_id → store.stores.id` is a real, enforced FK; both tables are owned by Store and live in the same schema.
 - **No foreign keys across schemas.** `store.appointment.customer_id` is an application-level reference to a row in `customer.customers`, never an enforced FK — Postgres cannot check it, and application code must. This is deliberate: when a schema is later extracted into its own database, a cross-schema FK becomes physically impossible, while an application-level reference degrades gracefully into an ordinary cross-service ID reference. The cost is real (no database-level protection against an orphaned reference) and is accepted for extraction-readiness — cover it with application-level tests that check for orphaned cross-module references, since Postgres won't.
 
 ---
@@ -213,12 +213,14 @@ This is the one central, auditable definition — four lines, not N endpoints ea
 public sealed record CallerContext(
     string Population,                          // "customer" | "store" | "admin"
     Guid PrincipalId,                            // customerId / storeUserId / adminId
-    string? AppRole,                             // 'store' only: "store_admin" | "staff"
-    IReadOnlySet<Guid>? AuthorizedMerchantIds,    // 'store' only
-    Guid? ActiveMerchantId);                     // 'store' only
+    string? AppRole,                             // 'store' only: "chain_admin" | "store_admin" | "staff"
+    IReadOnlySet<Guid>? AuthorizedStoreIds,       // 'store' only
+    Guid? ActiveStoreId);                        // 'store' only
 ```
 
-Every cross-module interface method takes `CallerContext` as an explicit parameter. **The receiving module re-derives and re-checks authorization from `CallerContext` itself — it never trusts that the calling module already checked it**, because different modules check different things (Customer Module checks customer identity; Store Module must independently check merchant scope). This is the in-process form of "never trust a client-supplied ID as authorization proof" — applied at the module boundary, not just the web boundary.
+`chain_admin` (added 2026-09-28) is a third value of `AppRole` **within the existing `"store"` population** — it uses the same Store Cognito Pool, the same `StoreSession` authentication scheme, and the same `store.store_users` table as `store_admin`/`staff` (`growayshop-registration-workflow.md` §1). It is not a fourth population and does not introduce a new Cognito Pool, Gateway route group, or authentication scheme — the three-population model in §1 is unchanged. What changed is purely which stores a `"store"` session is authorized against: a `chain_admin`'s `AuthorizedStoreIds` covers every store in their chain, a `store_admin`'s covers exactly one.
+
+Every cross-module interface method takes `CallerContext` as an explicit parameter. **The receiving module re-derives and re-checks authorization from `CallerContext` itself — it never trusts that the calling module already checked it**, because different modules check different things (Customer Module checks customer identity; Store Module must independently check store scope). This is the in-process form of "never trust a client-supplied ID as authorization proof" — applied at the module boundary, not just the web boundary.
 
 ---
 
@@ -230,7 +232,7 @@ Every cross-module interface method takes `CallerContext` as an explicit paramet
   "population": "customer",
   "principalId": "...",
   "appRole": null,
-  "activeMerchantId": null,
+  "activeStoreId": null,
   "cognitoAccessToken": "...",
   "cognitoIdToken": "...",
   "cognitoRefreshToken": "...",
@@ -238,7 +240,7 @@ Every cross-module interface method takes `CallerContext` as an explicit paramet
 }
 ```
 
-One key pattern (`session:<sha256(opaque_token)>`), one TTL mechanism, across all three populations. Population-specific fields (`appRole`, `activeMerchantId`) are simply null where irrelevant. Cognito tokens are application-level encrypted before writing, regardless of population — this was always required, not optional, and remains so.
+One key pattern (`session:<sha256(opaque_token)>`), one TTL mechanism, across all three populations. Population-specific fields (`appRole`, `activeStoreId`) are simply null where irrelevant. Cognito tokens are application-level encrypted before writing, regardless of population — this was always required, not optional, and remains so.
 
 Redis may be split later if a concrete requirement justifies it (independent scaling, security isolation, differing performance characteristics) — V1 does not duplicate it pre-emptively.
 
@@ -254,7 +256,7 @@ KEDA requires Kubernetes; the application deployment (the one Gateway process, c
 
 ## 9. Shared technical libraries — infrastructure only, never business logic
 
-`Groway.Shared` may contain: authentication helpers, the `CallerContext` type, logging, correlation IDs, exception handling middleware, the SQS producer/consumer helper used identically by all three modules' activity-log pipelines. It must never contain business-domain logic (`Appointment`, `Merchant`, `Customer`, `Staff`) merely to avoid duplication — that recreates a distributed monolith inside a shared library, defeating the purpose of module ownership.
+`Groway.Shared` may contain: authentication helpers, the `CallerContext` type, logging, correlation IDs, exception handling middleware, the SQS producer/consumer helper used identically by all three modules' activity-log pipelines. It must never contain business-domain logic (`Appointment`, `Chain`, `Store`, `Customer`, `Staff`) merely to avoid duplication — that recreates a distributed monolith inside a shared library, defeating the purpose of module ownership.
 
 ---
 
@@ -274,7 +276,7 @@ Do not extract a module merely because it has many classes/tables, a large domai
 6. Never let one module directly access another module's `DbContext` or repository.
 7. Enforce module boundaries via separate assemblies/projects and `internal` implementation types (§4).
 8. Every endpoint lives under `/api/customer/*`, `/api/store/*`, `/api/admin/*`, or `/api/partner/*` — no exceptions, enforced by a CI check (§6.4).
-9. Never trust a client-supplied customer/merchant/store-user ID as authorization proof — always re-derive scope from `CallerContext`.
+9. Never trust a client-supplied customer/store/store-user ID as authorization proof — always re-derive scope from `CallerContext`.
 10. Never create cross-schema foreign keys without explicit approval.
 11. Do not put business logic in the Gateway.
 12. Prefer in-process module calls (via `*.Contracts` interfaces) over internal HTTP calls in V1.

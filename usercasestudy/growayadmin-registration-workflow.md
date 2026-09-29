@@ -10,7 +10,7 @@
 
 ## 1. Identity boundary within the shared platform
 
-Groway admins are the highest-privilege population: authenticated on this module's routes at all *is* the "can see every merchant's data" grant — there is no additional per-request tenant-scoping logic here, unlike the Store Module needs (`growayshop-registration-workflow.md` §2). This module still gets its **own Cognito Pool** (per the architecture doc §6.1) even though it shares the Gateway, Postgres instance, and Redis with the other two modules.
+Groway admins are the highest-privilege population: authenticated on this module's routes at all *is* the "can see every chain's data" grant — there is no additional per-request tenant-scoping logic here, unlike the Store Module needs (`growayshop-registration-workflow.md` §2). This module still gets its **own Cognito Pool** (per the architecture doc §6.1) even though it shares the Gateway, Postgres instance, and Redis with the other two modules.
 
 ---
 
@@ -24,12 +24,15 @@ Exactly two roles, no finer-grained permissions in this first version:
 | Action | superadmin | admin |
 |---|---|---|
 | Invite a new admin | yes | yes |
-| Reset another admin's password | yes | yes |
+| Reset another (non-superadmin) admin's password | yes | yes |
 | Reset **own** password | no | no |
+| **Reset the superadmin's password** | never | **never** |
 | Deactivate an admin | **yes** | no |
 | Reactivate a deactivated admin | **yes** | no |
 | Deactivate/reactivate the superadmin | never | never |
-| View all merchants (implicit, by being authenticated here) | yes | yes |
+| View all chains (implicit, by being authenticated here) | yes | yes |
+
+**Why this row exists:** the peer-reset flow (§4.5) generates a one-time temporary password and hands it to whoever called the endpoint — that's exactly the access an attacker (or an overreaching admin) would want against the superadmin account. Without this row, "any admin can reset any other admin's password" plus "superadmin can only never be *deactivated*" combine into a takeover path that never touches deactivation at all: a plain `admin` peer-resets the superadmin's password, logs in with the generated temporary password, and has full superadmin access. "The superadmin can never be touched" has to include *credentials*, not just active/deactivated status, or it isn't actually an invariant.
 
 **Nothing is ever hard-deleted** — an admin row is deactivated (`status='deactivated'`), never removed.
 
@@ -45,10 +48,11 @@ Exactly two roles, no finer-grained permissions in this first version:
 | `GET /api/admin/admins/me` | Fetch the caller's own profile | any logged-in admin | Admin Module only |
 | `GET /api/admin/admins` | List all admin accounts | any logged-in admin | Admin Module only |
 | `POST /api/admin/admins/invite` | Invite a new admin by email | any admin | `AdminCreateUser` |
-| `POST /api/admin/admins/{id}/reset-password` | Generate a new temp password for another admin | any admin, not targeting self | `AdminSetUserPassword` + `AdminUserGlobalSignOut` |
+| `POST /api/admin/admins/{id}/reset-password` | Generate a new temp password for another admin | any admin, not targeting self **or the superadmin** | `AdminSetUserPassword` + `AdminUserGlobalSignOut` |
 | `POST /api/admin/admins/{id}/deactivate` | Deactivate an admin | **superadmin only**, never the superadmin itself | `AdminDisableUser` + `AdminUserGlobalSignOut` |
 | `POST /api/admin/admins/{id}/reactivate` | Reactivate a deactivated admin | **superadmin only** | `AdminEnableUser` |
-| `POST /api/admin/store-users` | Create a store-front account on a merchant's behalf | any admin | see `growayshop-registration-workflow.md` §3 — dispatches in-process into Store Module |
+| `POST /api/admin/chains` | Create a new chain — one `chain_admin` plus one `store_admin` per store, in one call | any admin | see `growayshop-registration-workflow.md` §7.1 — dispatches in-process into Store Module |
+| `POST /api/admin/store-users` | Invite a `staff` member on a chain's behalf (ongoing, after chain creation) | any admin | see `growayshop-staff-invite-workflow.md` §1 — dispatches in-process into Store Module |
 
 No phone number, no SMS OTP, no Google federation — admins are invited, never self-register, so there's nothing to verify beyond the email the invite reached.
 
@@ -166,6 +170,7 @@ sequenceDiagram
     A->>GW: POST /api/admin/admins/{B_id}/reset-password
     GW->>AM: (in-process)
     AM-->>AM: Reject if B_id == A.id (no self-reset, ever)
+    AM-->>AM: Reject if B.role == 'superadmin' (no peer-reset of the superadmin, ever - §2)
     AM-->>AM: Generate a secure random temporary password
     AM->>COG: AdminSetUserPassword(Username=B.email, Password=<generated>, Permanent=false)
     AM->>COG: AdminUserGlobalSignOut(Username=B.email)
@@ -175,7 +180,7 @@ sequenceDiagram
     Note over A: A relays this to B out-of-band (phone/Slack) - the Gateway<br/>never stores it. B's next login hits the same NEW_PASSWORD_REQUIRED<br/>challenge as §4.3.
 ```
 
-**The one true edge case this doesn't cover:** if the superadmin is the *only* admin account and forgets their password, there is no peer to reset it. Recovery is a deliberate, rare, manual operation — someone with direct AWS access runs `AdminSetUserPassword` against the Admin Pool outside the application, documented as an ops runbook, not a feature.
+**The superadmin's password can never be reset through this endpoint, by anyone** (§2) — not an edge case, a deliberate exclusion. If the superadmin forgets their password, there is no in-app recovery path at all, by design: someone with direct AWS access runs `AdminSetUserPassword` against the Admin Pool outside the application, documented as an ops runbook, not a feature. This is the accepted cost of not having a "reset the superadmin" button anywhere in the system for anyone to misuse.
 
 ### 4.6 Deactivate / reactivate an admin (superadmin only)
 
