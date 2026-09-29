@@ -77,12 +77,10 @@ sequenceDiagram
         SM->>DB: INSERT INTO store.staff (name, phone, status='active') RETURNING id
         SM->>DB: INSERT INTO store.staff_store_assignments (staff_id, store_id, role)
     end
-    SM->>DB: INSERT INTO store.store_users (email, app_role='staff', status='active',<br/>created_by_admin_id or created_by_store_user_id - whichever caller invited)
-    Note over SM,DB: cognito_sub still NULL - filled in next
     SM->>SCOG: AdminCreateUser(Username=email, UserAttributes=[email], DesiredDeliveryMediums=['EMAIL'])
     SCOG-->>SCOG: Create user (FORCE_CHANGE_PASSWORD), email a temp password
     SCOG-->>SM: 200 OK { sub }
-    SM->>DB: UPDATE store.store_users SET cognito_sub = sub WHERE id = ...
+    SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='staff', status='active',<br/>created_by_admin_id or created_by_store_user_id - whichever caller invited)
     loop for each { storeId, staffId } resolved above
         SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, staff_id, is_primary)
     end
@@ -92,7 +90,9 @@ sequenceDiagram
 
 **Link-existing mode** skips the `store.staff` INSERT entirely — the provided `staffId` is used directly, after verifying the caller has access to the target `storeId` (so a `store_admin` can't grant a login against another chain's roster person, and a `chain_admin` can't reach outside their own chain). It still runs `INSERT INTO store.staff_store_assignments ... ON CONFLICT (staff_id, store_id) DO NOTHING` — covers both "this person already works here, just add a login" and "this person works elsewhere in the chain, now also assign them here" with the same call.
 
-**The one honest edge case:** if the Cognito call fails after the `staff`/`store_users` rows are committed, you get a `store_users` row with `cognito_sub = NULL` — a clearly-identifiable, retryable "failed invite," not a silent inconsistency. Deliberately simple — no distributed saga — appropriate for how infrequently this happens.
+**Why Cognito comes first (2026-09-29 fix):** an earlier version of this diagram inserted `store.store_users` before calling Cognito, leaving `cognito_sub` to be filled in by a later `UPDATE` — but `store_users.cognito_sub` is `NOT NULL` (`growayshop-registration-workflow.md` §5), so that initial `INSERT` would simply fail. The fix is Cognito-first, matching every other account-creation flow in this codebase (§7.1's chain creation, §7.2's self-service add-store, `growayadmin-registration-workflow.md`'s admin invite) — one `INSERT` with `cognito_sub` already populated, never a nullable column and a two-step dance for this one flow alone.
+
+**The one honest edge case:** if `AdminCreateUser` succeeds (the invite email is already sent) but the subsequent `store.store_users` `INSERT` then fails, you get an orphaned Cognito user with no corresponding row in this system — nothing to query for here, since the DB never learned about it. Rare (it requires a local DB failure in the instant right after a remote call already succeeded) and not worth a distributed saga for — the same category of problem as superadmin password recovery (`growayadmin-registration-workflow.md` §4.5): accepted as a manual cleanup via the AWS Cognito console, not engineered around. A cheap, optional hardening if it ever becomes a real annoyance: a best-effort `AdminDeleteUser` call when the `INSERT` fails, cleaning up the orphan without changing this flow's overall shape — not required for V1.
 
 ### 4.2 Deactivate a staff account
 
