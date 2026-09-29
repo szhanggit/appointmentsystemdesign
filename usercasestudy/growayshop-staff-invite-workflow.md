@@ -4,7 +4,7 @@
 
 **Terminology (2026-09-28):** "merchant" is retired; this document uses **store** (one location) and **chain** (the business as a whole), per `groway-architecture-decisions.md`.
 
-**Scope:** (1) inviting a staff member, in two modes — attach a login to an existing, already-onboarded roster entry, or create a brand-new person from scratch — usable by a `store_admin` (their own store only), a `chain_admin` (any store in their chain), or a Groway admin; (2) deactivating/reactivating a `staff` account. Explicitly **not** in scope: creating another `chain_admin` or `store_admin` through this flow (that's `growayshop-registration-workflow.md` §7.1/§7.2, a different and much narrower-purpose action); assigning services/setting a schedule (the "complete your profile" step, §2 — narrative only, not designed at the API level here).
+**Scope:** (1) inviting a staff member, in two modes — attach a login to an existing, already-onboarded roster entry, or create a brand-new person from scratch — usable by a `store_admin` (their own store only), a `chain_admin` (any store in their chain), or a Groway admin; (2) deactivating/reactivating a `staff` account. Explicitly **not** in scope: creating another `chain_admin` or `store_admin` through this flow (that's `growayshop-registration-workflow.md` §6.1/§6.2, a different and much narrower-purpose action); assigning services/setting a schedule (the "complete your profile" step, §2 — narrative only, not designed at the API level here).
 
 ---
 
@@ -116,7 +116,9 @@ sequenceDiagram
     SM-->>A: 200 OK
 ```
 
-Both the login side (`store_users.status`) and the roster side (`staff.status`) flip together — a single transaction, same schema. Since `store.staff` is person-level (2026-09-29 fix, `store-onboarding-v1-design.md` §4), this is now a single-row update, not a loop over every store this person has a row at — `staff_id` is the same value across all of that person's `store_user_store_access` rows, so `LIMIT 1` is enough (any row gives the same `staff_id`). This deactivates the person entirely, at every store — it is not "remove them from just this one store" (`store-onboarding-v1-design.md` §7 item 3, still open). Reactivation is the exact mirror (`AdminEnableUser`, both back to `active`), same caller rule.
+Both the login side (`store_users.status`) and the roster side (`staff.status`) flip together — a single transaction, same schema. Since `store.staff` is person-level (2026-09-29 fix, `store-onboarding-v1-design.md` §4), this is now a single-row update, not a loop over every store this person has a row at — `staff_id` is the same value across all of that person's `store_user_store_access` rows, so `LIMIT 1` is enough (any row gives the same `staff_id`). This deactivates the person entirely, at every store — it is not "remove them from just this one store" (`store-onboarding-v1-design.md` §9 item 3, still open). Reactivation is the exact mirror (`AdminEnableUser`, both back to `active`), same caller rule.
+
+**Scope of this action, worth being explicit about:** this only ever touches the one `store_users` row being deactivated (a `staff`-role login) and the person-level `store.staff` row it points to. If that same physical human *also* holds a separate `store_admin` (or `chain_admin`) login elsewhere — a structurally different `store_users` row, per `growayshop-registration-workflow.md` §8 item 1's "one `app_role` per account" limitation — deactivating their `staff` account has no effect on that other account at all; the two are unrelated rows with independent `status` fields. Fine for V1, but worth stating rather than leaving implicit: "deactivate this person's staff access everywhere" and "deactivate this person, full stop" are not the same operation here.
 
 ---
 
@@ -153,4 +155,4 @@ VALUES ('c3333333-3333-3333-3333-333333333333', 'ACCOUNT_CREATED', '2026-09-26 0
 ## 6. Open questions
 
 1. ~~Assigning services/schedule ("complete your profile," §2) is still undesigned at the API level~~ — **resolved**: both routes now exist (`store-onboarding-v1-design.md` §7.5, `staff-schedule-entry-workflow.md` §4), cross-referenced in §2 above.
-2. Everything already open in `growayshop-registration-workflow.md` §9 (one `app_role` per account, session lifetime/MFA/device-management) remains open and unaffected by this document.
+2. Everything already open in `growayshop-registration-workflow.md` §8 (one `app_role` per account, session lifetime/MFA/device-management) remains open and unaffected by this document.

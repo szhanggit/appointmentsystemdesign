@@ -51,7 +51,7 @@ Exactly two roles, no finer-grained permissions in this first version:
 | `POST /api/admin/admins/{id}/reset-password` | Generate a new temp password for another admin | any admin, not targeting self **or the superadmin** | `AdminSetUserPassword` + `AdminUserGlobalSignOut` |
 | `POST /api/admin/admins/{id}/deactivate` | Deactivate an admin | **superadmin only**, never the superadmin itself | `AdminDisableUser` + `AdminUserGlobalSignOut` |
 | `POST /api/admin/admins/{id}/reactivate` | Reactivate a deactivated admin | **superadmin only** | `AdminEnableUser` |
-| `POST /api/admin/chains` | Create a new chain — one `chain_admin` plus one `store_admin` per store, in one call | any admin | see `growayshop-registration-workflow.md` §7.1 — dispatches in-process into Store Module |
+| `POST /api/admin/chains` | Create a new chain — one `chain_admin` plus one `store_admin` per store, in one call | any admin | see `growayshop-registration-workflow.md` §6.1 — dispatches in-process into Store Module |
 | `POST /api/admin/store-users` | Invite a `staff` member on a chain's behalf (ongoing, after chain creation) | any admin | see `growayshop-staff-invite-workflow.md` §1 — dispatches in-process into Store Module |
 
 No phone number, no SMS OTP, no Google federation — admins are invited, never self-register, so there's nothing to verify beyond the email the invite reached.

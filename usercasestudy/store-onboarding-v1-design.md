@@ -343,7 +343,7 @@ CREATE INDEX idx_appointments_customer_id ON store.appointments(customer_id);
 - **Service catalog, `/api/store/*`** — categories, services, options, staff↔service assignment. §7.
 - **Public booking, `/api/store/public/*`** — list a store's services/available slots, create an appointment (runs through `groway-billing-workflow.md` §4.2's quota check first).
 
-All routes here follow the same authorization rule, uniformly: **`storeId ∈ caller.AuthorizedStoreIds`** grants write access, never a literal `caller.role == 'store_admin'` check — that set already covers `chain_admin` correctly (every store in their chain) without special-casing the role. A `staff` caller's set still grants only read access to the catalog (they need to see it while picking their own schedule); write endpoints reject `staff` regardless of set membership. A `storeId` outside the caller's set is **404**, not 403 — same reasoning as `growayshop-registration-workflow.md` §7.8: don't let the status code confirm whether a store outside your scope even exists.
+All routes here follow the same authorization rule, uniformly: **`storeId ∈ caller.AuthorizedStoreIds`** grants write access, never a literal `caller.role == 'store_admin'` check — that set already covers `chain_admin` correctly (every store in their chain) without special-casing the role. A `staff` caller's set still grants only read access to the catalog (they need to see it while picking their own schedule); write endpoints reject `staff` regardless of set membership. A `storeId` outside the caller's set is **404**, not 403 — same reasoning as `growayshop-registration-workflow.md` §6.8: don't let the status code confirm whether a store outside your scope even exists.
 
 ---
 
@@ -412,7 +412,7 @@ A service is offered to customers only when **`services.deleted_at IS NULL AND s
 
 ## 8. Copying a store's service catalog to a new store (chain-wide expansion, not catalog CRUD)
 
-This belongs here, not in §7, because it's an **onboarding** action — filling in a new store's catalog from an existing one — not a catalog-editing primitive. It's what makes opening a second, third, etc. store not mean re-typing dozens of services by hand; see `growayshop-registration-workflow.md` §7.2, whose "add a store" flow is this endpoint's typical caller (an optional step right after the new store is created).
+This belongs here, not in §7, because it's an **onboarding** action — filling in a new store's catalog from an existing one — not a catalog-editing primitive. It's what makes opening a second, third, etc. store not mean re-typing dozens of services by hand; see `growayshop-registration-workflow.md` §6.2, whose "add a store" flow is this endpoint's typical caller (an optional step right after the new store is created).
 
 ```mermaid
 sequenceDiagram

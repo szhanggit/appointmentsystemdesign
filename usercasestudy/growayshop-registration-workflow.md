@@ -4,9 +4,9 @@
 
 **Relationship to other documents:**
 - `store-onboarding-v1-design.md` is the fixed reference for the booking domain (`store.stores`, `staff`, `services`, `appointments`, etc.), implemented by this same Store Module, same `store` schema. This document owns the *account/identity* layer on top of it and adds its own columns to `store.stores` via `ALTER TABLE` (§5) rather than redefining that table.
-- `growayadmin-registration-workflow.md`: a Groway admin is the actor who creates a chain (§7.1); the call reaches this module **in-process**, not over the network.
-- `growayshop-staff-invite-workflow.md`: covers the *ongoing* "invite a staff member" flow — this document covers chain creation (§7.1) and a chain_admin's own ongoing "add a store" flow (§7.2).
-- `groway-billing-workflow.md`: reads `store.chains`/`store.stores` created here; billing is anchored to `chain_id` (created here, §7.1), never to any individual store or store_admin.
+- `growayadmin-registration-workflow.md`: a Groway admin is the actor who creates a chain (§6.1); the call reaches this module **in-process**, not over the network.
+- `growayshop-staff-invite-workflow.md`: covers the *ongoing* "invite a staff member" flow — this document covers chain creation (§6.1) and a chain_admin's own ongoing "add a store" flow (§6.2).
+- `groway-billing-workflow.md`: reads `store.chains`/`store.stores` created here; billing is anchored to `chain_id` (created here, §6.1), never to any individual store or store_admin.
 - `store-onboarding-v1-design.md`: owns `store.stores`' address columns (§4 there); this document owns how those columns get populated — Mapbox address resolution (§2.2) — since that's an identity/data-entry concern, not a booking-domain one.
 
 **Terminology (2026-09-28, unifying prior inconsistent usage — `groway-architecture-decisions.md`):** **Chain** = the business as a whole, one or more stores, one billing account. **Store** = one physical location or one independent practitioner. "Merchant" is retired.
@@ -27,13 +27,13 @@
 | Can manage time off (`staff_time_offs`) | Yes — any staff in the chain (`staff-schedule-entry-workflow.md` §1) | Yes — any staff at their store | Yes — **own only**, self-service preferred (§3.4 there) |
 | Can manage staff schedules (`staff_schedules`) | Yes — any staff in the chain | Yes — any staff at their store | Yes — **own only**, at each store they work (same authorization shape as time off — `staff-schedule-entry-workflow.md` §1) |
 | Can invite `staff` | Yes, any store in the chain | Yes, own store only | No |
-| Can create a new `store_admin` | Yes — **only** when adding a new store (§7.2); no ongoing management power over it afterward | No | No |
-| Can add a new store to the chain | Yes, self-service (§7.2) | No | No |
+| Can create a new `store_admin` | Yes — **only** when adding a new store (§6.2); no ongoing management power over it afterward | No | No |
+| Can add a new store to the chain | Yes, self-service (§6.2) | No | No |
 | Billing self-service (start-trial / cancel / status) | **Yes — the only role that can** (`groway-billing-workflow.md`) | No — a store has no billing concept of its own | No |
-| Change the chain's `allowed_countries` (§7.7) | **Yes — the only role that can** | No (read-only, §7.7) | No |
-| Edit a store's address (§7.8) | Yes, any store in the chain | Yes, own store only | No |
+| Change the chain's `allowed_countries` (§6.7) | **Yes — the only role that can** | No (read-only, §6.7) | No |
+| Edit a store's address (§6.8) | Yes, any store in the chain | Yes, own store only | No |
 | Can deactivate/reactivate a `chain_admin` or `store_admin` | No — **only a Groway admin can** (`growayadmin-registration-workflow.md`) | No | No |
-| Who creates this account | Groway admin only (§7.1) | Groway admin (§7.1) or `chain_admin` (§7.2) | Groway admin, `chain_admin`, or `store_admin` (`growayshop-staff-invite-workflow.md`) |
+| Who creates this account | Groway admin only (§6.1) | Groway admin (§6.1) or `chain_admin` (§6.2) | Groway admin, `chain_admin`, or `store_admin` (`growayshop-staff-invite-workflow.md`) |
 | Password reset | Self-service, like a customer | Self-service, like a customer | Self-service, like a customer |
 | How many per chain | **Exactly one, ever** | One per store | Any number |
 
@@ -51,23 +51,23 @@ store.chains (1) ──chain_admin_id (UNIQUE)──> store.store_users (exactly
                 └── store.store_user_store_access (many-to-many: which store_users can act on which store)
 ```
 
-**One store, one operational admin** — enforced at the database level (`store.stores.store_admin_id UNIQUE`, §5). **One chain, one chain_admin** — also DB-enforced (`store.chains.chain_admin_id UNIQUE NOT NULL`, §5), a genuinely separate account, not a store_admin wearing a second hat. A `chain_admin` gets one `store_user_store_access` row per store in their chain (one marked `is_primary = TRUE` as their default store, per §7.1); a `store_admin` gets exactly one such row, for their own store. `staff` accounts are unaffected — still many-to-many, since one person can work shifts at more than one store of the same chain (never across unrelated chains).
+**One store, one operational admin** — enforced at the database level (`store.stores.store_admin_id UNIQUE`, §5). **One chain, one chain_admin** — also DB-enforced (`store.chains.chain_admin_id UNIQUE NOT NULL`, §5), a genuinely separate account, not a store_admin wearing a second hat. A `chain_admin` gets one `store_user_store_access` row per store in their chain (one marked `is_primary = TRUE` as their default store, per §6.1); a `store_admin` gets exactly one such row, for their own store. `staff` accounts are unaffected — still many-to-many, since one person can work shifts at more than one store of the same chain (never across unrelated chains).
 
-The session tracks **one active store at a time** (§4); switching (§7.6) updates context within the existing session, it never re-authenticates. For a `store_admin` there is only one store to be active on, so switching is a no-op for them; `chain_admin` and multi-store `staff` are the ones who actually switch.
+The session tracks **one active store at a time** (§4); switching (§6.6) updates context within the existing session, it never re-authenticates. For a `store_admin` there is only one store to be active on, so switching is a no-op for them; `chain_admin` and multi-store `staff` are the ones who actually switch.
 
 ### 2.1 Resolving "the caller's chain"
 
-Some `chain_admin`-only actions (adding a store, §7.2; every billing self-service endpoint in `groway-billing-workflow.md`) need the caller's chain, not just their authorized stores:
+Some `chain_admin`-only actions (adding a store, §6.2; every billing self-service endpoint in `groway-billing-workflow.md`) need the caller's chain, not just their authorized stores:
 
 ```sql
 SELECT id FROM store.chains WHERE chain_admin_id = <caller.PrincipalId>
 ```
 
-Since `chain_admin_id` is `UNIQUE NOT NULL` on `store.chains`, and the only way to become a `chain_admin` is §7.1/§7.2's flow, this always resolves to exactly one row for a genuine `chain_admin` caller — no ambiguity case to handle here (unlike the merchant-anchored resolution this document used briefly before the chain model existed).
+Since `chain_admin_id` is `UNIQUE NOT NULL` on `store.chains`, and the only way to become a `chain_admin` is §6.1/§6.2's flow, this always resolves to exactly one row for a genuine `chain_admin` caller — no ambiguity case to handle here (unlike the merchant-anchored resolution this document used briefly before the chain model existed).
 
-### 2.2 Resolving a store's address — Mapbox, used by §7.1, §7.2, and §7.8
+### 2.2 Resolving a store's address — Mapbox, used by §6.1, §6.2, and §6.8
 
-**Client side (not designed here):** the store-creation/edit form's address field is a single autocomplete input calling Mapbox's Search Box "suggest" endpoint directly from the browser, with a restricted public token — no backend round-trip per keystroke. `country=<chain's allowed_countries>` (§7.7) is passed to keep suggestions scoped to countries this chain actually operates in. A "enter it manually" fallback is always available, for addresses Mapbox can't complete.
+**Client side (not designed here):** the store-creation/edit form's address field is a single autocomplete input calling Mapbox's Search Box "suggest" endpoint directly from the browser, with a restricted public token — no backend round-trip per keystroke. `country=<chain's allowed_countries>` (§6.7) is passed to keep suggestions scoped to countries this chain actually operates in. A "enter it manually" fallback is always available, for addresses Mapbox can't complete.
 
 **Server side — one Mapbox call per store created/edited, not per keystroke.** Every request that sets a store's address carries **either** `geoPlaceId` (the user picked a suggestion) **or** `manualAddress` (the fallback form):
 
@@ -96,22 +96,22 @@ sequenceDiagram
     alt geoPlaceId provided
         SM->>GEO: RetrieveAsync(geoPlaceId)
         GEO-->>SM: GeocodeResult { addressLine1, addressLine2, city, region, postalCode, countryCode, formattedAddress, latitude, longitude }
-        SM-->>SM: Reject (422) unless countryCode is in the chain's allowed_countries (§7.7)
+        SM-->>SM: Reject (422) unless countryCode is in the chain's allowed_countries (§6.7)
         Note over SM: Mapbox's response is authoritative - never the frontend's<br/>own parse of what the user typed before selecting a suggestion.
     else manualAddress provided
         SM-->>SM: Loose validation only: addressLine1/city/postalCode required, no per-country format regex<br/>(no country_address_rules table in V1 - a not-yet-supported country just falls back to this same loose rule, in code, not via a table lookup)
-        SM-->>SM: Reject (422) unless the submitted countryCode is in the chain's allowed_countries (§7.7)
+        SM-->>SM: Reject (422) unless the submitted countryCode is in the chain's allowed_countries (§6.7)
         SM-->>SM: postalCode normalized (uppercased, whitespace trimmed) before writing
         Note over SM: formattedAddress/latitude/longitude/geoProvider/geoPlaceId all stay NULL
     end
-    SM->>DB: (the calling flow's own INSERT/UPDATE into store.stores, §7.1/§7.2/§7.8)
+    SM->>DB: (the calling flow's own INSERT/UPDATE into store.stores, §6.1/§6.2/§6.8)
 ```
 
 **Why retrieve, not the frontend's own parse:** Mapbox's suggestion payload during typing is optimized for display, not guaranteed to carry every structured field the same way `retrieve` does. Calling `retrieve` once, server-side, at the moment of commit gets the authoritative, current components and coordinates for that exact `place_id` — and gives the backend one true point to enforce `allowed_countries` against, rather than trusting whatever the client claims it parsed.
 
 **Why no `country_address_rules` table:** North America (`CA`/`US`) needs nothing beyond "required fields present" — a real rules table today would hold two identical "no rule" rows, which is noise, not extensibility. The *code* is still structured to check for a per-country override and fall back to the loose default if none exists — so a future country with real requirements (a stricter postal format, a different required-fields set) is a code change that adds one case, not a restructuring of this flow. The table itself is deferred until a country actually needs one.
 
-**Refreshing a stale address:** there is no periodic re-geocode job — addresses don't move on their own, and a store's address changes exactly when someone edits it (§7.8), which already re-runs this same resolution. `geo_place_id` is kept for the one scenario a recurring job can't help with anyway: migrating to a different geocoding provider, which is a one-time, manually-run ops script over existing rows, not a schedule.
+**Refreshing a stale address:** there is no periodic re-geocode job — addresses don't move on their own, and a store's address changes exactly when someone edits it (§6.8), which already re-runs this same resolution. `geo_place_id` is kept for the one scenario a recurring job can't help with anyway: migrating to a different geocoding provider, which is a one-time, manually-run ops script over existing rows, not a schedule.
 
 ---
 
@@ -171,7 +171,7 @@ CREATE TABLE store.store_users (
     -- Exactly one of the next two is set: who created this account. A Groway
     -- admin (admin.admins.id, cross-schema - no enforced FK per architecture
     -- doc §5) or another store_users row (a chain_admin adding a store's
-    -- store_admin, §7.2, or a store_admin/chain_admin inviting staff).
+    -- store_admin, §6.2, or a store_admin/chain_admin inviting staff).
     created_by_admin_id      UUID,
     created_by_store_user_id UUID REFERENCES store.store_users(id),
     created_at          TIMESTAMPTZ  NOT NULL DEFAULT now(),
@@ -191,7 +191,7 @@ CREATE TABLE store.chains (
     -- Which countries this chain's stores can be in - filters the Mapbox
     -- suggest box's country= param and validates every address resolution
     -- (§2.2). A commercial/market-expansion setting, not a platform gate -
-    -- chain_admin manages it themselves (§7.7). ISO 3166-1 alpha-2 codes.
+    -- chain_admin manages it themselves (§6.7). ISO 3166-1 alpha-2 codes.
     allowed_countries TEXT[] NOT NULL DEFAULT '{US,CA}' CHECK (cardinality(allowed_countries) > 0),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -244,9 +244,9 @@ Activity log delivery: dedicated `store-activity-log` SQS queue + its own KEDA-s
 
 ---
 
-## 7. Sequence diagrams
+## 6. Sequence diagrams
 
-### 7.1 Chain creation (Groway admin, continuing from §3)
+### 6.1 Chain creation (Groway admin, continuing from §3)
 
 One request creates the chain, its one `chain_admin`, and one store + one `store_admin` per store the intake email listed:
 
@@ -288,7 +288,7 @@ sequenceDiagram
 
 The `chain_admin`'s default store (`is_primary = TRUE`) is the first store in the request list unless the caller says otherwise — a UI convenience, not a meaningful business choice, since `chain_admin` can see and switch to any of them regardless.
 
-### 7.2 Self-service: `chain_admin` adds a store
+### 6.2 Self-service: `chain_admin` adds a store
 
 ```mermaid
 sequenceDiagram
@@ -319,7 +319,7 @@ sequenceDiagram
 
 Right after this call, `store-onboarding-v1-design.md` §8 offers an optional next step: copying the whole service catalog (categories/services/options) from another store in the same chain, instead of re-entering it by hand.
 
-### 7.3 Accepting the invite / first login (forced password change)
+### 6.3 Accepting the invite / first login (forced password change)
 
 ```mermaid
 sequenceDiagram
@@ -347,11 +347,11 @@ sequenceDiagram
     SM-->>N: 200 OK { sessionToken, profile }
 ```
 
-### 7.4 Ordinary login (returning store user)
+### 6.4 Ordinary login (returning store user)
 
 Same shape as the Admin Module's §4.4 — `InitiateAuth(USER_PASSWORD_AUTH)`, success/deactivated/invalid-credentials branches, `SendMessage` to `store-activity-log` — not re-diagrammed. **Billing state has no effect on login** (`groway-billing-workflow.md`) — a Free-plan chain, a Paid-plan chain, and a chain reverted from Paid to Free all log in exactly the same way, regardless of app role.
 
-### 7.5 Forgot / reset password (self-service — the customer pattern, not the admin peer-reset pattern)
+### 6.5 Forgot / reset password (self-service — the customer pattern, not the admin peer-reset pattern)
 
 ```mermaid
 sequenceDiagram
@@ -383,7 +383,7 @@ sequenceDiagram
 
 No Groway admin involved anywhere in this flow — deliberately the easier, self-service path, unlike the internal-admin document's peer-reset model.
 
-### 7.6 Switching stores (`chain_admin` and multi-store `staff`)
+### 6.6 Switching stores (`chain_admin` and multi-store `staff`)
 
 ```mermaid
 sequenceDiagram
@@ -409,7 +409,7 @@ sequenceDiagram
 
 Session-context change only — no Cognito call, no new login. A `store_admin` holds exactly one access row, so switching is a no-op for them.
 
-### 7.7 Chain settings: reading and changing `allowed_countries`
+### 6.7 Chain settings: reading and changing `allowed_countries`
 
 ```mermaid
 sequenceDiagram
@@ -442,7 +442,7 @@ sequenceDiagram
 
 Read is open to both roles (a `store_admin` may reasonably want to see why the address box only offers certain countries); write is `chain_admin`-only — a market-expansion decision belongs to the chain, and this field carries no billing/compliance weight in V1, so it needs no Groway-admin gate. Changing it has **no retroactive effect** — existing stores' addresses are untouched; it only changes what the address box offers, and what `§2.2`'s validation accepts, for stores created or edited *after* the change.
 
-### 7.8 Editing a store's address
+### 6.8 Editing a store's address
 
 ```mermaid
 sequenceDiagram
@@ -462,11 +462,11 @@ sequenceDiagram
     end
 ```
 
-**404, not 403, for out-of-scope stores** — deliberately: a caller outside their scope shouldn't be able to distinguish "this store doesn't exist" from "this store exists but isn't yours" by the status code alone. This is a plain CRUD action with no business-policy baggage (unlike deactivating a store, §9 item 2) — it doesn't touch billing, doesn't affect existing appointments, and reuses §2.2's resolution logic exactly as store creation does.
+**404, not 403, for out-of-scope stores** — deliberately: a caller outside their scope shouldn't be able to distinguish "this store doesn't exist" from "this store exists but isn't yours" by the status code alone. This is a plain CRUD action with no business-policy baggage (unlike deactivating a store, §8 item 2) — it doesn't touch billing, doesn't affect existing appointments, and reuses §2.2's resolution logic exactly as store creation does.
 
 ---
 
-## 8. Test data
+## 7. Test data
 
 ```sql
 -- Selah Head Spa: one chain, two stores, one chain_admin, two store_admins.
@@ -544,8 +544,8 @@ VALUES
 
 ---
 
-## 9. Open questions
+## 8. Open questions
 
 1. **One `app_role` per account, not per store** — a person who is `store_admin` at one store and `staff` at another needs two separate `store_users` rows/logins. Not solved; a real limitation of this first version.
-2. **Deactivating/closing a store** (as opposed to adding one, §7.2) isn't designed — only the store-onboarding lifecycle's `suspended` status exists as a label; no endpoint sets it yet.
+2. **Deactivating/closing a store** (as opposed to adding one, §6.2) isn't designed — only the store-onboarding lifecycle's `suspended` status exists as a label; no endpoint sets it yet.
 3. **Session lifetime, MFA, device-management UX** — same open, unresolved status as the other two modules.
