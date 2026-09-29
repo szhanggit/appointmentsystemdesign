@@ -75,16 +75,33 @@ CREATE TABLE store.stores (
     updated_at       TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
+-- Person-level identity - one row per person, ever, regardless of how many
+-- stores (of the same chain) they work at. name/phone/email live here exactly
+-- once (2026-09-29 fix: an earlier version put store_id NOT NULL directly on
+-- this table, meaning one physical person needed a separate row - and a
+-- separate copy of their name - per store; updating a name meant updating
+-- multiple rows. That's a normalization bug, not a real business rule).
 CREATE TABLE store.staff (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    store_id         UUID NOT NULL REFERENCES store.stores(id),
     name             VARCHAR(200) NOT NULL,
     phone            VARCHAR(20),
     email            VARCHAR(255),
-    role             VARCHAR(50)  NOT NULL DEFAULT 'staff',  -- descriptive only, e.g. 'owner' | 'manager' | 'staff' | free text
     status           VARCHAR(20)  NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     created_at       TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+-- Which store(s) this person is on the roster for, and their descriptive
+-- business-role label AT that store (can differ per store - e.g. manager at
+-- one branch, regular staff at another). This is the actual multi-store
+-- relationship; store.staff itself is never store-scoped.
+CREATE TABLE store.staff_store_assignments (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    staff_id    UUID NOT NULL REFERENCES store.staff(id),
+    store_id    UUID NOT NULL REFERENCES store.stores(id),
+    role        VARCHAR(50) NOT NULL DEFAULT 'staff',  -- descriptive only, e.g. 'owner' | 'manager' | 'staff' | free text
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (staff_id, store_id)
 );
 
 CREATE TABLE store.services (
@@ -99,18 +116,26 @@ CREATE TABLE store.services (
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Which services this person can perform, AT a specific store (services are
+-- themselves store-scoped, services.store_id) - keyed off the assignment, not
+-- staff_id directly, so "can do X at store A" can't be confused with "at store B".
 CREATE TABLE store.staff_services (
-    staff_id    UUID NOT NULL REFERENCES store.staff(id),
-    service_id  UUID NOT NULL REFERENCES store.services(id),
-    PRIMARY KEY (staff_id, service_id)
+    staff_store_assignment_id  UUID NOT NULL REFERENCES store.staff_store_assignments(id),
+    service_id                 UUID NOT NULL REFERENCES store.services(id),
+    PRIMARY KEY (staff_store_assignment_id, service_id)
+    -- Application-level invariant, not DB-enforced: the referenced service's
+    -- store_id must equal the assignment's store_id - same category of
+    -- cross-table rule as appointments.customer_id (architecture doc §5).
 );
 
+-- Working hours differ per store for the same person, so this is keyed off
+-- the assignment too, not staff_id directly.
 CREATE TABLE store.staff_schedules (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    staff_id    UUID NOT NULL REFERENCES store.staff(id),
-    day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),  -- 0 = Sunday
-    start_time  TIME NOT NULL,
-    end_time    TIME NOT NULL
+    id                         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    staff_store_assignment_id  UUID NOT NULL REFERENCES store.staff_store_assignments(id),
+    day_of_week                SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),  -- 0 = Sunday
+    start_time                 TIME NOT NULL,
+    end_time                   TIME NOT NULL
 );
 
 CREATE TABLE store.staff_time_offs (
@@ -144,7 +169,7 @@ CREATE TABLE store.appointments (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_id      UUID NOT NULL REFERENCES store.stores(id),
     customer_id   UUID NOT NULL,  -- application-level reference to customer.customers.id
-    staff_id      UUID NOT NULL REFERENCES store.staff(id),
+    staff_id      UUID NOT NULL REFERENCES store.staff(id),  -- app-level invariant: staff must have a staff_store_assignments row for this store_id
     status        VARCHAR(20) NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'completed', 'cancelled', 'no_show')),
     starts_at     TIMESTAMPTZ NOT NULL,
     ends_at       TIMESTAMPTZ NOT NULL,
@@ -159,7 +184,8 @@ CREATE TABLE store.appointment_items (
     price_cents     INT NOT NULL  -- snapshot of the price at booking time, not a live join to services
 );
 
-CREATE INDEX idx_staff_store_id ON store.staff(store_id);
+CREATE INDEX idx_staff_store_assignments_staff_id ON store.staff_store_assignments(staff_id);
+CREATE INDEX idx_staff_store_assignments_store_id ON store.staff_store_assignments(store_id);
 CREATE INDEX idx_services_store_id ON store.services(store_id);
 CREATE INDEX idx_appointments_store_id_starts_at ON store.appointments(store_id, starts_at);
 CREATE INDEX idx_appointments_customer_id ON store.appointments(customer_id);
@@ -184,4 +210,5 @@ CREATE INDEX idx_appointments_customer_id ON store.appointments(customer_id);
 
 1. **Wireframe detail** was intentionally not reproduced at the same fidelity as the retired document — this is the schema/API contract; pixel-level Back Office UI can be redrawn separately if needed.
 2. **Multi-service, multi-staff appointments** (`appointment_items` allows several service lines per appointment) — whether they can span more than one staff member per appointment isn't addressed here.
+3. **Leaving one store while staying at another** (2026-09-29, from the `staff`/`staff_store_assignments` split) — removing a `staff_store_assignments` row for one store, while the person's `store.staff` row (and their login, if they have one) stays active for their other store(s), isn't designed as an endpoint yet. `store.staff.status` is person-level (mirrors their login being deactivated entirely, `growayshop-staff-invite-workflow.md` §4.2) — it does not mean "inactive at this one store."
 3. Everything else the retired document left open (proration, cross-store service catalogs, etc.) is not reintroduced here unless it resurfaces.

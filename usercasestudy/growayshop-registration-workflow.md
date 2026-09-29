@@ -150,7 +150,8 @@ ALTER TABLE store.stores
 CREATE TABLE store.store_user_store_access (
     store_user_id       UUID NOT NULL REFERENCES store.store_users(id),
     store_id            UUID NOT NULL REFERENCES store.stores(id),
-    staff_id            UUID REFERENCES store.staff(id),  -- the roster row for THIS store.
+    staff_id            UUID REFERENCES store.staff(id),  -- the person-level roster identity behind this login (store-onboarding-v1-design.md §4);
+                                          -- the same value across all of this person's store_user_store_access rows.
                                           -- NULL for chain_admin/store_admin rows (pure admin access, no service-performing role).
     is_primary          BOOLEAN NOT NULL DEFAULT FALSE,  -- default activeStoreId after login
     granted_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -388,6 +389,17 @@ WHERE id = '99999999-0000-0000-0000-000000000001';
 UPDATE store.stores SET chain_id = 'cc111111-1111-1111-1111-111111111111', store_admin_id = 'c1111112-1111-1111-1111-111111111112'
 WHERE id = '99999999-0000-0000-0000-000000000002';
 
+-- Anna: ONE person-level store.staff row (store-onboarding-v1-design.md §4 -
+-- name/phone/email live here exactly once), plus one staff_store_assignments
+-- row per branch she actually works (this is where "which branches" lives).
+INSERT INTO store.staff (id, name, phone, status)
+VALUES ('b1000000-0000-0000-0000-000000000001', 'Anna', '416-555-0142', 'active');
+
+INSERT INTO store.staff_store_assignments (staff_id, store_id, role)
+VALUES
+    ('b1000000-0000-0000-0000-000000000001', '99999999-0000-0000-0000-000000000001', 'staff'),
+    ('b1000000-0000-0000-0000-000000000001', '99999999-0000-0000-0000-000000000002', 'staff');
+
 INSERT INTO store.store_user_store_access (store_user_id, store_id, staff_id, is_primary, granted_by_admin_id)
 VALUES
     -- chain_admin: one row per store, King West is the default.
@@ -396,9 +408,10 @@ VALUES
     -- each store_admin: exactly one row, their own store.
     ('c1111111-1111-1111-1111-111111111111', '99999999-0000-0000-0000-000000000001', NULL, TRUE, 'a2222222-2222-2222-2222-222222222222'),
     ('c1111112-1111-1111-1111-111111111112', '99999999-0000-0000-0000-000000000002', NULL, TRUE, 'a2222222-2222-2222-2222-222222222222'),
-    -- Anna (staff) works both branches, different roster row per branch.
+    -- Anna (staff) works both branches - same staff_id both times, now that
+    -- store.staff is person-level (not a different roster row per branch).
     ('c2222222-2222-2222-2222-222222222222', '99999999-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', TRUE,  'a2222222-2222-2222-2222-222222222222'),
-    ('c2222222-2222-2222-2222-222222222222', '99999999-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000002', FALSE, 'a2222222-2222-2222-2222-222222222222');
+    ('c2222222-2222-2222-2222-222222222222', '99999999-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001', FALSE, 'a2222222-2222-2222-2222-222222222222');
 
 INSERT INTO store.store_user_activity_log (store_user_id, event_type, event_detail, ip_address, created_at)
 VALUES
@@ -408,7 +421,7 @@ VALUES
     ('c2222222-2222-2222-2222-222222222222', 'LOGIN_SUCCESS', NULL, '198.51.100.31', '2026-09-24 09:00:00-04');
 ```
 
-*The owner is `chain_admin`, a genuinely separate account from either store's `store_admin` — this is the current design, not a store_admin wearing two hats. Anna (staff) still works both branches with a different `staff_id` per branch, unaffected by the chain/store rename.*
+*The owner is `chain_admin`, a genuinely separate account from either store's `store_admin` — this is the current design, not a store_admin wearing two hats. Anna (staff) works both branches with the **same** `staff_id` both times (2026-09-29 fix, `store-onboarding-v1-design.md` §4) — her name/phone live in one `store.staff` row; which branches she works and her per-branch role live in `store.staff_store_assignments`, not in a duplicated `staff` row per branch.*
 
 ---
 

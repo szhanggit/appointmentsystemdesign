@@ -16,8 +16,8 @@
 - A Groway admin calls `POST /api/admin/store-users`, which Admin Module dispatches in-process into the same Store Module interface — still the one place a `CallerContext.Population` other than `"store"` reaches this logic, and Store Module still independently re-checks authorization for that case rather than trusting the caller.
 
 **Two creation modes, chosen per store in the request:**
-- **Link-existing** — the person is already a row in `store.staff` (e.g. entered during onboarding, never given a login). Provide their `staffId`; no new roster row is created.
-- **Create-new** — never entered anywhere. Provide `name`/`phone`/a business-role label; Store Module creates the `store.staff` row itself, in the same schema, then the login — a single local transaction, no cross-module or cross-schema call, per architecture doc §5's "FKs within a schema are normal" rule.
+- **Link-existing** — the person already exists as a (person-level) `store.staff` row — e.g. entered during onboarding at another store of the same chain, or invited there before. Provide their `staffId`; if they don't already have a `store.staff_store_assignments` row for *this* store, one is created as part of the call (store-onboarding-v1-design.md §4) — no new `store.staff` row is ever created in this mode, since the person already exists.
+- **Create-new** — never entered anywhere. Provide `name`/`phone`/a business-role label; Store Module creates the `store.staff` row **and** its first `staff_store_assignments` row, in the same schema, then the login — a single local transaction, no cross-module or cross-schema call, per architecture doc §5's "FKs within a schema are normal" rule.
 
 A single request's `storeAccess` array can mix both modes across different stores (relevant for a `chain_admin` inviting one person to work at two of their stores at once).
 
@@ -74,7 +74,8 @@ sequenceDiagram
     GW->>SM: (in-process; CallerContext carries population + authorized store set)
     SM-->>SM: Verify caller has access to every storeId in the request (AuthorizedStoreIds)
     loop for each entry with newStaff
-        SM->>DB: INSERT INTO store.staff (store_id, name, phone, role, status='active') RETURNING id
+        SM->>DB: INSERT INTO store.staff (name, phone, status='active') RETURNING id
+        SM->>DB: INSERT INTO store.staff_store_assignments (staff_id, store_id, role)
     end
     SM->>DB: INSERT INTO store.store_users (email, app_role='staff', status='active',<br/>created_by_admin_id or created_by_store_user_id - whichever caller invited)
     Note over SM,DB: cognito_sub still NULL - filled in next
@@ -89,7 +90,7 @@ sequenceDiagram
     SM-->>A: 201 Created { storeUserId }
 ```
 
-**Link-existing mode** skips the `store.staff` INSERT loop entirely — the provided `staffId` is used directly, after verifying it belongs to a `store_id` the caller has access to (so a `store_admin` can't grant a login against another chain's roster row, and a `chain_admin` can't reach outside their own chain).
+**Link-existing mode** skips the `store.staff` INSERT entirely — the provided `staffId` is used directly, after verifying the caller has access to the target `storeId` (so a `store_admin` can't grant a login against another chain's roster person, and a `chain_admin` can't reach outside their own chain). It still runs `INSERT INTO store.staff_store_assignments ... ON CONFLICT (staff_id, store_id) DO NOTHING` — covers both "this person already works here, just add a login" and "this person works elsewhere in the chain, now also assign them here" with the same call.
 
 **The one honest edge case:** if the Cognito call fails after the `staff`/`store_users` rows are committed, you get a `store_users` row with `cognito_sub = NULL` — a clearly-identifiable, retryable "failed invite," not a silent inconsistency. Deliberately simple — no distributed saga — appropriate for how infrequently this happens.
 
@@ -110,12 +111,12 @@ sequenceDiagram
     SM->>SCOG: AdminDisableUser(Username=email)
     SM->>SCOG: AdminUserGlobalSignOut(Username=email)
     SM->>DB: UPDATE store.store_users SET status='deactivated' WHERE id=storeUserId
-    SM->>DB: UPDATE store.staff SET status='inactive'<br/>WHERE id IN (SELECT staff_id FROM store.store_user_store_access WHERE store_user_id=storeUserId)
+    SM->>DB: UPDATE store.staff SET status='inactive'<br/>WHERE id = (SELECT staff_id FROM store.store_user_store_access WHERE store_user_id=storeUserId LIMIT 1)
     SM->>SQSQ: SendMessage { event_type:'ACCOUNT_DEACTIVATED', ... }
     SM-->>A: 200 OK
 ```
 
-Both the login side (`store_users.status`) and the roster side (`staff.status`, every store this person has a row at) flip together — a single transaction, same schema. Reactivation is the exact mirror (`AdminEnableUser`, both back to `active`), same caller rule.
+Both the login side (`store_users.status`) and the roster side (`staff.status`) flip together — a single transaction, same schema. Since `store.staff` is person-level (2026-09-29 fix, `store-onboarding-v1-design.md` §4), this is now a single-row update, not a loop over every store this person has a row at — `staff_id` is the same value across all of that person's `store_user_store_access` rows, so `LIMIT 1` is enough (any row gives the same `staff_id`). This deactivates the person entirely, at every store — it is not "remove them from just this one store" (`store-onboarding-v1-design.md` §7 item 3, still open). Reactivation is the exact mirror (`AdminEnableUser`, both back to `active`), same caller rule.
 
 ---
 
@@ -124,10 +125,12 @@ Both the login side (`store_users.status`) and the roster side (`staff.status`, 
 ```sql
 -- Jordan Lee, a brand-new hire invited by the King West store_admin
 -- (c1111111-..., growayshop-registration-workflow.md) after chain creation -
--- exercises create-new mode.
-INSERT INTO store.staff (id, store_id, name, phone, role, status)
-VALUES ('b1000000-0000-0000-0000-000000000009',
-        '99999999-0000-0000-0000-000000000001', 'Jordan Lee', '416-555-0199', 'staff', 'active');
+-- exercises create-new mode. Person-level staff row, plus one assignment.
+INSERT INTO store.staff (id, name, phone, status)
+VALUES ('b1000000-0000-0000-0000-000000000009', 'Jordan Lee', '416-555-0199', 'active');
+
+INSERT INTO store.staff_store_assignments (staff_id, store_id, role)
+VALUES ('b1000000-0000-0000-0000-000000000009', '99999999-0000-0000-0000-000000000001', 'staff');
 
 INSERT INTO store.store_users (id, cognito_sub, email, display_name, app_role, created_by_store_user_id, status, created_at)
 VALUES ('c3333333-3333-3333-3333-333333333333',
