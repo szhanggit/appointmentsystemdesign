@@ -27,7 +27,7 @@ A single request's `storeAccess` array can mix both modes across different store
 
 Fill in name/email/role (+ optional phone) → invite email sent → they set their password → **they then complete their own profile** — which services they can perform, their working hours. Until both are set, they can log in but are never offered to a customer booking (empty `staff_services`/`staff_schedules` — a naturally derived state, not a status flag).
 
-Calling `store-onboarding-v1-design.md`'s `PUT /admin/staff/{staffId}/services` / `/schedule` from a `staff` account's own session is not designed here — a small, mechanical follow-up once this pattern exists (§6 item 1), not a new design problem.
+These two steps already have real routes, both callable from a `staff` account's own session: assigning services is `PUT /api/store/staff/{staffId}/services` (`store-onboarding-v1-design.md` §7.5), setting the weekly schedule is `PUT /api/store/stores/{storeId}/staff/{staffId}/schedule` (`staff-schedule-entry-workflow.md` §4). Neither is designed *in this document* — they're cross-referenced, not reproduced.
 
 ---
 
@@ -152,5 +152,5 @@ VALUES ('c3333333-3333-3333-3333-333333333333', 'ACCOUNT_CREATED', '2026-09-26 0
 
 ## 6. Open questions
 
-1. **Assigning services/schedule ("complete your profile," §2)** is still undesigned at the API level — flagged, not solved.
+1. ~~Assigning services/schedule ("complete your profile," §2) is still undesigned at the API level~~ — **resolved**: both routes now exist (`store-onboarding-v1-design.md` §7.5, `staff-schedule-entry-workflow.md` §4), cross-referenced in §2 above.
 2. Everything already open in `growayshop-registration-workflow.md` §9 (one `app_role` per account, session lifetime/MFA/device-management) remains open and unaffected by this document.
