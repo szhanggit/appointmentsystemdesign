@@ -339,7 +339,7 @@ CREATE INDEX idx_appointments_customer_id ON store.appointments(customer_id);
 
 ## 6. APIs
 
-- **Back Office (Groway admin / chain_admin / store_admin), `/api/store/back-office/*`** — CRUD for stores, staff, business hours, booking settings. Wireframes not reproduced here — same step-by-step wizard shape as before (basic info → services → staff → hours/rules → done).
+- **Back Office, `/api/store/back-office/*`** — CRUD for stores, staff, business hours, booking settings, called directly by `chain_admin`/`store_admin` on their own `StoreSession`. A **Groway admin never calls these routes directly** — their session is `population:"admin"`, which the `StoreSession` handler rejects outright on any `/api/store/*` path (architecture doc §6.3; same reasoning as `growayshop-registration-workflow.md` §3). Whatever back-office actions a Groway admin needs reach Store Module the same way chain creation and staff invitation already do — an `/api/admin/*` endpoint dispatching in-process into the same underlying service methods — not by a Groway admin hitting `/api/store/*` itself. Individual `/api/admin/*` mirrors aren't enumerated here; add them following the existing pattern as each concrete need arises, rather than pre-building a parallel admin-side CRUD surface now. Wireframes not reproduced here — same step-by-step wizard shape as before (basic info → services → staff → hours/rules → done).
 - **Service catalog, `/api/store/*`** — categories, services, options, staff↔service assignment. §7.
 - **Public booking, `/api/store/public/*`** — list a store's services/available slots, create an appointment (runs through `groway-billing-workflow.md` §4.2's quota check first).
 
