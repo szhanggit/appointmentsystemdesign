@@ -271,6 +271,8 @@ sequenceDiagram
     loop for each store in the request
         SM->>SM: Resolve store address (§2.2) - Mapbox retrieve or manual, validated against the chain's allowed_countries
         SM->>DB: INSERT INTO store.stores<br/>(chain_id, name, address_line1, address_line2, city, region, postal_code, country_code,<br/>formatted_address, latitude, longitude, geo_provider, geo_place_id, status='pending') RETURNING id
+        SM->>DB: INSERT INTO store.booking_settings (store_id) VALUES (<store id>)
+        Note over SM,DB: booking_settings.store_id is a bare PK, no default row appears on its own -<br/>every column here has a table-level DEFAULT (store-onboarding-v1-design.md §4), so this is enough
         SM->>SCOG: AdminCreateUser(Username=store.storeAdminEmail, ...)
         SCOG-->>SM: 200 OK { sub }
         SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='store_admin', created_by_admin_id, status='active') RETURNING id
@@ -301,6 +303,7 @@ sequenceDiagram
     SM->>SM: Resolve caller's chain (§2.1)
     SM->>SM: Resolve store address (§2.2) - Mapbox retrieve or manual, validated against the chain's allowed_countries
     SM->>DB: INSERT INTO store.stores<br/>(chain_id, name, address_line1, address_line2, city, region, postal_code, country_code,<br/>formatted_address, latitude, longitude, geo_provider, geo_place_id, status='pending') RETURNING id
+    SM->>DB: INSERT INTO store.booking_settings (store_id) VALUES (<new store id>)
     SM->>SCOG: AdminCreateUser(Username=storeAdminEmail, ...)
     SCOG-->>SM: 200 OK { sub }
     SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='store_admin', created_by_store_user_id=CA.id, status='active') RETURNING id
