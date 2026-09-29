@@ -53,7 +53,7 @@ Both invite routes accept the same body:
 }
 ```
 
-`businessRoleLabel` is the purely descriptive `store.staff.role` value — no bearing on `appRole`, which is fixed at `'staff'` for anything created through this endpoint.
+`businessRoleLabel` is the purely descriptive `store.staff_store_assignments.role` value (`store-onboarding-v1-design.md` §4 — per-store, since the same person's role can differ by location) — no bearing on `appRole`, which is fixed at `'staff'` for anything created through this endpoint.
 
 ---
 

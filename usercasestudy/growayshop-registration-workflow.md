@@ -17,7 +17,7 @@
 
 ## 1. Three app roles
 
-`store-onboarding-v1-design.md`'s `staff.role` (`owner`/`manager`/`staff`, or free text like "CEO") is **descriptive**, not access-control. This document's **app role** is separate:
+`store-onboarding-v1-design.md`'s `staff_store_assignments.role` (`owner`/`manager`/`staff`, or free text like "CEO") is **descriptive**, not access-control. This document's **app role** is separate:
 
 | | `chain_admin` | `store_admin` | `staff` |
 |---|---|---|---|
