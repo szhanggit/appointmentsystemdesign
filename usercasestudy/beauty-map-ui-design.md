@@ -46,7 +46,7 @@ Baseline: mobile-first, Mapbox GL JS, bilingual en/zh (same i18n framework as th
 
 Lives on the existing category management screen in the back office (`store-onboarding-v1-design.md` §7.1) — not a new page.
 
-- Creating or editing a category shows an optional "Map to a map-search category" dropdown, listing `platform.category_taxonomy`'s ~10 entries. Never free-typed, never auto-guessed.
+- Creating or editing a category shows an optional "Map to a map-search category" dropdown, listing `platform.category_taxonomy`'s 11 entries. Never free-typed, never auto-guessed.
 - **Migration nudge for existing stores**: the first time a store's category list loads after this taxonomy ships, any category with `taxonomy_id IS NULL` is flagged inline — "Unmapped — won't be found by map category search" — with a one-click dropdown right there to map it. Nothing is auto-mapped and nothing is forced; leaving it unmapped is a valid, permanent choice (the category keeps working normally everywhere else in that store's own UI).
 - This nudge matters for the pilot store specifically: it's an existing store, so without the nudge its categories would silently never appear in map search with no indication why — a bad look for a launch demo.
 

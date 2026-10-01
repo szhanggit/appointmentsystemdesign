@@ -7,6 +7,7 @@
 - `growayadmin-registration-workflow.md` — same `is_finance` capability as before: only such an admin may confirm a payment.
 - `groway-store-notifications-workflow.md` — a separate document that turns the blocked-booking counters defined here (§4) into a daily in-app message + email, sent to the chain's `chain_admin` only.
 - `store-onboarding-v1-design.md` — fixed reference for `store.stores`/`store.appointments`, **not modified**. One additive call is inserted at the start of the appointment-creation code path (§4); `store.appointments.is_test` (defined there) is read by that same call.
+- `beauty-map-postgis-schema-design.md` §2d adds `store.stores.is_test` (a whole demo store, independent of any individual booking's own flag) — §4.2's quota check reads this column too, at check time, alongside `appointments.is_test`.
 
 **Terminology (2026-09-28):** billing is anchored to the **chain** (`store.chains`), never to an individual **store** or to any specific account. A store has no billing concept of its own.
 
@@ -77,7 +78,7 @@ sequenceDiagram
 - **Free:** 100 appointments per calendar month, **shared across every store in the chain** (not 100 per store).
 - **Paid:** unlimited.
 - **An appointment counts the instant a row is inserted into `store.appointments`** — regardless of who created it (a customer self-booking, or staff entering a walk-in/phone booking) and regardless of what happens to it afterward (cancelled, no-show, rescheduled). Counting is by creation event, not by current status.
-- **Exception: `store.appointments.is_test = TRUE`** (staff-marked test bookings, `store-onboarding-v1-design.md` §5) never counts, in either direction — it neither consumes quota nor triggers a blocked-booking count. This is the one carve-out `pricing-tiers-v1.md` calls for.
+- **Exception: `store.appointments.is_test = TRUE`** (staff-marked test bookings, `store-onboarding-v1-design.md` §5) **or the appointment's store has `store.stores.is_test = TRUE`** (a whole demo store, `beauty-map-postgis-schema-design.md` §2d) — either one never counts, in either direction: no quota consumed, no blocked-booking count triggered. A demo store's purpose is consequence-free trial and error; relying on every booking into it being manually flagged test is exactly the kind of "someone has to remember" chain this exemption exists to avoid. This only exempts billing quota — slot occupancy is unaffected (a test appointment, on a test store or not, still occupies real time, `availability-slot-engine.md` §4).
 
 ### 4.2 Where the check lives
 
@@ -90,9 +91,10 @@ sequenceDiagram
     participant DB as PostgreSQL (store schema)
 
     C->>SM: (any code path that creates an appointment)
-    alt isTest == true
-        Note over SM: Skip quota entirely - neither consumed nor counted as blocked
-    else isTest == false
+    SM->>DB: SELECT is_test FROM store.stores WHERE id = storeId
+    alt appointment.isTest == true OR store.isTest == true
+        Note over SM: Skip quota entirely - neither consumed nor counted as blocked.<br/>store.isTest is read live here, never backfilled onto the appointment row.
+    else neither is test
         SM->>SM: BillingQuotaService.TryConsumeAsync(storeId) [new, internal to Store Module]
         SM->>DB: SELECT ba.id, ba.plan FROM store.stores s<br/>JOIN store.billing_accounts ba ON ba.chain_id = s.chain_id<br/>WHERE s.id = storeId
         alt plan = 'paid'

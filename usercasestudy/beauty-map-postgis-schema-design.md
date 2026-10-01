@@ -11,7 +11,7 @@
 5. **GIST index on `geo`.** The `&&` / `<->` / `ST_DWithin` operators the nearby-search query uses all resolve through it.
 6. **A store-level `is_test` column, separate from `appointments.is_test`.** A booking-level flag can't express "this whole store is a demo" — a demo store with zero bookings would still leak onto the public map, and a real store that happens to have test bookings on it wouldn't. Store-level `is_test` is toggled by `store_admin` in store settings (default `false`), via the existing store-update endpoint — no new endpoint.
 7. **Service bookability gets one shared SQL function**, not three independent copies of the same `WHERE` logic. `store-onboarding-v1-design.md` §7.6 already defines "bookable" as derived (never a stored flag): `deleted_at IS NULL AND status='active' AND EXISTS(≥1 active staff assignment)`. `price_from_cents` (this document), the category filter (`beauty-map-filtering-design.md`), and the nearby-search response's `categories` array (`beauty-map-nearby-search-design.md`) all now call the same function — a service that's actually unbookable can't show up as "available" in one place and not another.
-8. **Category filtering needs a shared taxonomy, which store-scoped categories can't provide.** `service_categories` is per-store free text (§7 of the onboarding doc) — two stores naming their category "Head Spa" have no common key, and free text (bilingual, typo-prone) can't be a filter key. A small platform-wide taxonomy (~10 seed categories) is a narrow, deliberate exception to "shared catalog is v2" (`store-onboarding-v1-design.md` §9.5) — store-owned categories, names, and prices are untouched; the taxonomy exists only for cross-store discovery.
+8. **Category filtering needs a shared taxonomy, which store-scoped categories can't provide.** `service_categories` is per-store free text (§7 of the onboarding doc) — two stores naming their category "Head Spa" have no common key, and free text (bilingual, typo-prone) can't be a filter key. A small platform-wide taxonomy (11 seed categories, §3) is a narrow, deliberate exception to "shared catalog is v2" (`store-onboarding-v1-design.md` §9.5) — store-owned categories, names, and prices are untouched; the taxonomy exists only for cross-store discovery.
 
 ## 2. Schema increment
 
@@ -78,16 +78,17 @@ CREATE TABLE platform.category_taxonomy (
 );
 
 INSERT INTO platform.category_taxonomy (slug, name_en, name_zh, sort_order) VALUES
-  ('head-spa',     'Head Spa',       '头疗',      10),
-  ('facial',       'Facial',         '面部护理',  20),
-  ('massage',       'Massage',        '按摩',      30),
-  ('nails',        'Nails',          '美甲',      40),
-  ('hair',         'Hair',           '美发',      50),
-  ('lashes-brows', 'Lashes & Brows', '睫毛/眉毛', 60),
-  ('waxing',       'Waxing',         '脱毛',      70),
-  ('skincare',     'Skincare',       '护肤',      80),
-  ('barbering',    'Barbering',      '理发',      90),
-  ('wellness',     'Wellness',       '养生',     100);
+  ('head-spa',       'Head Spa',          '头疗',      10),
+  ('facial',         'Facial',            '面部护理',  20),
+  ('massage',        'Massage',           '按摩',      30),
+  ('nails',          'Nails',             '美甲',      40),
+  ('hair',           'Hair',              '美发',      50),
+  ('lashes-brows',   'Lashes & Brows',    '睫毛/眉毛', 60),
+  ('waxing',         'Waxing',            '脱毛',      70),
+  ('skincare',       'Skincare',          '护肤',      80),
+  ('barbering',      'Barbering',         '理发',      90),
+  ('wellness',       'Wellness',          '养生',     100),
+  ('med-aesthetics', 'Medical Aesthetics', '医美',     110);  -- the partner's med-aesthetics clinic is a confirmed plan (2026-09-29), not a hypothetical — seeded now so it isn't a post-launch taxonomy addition
 
 ALTER TABLE store.service_categories
   ADD COLUMN taxonomy_id UUID REFERENCES platform.category_taxonomy(id);
@@ -116,6 +117,9 @@ RETURNS BOOLEAN AS $$
       AND sv.deleted_at IS NULL
       AND sv.status = 'active'
       AND st.status = 'active'
+      AND ssa.store_id = sv.store_id  -- the assignment must be AT this service's store;
+                                      -- service/assignment same-store is app-level only
+                                      -- (store-onboarding-v1-design.md §7.6), not DB-enforced
   );
 $$ LANGUAGE sql STABLE;
 ```
