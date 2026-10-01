@@ -64,22 +64,24 @@ WHERE status = 'confirmed'
 
 ## 6. Templates
 
-Template key format `{event}.{channel}`. Variables: `{store_name}` `{store_phone}` `{service_summary}` `{staff_name}` `{date}` `{time}` `{reference_code}`.
+Template key format `{event}.{channel}`. Variables: `{store_name}` `{store_phone}` `{service_summary}` `{staff_name}` `{date}` `{time}` `{reference_code}` `{manage_link}`.
+
+`{manage_link}` points to the self-serve lookup page (`customer-my-bookings-design.md` §4), pre-filled with this booking's `reference_code` via query param — e.g. `{booking_domain}/bookings?ref={reference_code}`. The phone-match check still runs on that page (§2 of that document); the link only saves re-typing the code, it does not bypass the ownership check.
 
 Language: `customer.language ?? booking_settings.notification_lang` (default `en`; v1 supports `en`/`zh` only).
 
 ```
 # booking.confirmed.sms
-en: Hi {name}, your booking at {store_name} is confirmed: {service_summary} with {staff_name} on {date} at {time}. Ref {reference_code}. Call {store_phone} to change. Reply STOP to opt out.
-zh: {name}您好，您在{store_name}的预约已确认：{date}{time}，{service_summary}（{staff_name}），预约号{reference_code}。改期请致电{store_phone}。回复 STOP 退订。
+en: Hi {name}, your booking at {store_name} is confirmed: {service_summary} with {staff_name} on {date} at {time}. Ref {reference_code}. Manage or reschedule: {manage_link}. Reply STOP to opt out.
+zh: {name}您好，您在{store_name}的预约已确认：{date}{time}，{service_summary}（{staff_name}），预约号{reference_code}。改期/取消：{manage_link}。回复 STOP 退订。
 
 # booking.confirmed.email (subject)
 en: Booking confirmed — {store_name}, {date} {time}
 zh: 预约确认 — {store_name} {date} {time}
 
 # reminder.24h.sms
-en: Reminder: {store_name} tomorrow {time}, {service_summary} with {staff_name}. Ref {reference_code}. Need to change? Call {store_phone}.
-zh: 提醒：您明天{time}在{store_name}有预约，{service_summary}（{staff_name}），预约号{reference_code}。改期请致电{store_phone}。
+en: Reminder: {store_name} tomorrow {time}, {service_summary} with {staff_name}. Ref {reference_code}. Need to change? {manage_link}
+zh: 提醒：您明天{time}在{store_name}有预约，{service_summary}（{staff_name}），预约号{reference_code}。改期：{manage_link}
 
 # reminder.2h.sms
 en: See you soon! {store_name} today at {time}, {service_summary}. Ref {reference_code}.
@@ -94,8 +96,8 @@ en: Your booking has been moved to {date} {time} at {store_name}, {service_summa
 zh: 您的预约已改至{date}{time}，{store_name}，{service_summary}（{staff_name}），预约号{reference_code}。疑问请致电{store_phone}。
 
 # booking.pending.sms (auto_confirm=false stores, or payment_required pending payment)
-en: Hi {name}, we received your booking request at {store_name} ({date} {time}). We'll confirm shortly. Ref {reference_code}.
-zh: {name}您好，我们已收到您在{store_name}的预约请求（{date}{time}），稍后为您确认。预约号{reference_code}。
+en: Hi {name}, we received your booking request at {store_name} ({date} {time}). We'll confirm shortly. Ref {reference_code}. Manage: {manage_link}
+zh: {name}您好，我们已收到您在{store_name}的预约请求（{date}{time}），稍后为您确认。预约号{reference_code}。管理预约：{manage_link}
 
 # booking.expired.sms
 en: Hi {name}, your held slot at {store_name} ({date} {time}) has expired. Rebook anytime — we'd love to see you! {store_phone}
@@ -177,8 +179,7 @@ The scheduler's query adds `AND reminder_24h_enabled` (read from that store's `b
 
 ## 12. Deferred
 
-1. Self-serve cancel/reschedule links for the customer (`customer-my-bookings-design.md`) — once that exists, templates gain `{manage_link}`.
-2. Per-store SMS sender number / sender ID.
-3. Per-store customizable reminder timing (v1 is fixed at 24h/2h plus on/off toggles).
-4. Staff-side notifications (new-booking alerts to staff) — owned by the back-office calendar document.
-5. No-show win-back outreach — belongs to a separate AI win-back feature, out of scope here.
+1. Per-store SMS sender number / sender ID.
+2. Per-store customizable reminder timing (v1 is fixed at 24h/2h plus on/off toggles).
+3. Staff-side notifications (new-booking alerts to staff) — owned by the back-office calendar document.
+4. No-show win-back outreach — belongs to a separate AI win-back feature, out of scope here.

@@ -63,6 +63,7 @@ Two identities, two lookup paths:
 **Booking list page** (`/bookings` logged-in, or the guest lookup result page):
 - Upcoming group (pending ones pinned at top with an "awaiting confirmation" badge) and a Past group.
 - Each row: date/time, store name, service, staff, `reference_code`, status badge; `pending` shows "awaiting confirmation," `confirmed` shows [Reschedule][Cancel].
+- Guest entry point: `/bookings?ref={reference_code}` pre-fills the code field (this is the query-param exception noted in §6) — the phone-match check (§2) still runs before anything is shown. This is the page `customer-booking-confirmation-reminders-design.md`'s `{manage_link}` points to.
 
 **Cancel**: tap cancel → confirmation dialog (shows the threshold copy, e.g. "call us if it's within X hours of start") → `POST` §3.3 → moves to the Cancelled group on success.
 

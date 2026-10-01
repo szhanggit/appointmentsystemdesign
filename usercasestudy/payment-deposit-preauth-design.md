@@ -2,7 +2,7 @@
 
 **Status:** online deposit collection for stores with `booking_settings.payment_required=true`. Closes two deferred hooks: `create-appointment-transaction-design.md` §14 (`payment_required` only creates a `pending` row) and `public-booking-end-to-end-design.md` §8 (deposits).
 
-Baseline: provider is **Stripe** (2.9% + CA$0.30 per domestic card transaction in Canada, no monthly fee; native pre-auth/Apple Pay/Google Pay support). Card data never touches Groway's servers (Stripe.js / Payment Element → PCI SAQ A). Stripe is the source of truth for money; Groway stores a mirror plus an audit ledger. Third-party fees are borne by the partner (settled elsewhere), and deposits land in **the partner's own Stripe account**.
+Baseline: provider is **Stripe** (2.9% + CA$0.30 per domestic card transaction in Canada, no monthly fee; native pre-auth/Apple Pay/Google Pay support). Card data never touches Groway's servers (Stripe.js / Payment Element → PCI SAQ A). Stripe is the source of truth for money; Groway stores a mirror plus an audit ledger. **Deposits land in the chain's own Stripe account** (one account per chain, §3) — never Groway's, and not the business partner's. Stripe's processing fee is deducted automatically from that chain's own payout, the same as for any other Stripe merchant; there is nothing for a third party to "bear" in this flow. This is a different cost arrangement than `customer-booking-confirmation-reminders-design.md` §8's SMS cost, which the partner does cover platform-wide — deposits never route through the partner at all, and "partner" in that other document should not be read as applying here.
 
 ## 1. Decisions
 
@@ -39,7 +39,7 @@ CREATE TABLE store.payment_provider_accounts (
 );
 ```
 
-- Account setup is a manual partner step (Stripe KYC); once done, the account id is entered here and the key goes into Vault.
+- Account setup is a manual step done by the chain itself (Stripe KYC, their own business entity) — not by Groway or by Groway's business partner; once done, the chain hands over the account id, which gets entered here, and the key goes into Vault.
 - Code side: `IPaymentProvider` interface (`create_payment`, `refund`, `get_status`); `StripeProvider : IPaymentProvider`.
 - Adding a country-specific method later is a new implementation class plus a new `provider_code` — the booking flow doesn't change.
 
