@@ -66,14 +66,22 @@ Let `T` be the target date (store timezone), `dow(T)` its day of week. Computed 
 
 Candidate set = assignments at this store satisfying "bookable" (`staff-schedule-entry-workflow.md` §6); in specified-staff mode, only that person's assignment at this store.
 
+**Occupancy criteria — defined once here, referenced by both Step 5 and Step 5b, never restated.** (An earlier version of this document stated this separately in each step; Step 5b's copy drifted from Step 5's and fell out of sync with the `pending`-counts-too decision below. Defining it once removes the ability for that to happen again.) An appointment occupies time when:
+- its `status` is one that still holds the slot — `confirmed`, or `pending` with `expires_at IS NULL OR expires_at > now()` (an expired, unconfirmed hold is already released — this engine checks live, it doesn't wait for a sweeper to catch up);
+- not soft-deleted (if/when `appointments` gains a `deleted_at`);
+- `is_test` appointments occupy like any other — real time regardless of billing-quota treatment (`groway-billing-workflow.md`'s quota semantics are a separate, already-settled question).
+
+Its occupied interval is always `[starts_at - buffer_before_minutes, ends_at + buffer_after_minutes]`, read from the **appointment header's own buffer snapshot** (`store-onboarding-v1-design.md` §4), never recomputed from the service. Single-person-single-block baseline: read from the `appointments` header directly, never by drilling into `appointment_items`.
+
+Step 5b additionally requires `occupies_capacity = true` (also a header snapshot) — a flag that's meaningless to Step 5, since a non-bed-occupying service (e.g. a phone consult) still occupies the *staff member's* time; it just doesn't occupy a bed.
+
 ### Steps
 
 1. **Store open interval `O`**: `business_hours WHERE store_id AND day_of_week = dow(T) AND open_time IS NOT NULL` → `[open_time, close_time]`. Empty (closed, or hours never set) → return empty `slots` immediately.
 2. **Staff working interval `W`**: `staff_schedules WHERE staff_store_assignment_id AND day_of_week = dow(T)` → all `[start_time, end_time]` rows.
 3. **Base availability `A0 = O ∩ W`** (interval-set intersection).
 4. **Subtract time off**: `staff_time_offs WHERE staff_id` intersecting `tstzrange(store-midnight(T), store-midnight(T+1))` (converted to UTC for comparison) — subtract the intersecting portion from `A0`. **Person-level**: this staff member's time off at *any* store blocks them here too; no need to know what else they have booked elsewhere, the row already covers it.
-5. **Subtract existing occupied blocks**: `store.appointments WHERE store_id AND staff_id AND status = 'confirmed'` overlapping `T`. Each occupies `[starts_at - buffer_before_minutes, ends_at + buffer_after_minutes]` — read from the **appointment header's own buffer snapshot** (`store-onboarding-v1-design.md` §4), not recomputed from the service. Subtract from `A0`.
-   (Single-person-single-block baseline: occupancy is read from the `appointments` header directly, never by drilling into `appointment_items`. Whether an `is_test` appointment should occupy a slot is answered here as **yes, it occupies it like any other** — it's real staff time regardless of billing-quota treatment; `groway-billing-workflow.md`'s quota semantics are a separate question, reconciled if the future create-appointment document says otherwise — §8 item 2.)
+5. **Subtract existing occupied blocks**: every `store.appointments` row `WHERE store_id AND staff_id` meeting the **occupancy criteria** above, overlapping `T`. Subtract each one's interval from `A0`.
 6. **Subtract elapsed time**: if `T` is today (store timezone), subtract `[store-midnight(T), now() + min_lead_minutes]`.
 7. **Slice into candidate starts**: for each remaining interval `[a, b]`, a start `s` is feasible iff `[s - Bb, s + D + Ba] ⊆ [a, b]`, i.e. `s ∈ [a + Bb, b - Ba - D]`, aligned up to the nearest `slot_granularity_minutes` step from the lower bound. An interval too short to fit the whole block is skipped entirely — no half-length slots are ever offered.
 
@@ -81,7 +89,7 @@ Candidate set = assignments at this store satisfying "bookable" (`staff-schedule
 
 Skipped entirely when `booking_settings.capacity IS NULL` (not configured = unlimited, §3 in `store-onboarding-v1-design.md`). Otherwise:
 
-- A booking counts toward concurrency when: its snapshot `occupies_capacity = true`; `status` is one that still holds the slot (today, `confirmed`; a future `pending` state would count too, the same way Step 5 would need to once one exists); not soft-deleted. Its occupied interval is the same `[starts_at - buffer_before_minutes, ends_at + buffer_after_minutes]` header snapshot Step 5 already uses — capacity and staff occupancy read the identical interval, just aggregated differently (per-store instead of per-staff).
+- A booking counts toward concurrency under the same **occupancy criteria** defined above Step 1, plus `occupies_capacity = true` (capacity's one extra condition, not shared with Step 5) — aggregated **per-store** this time, across every staff member, not per-assignment.
 - Sweep every such interval at the store for date `T` into a set of "full" sub-intervals where concurrent count `≥ capacity`.
 - Drop any candidate `start` (in *either* "any staff" or "specific staff" mode — a full store is full regardless of who's asking) whose block `[s - Bb, s + D + Ba]` intersects a full interval. In "any staff" mode this removes the whole `start` key, not just individual `staff_ids` — if the store is full, no staff substitution helps.
 
@@ -103,7 +111,7 @@ function getSlots(store, service, option, date, staffId?):
         W = staffSchedules(a.id, dow(date))
         A = intersect(O, W)
         A = subtract(A, timeOffsIntersecting(a.staff_id, date))     # Step 4, person-level
-        A = subtract(A, occupiedBlocks(store.id, a.staff_id, date)) # Step 5, reads appointments header
+        A = subtract(A, occupiedBlocks(store.id, a.staff_id, date)) # Step 5: occupancy criteria above, filtered WHERE staff_id = a.staff_id
         if date == today(store.tz):
             A = subtract(A, [midnight, now() + min_lead_minutes])
         for [s_lo, s_hi] in feasibleStarts(A, Bb, Ba, D, slot_granularity_minutes):
@@ -112,7 +120,7 @@ function getSlots(store, service, option, date, staffId?):
 
     cap = bookingSettings(store).capacity
     if cap is not NULL:                              # Step 5b
-        blocks = storeWideOccupiedBlocks(store.id, date)   # store-wide, not per-staff - deliberately a different query than occupiedBlocks above
+        blocks = storeWideOccupiedBlocks(store.id, date)   # same occupancy criteria + occupies_capacity=true, no staff_id filter - deliberately a different query than occupiedBlocks above, not just a rename
         full = sweepFullIntervals(blocks, cap)             # intervals where concurrent count >= cap
         for s in list(keys(slotsByStart)):
             if intersects([s - Bb, s + D + Ba], full):
@@ -144,8 +152,8 @@ Complexity: one store, one day — trivial, milliseconds, including Step 5b's in
 
 ## 8. Left open (not decided in this document)
 
-1. **`auto_confirm=false`**: `appointments.status` has no `pending` value yet. Whether an unconfirmed booking should occupy a slot is for the future create-appointment document; this engine, for now, only ever subtracts `status='confirmed'` occupancy (§4 Step 5).
-2. **`is_test` appointments**: this document treats them as occupying real time (§4 Step 5) — if `groway-billing-workflow.md`'s quota semantics ever imply something different about *availability* (as opposed to *quota*, which is already settled), the create-appointment document reconciles it.
+1. ~~`auto_confirm=false`: whether a `pending` booking should occupy a slot~~ — **resolved, 2026-09-30**: yes. `appointments.status` does have a `pending` value (with a TTL, `expires_at`); the occupancy criteria above (§4) count `pending` the same as `confirmed` as long as it hasn't expired. This document previously only subtracted `status='confirmed'`, which — for any store running `auto_confirm=false` or `payment_required=true` — silently under-counted occupancy and would have let the engine show a time as bookable that the creation transaction would then reject. Fixed by defining the criteria once and sharing it between Step 5 and Step 5b, instead of each step stating its own (and drifting).
+2. ~~`is_test` appointments~~ — **resolved**: they occupy real time like any other appointment (§4's shared occupancy criteria); billing-quota treatment is a separate, independently-settled question.
 3. **Multi-service sequencing**: this engine's `GET /slots` only ever queries a **single** service (+ option) at a time. A booking with several services back-to-back is sequenced into one continuous block at creation time (the appointment header's `starts_at`/`ends_at` *is* that block) — the exact sequencing rule belongs to the create-appointment document.
 
 ## 9. Explicitly not in V1
