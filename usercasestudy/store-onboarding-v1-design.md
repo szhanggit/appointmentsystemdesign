@@ -163,6 +163,11 @@ CREATE TABLE store.services (
     -- service's options share one buffer (2026-09-29 decision).
     buffer_before_minutes INT CHECK (buffer_before_minutes >= 0),
     buffer_after_minutes  INT CHECK (buffer_after_minutes >= 0),
+    -- Store-level concurrent capacity (e.g. bed/chair count), 2026-09-30.
+    -- Whether a booking of this service occupies one unit of the store's
+    -- capacity (availability-slot-engine.md Step 5b). Default true; a
+    -- non-occupying service (e.g. a phone consult) can turn it off.
+    occupies_capacity BOOLEAN NOT NULL DEFAULT true,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -275,7 +280,14 @@ CREATE TABLE store.booking_settings (
     -- (a redundant cap given service duration is already the cap) were
     -- deliberately dropped, not just forgotten.
     payment_required       BOOLEAN NOT NULL DEFAULT FALSE,
-    cancel_threshold_hours INT NOT NULL DEFAULT 0 CHECK (cancel_threshold_hours >= 0)
+    cancel_threshold_hours INT NOT NULL DEFAULT 0 CHECK (cancel_threshold_hours >= 0),
+    -- Store-level concurrent capacity (2026-09-30) - e.g. a spa's bed/chair
+    -- count. NULL = not configured = unlimited (deliberately no fake default,
+    -- so an existing store migrates in with today's unlimited behavior
+    -- unchanged). New stores are pushed by the onboarding UI to make an
+    -- explicit choice (a number, or an explicit "unlimited") - that's a UI
+    -- nudge, not a backend requirement; the column itself stays NULL-able.
+    capacity INT CHECK (capacity IS NULL OR capacity >= 1)
 );
 
 -- customer_id is an application-level reference to customer.customers - never
@@ -303,6 +315,14 @@ CREATE TABLE store.appointments (
     -- as price/duration snapshots below.
     buffer_before_minutes INT NOT NULL DEFAULT 0,
     buffer_after_minutes  INT NOT NULL DEFAULT 0,
+    -- Store-level capacity snapshot (2026-09-30): true if ANY item's service
+    -- had occupies_capacity=true at booking time (an OR across items, same
+    -- creation-time-snapshot philosophy as the buffer/price/duration columns
+    -- here and on appointment_items - a later change to a service's flag
+    -- never retroactively touches an existing appointment). is_test
+    -- appointments still occupy capacity (real beds, same reasoning as
+    -- is_test still occupying staff time, §5).
+    occupies_capacity BOOLEAN NOT NULL DEFAULT true,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

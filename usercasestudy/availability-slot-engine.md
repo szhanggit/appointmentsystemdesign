@@ -76,6 +76,17 @@ Candidate set = assignments at this store satisfying "bookable" (`staff-schedule
    (Single-person-single-block baseline: occupancy is read from the `appointments` header directly, never by drilling into `appointment_items`. Whether an `is_test` appointment should occupy a slot is answered here as **yes, it occupies it like any other** — it's real staff time regardless of billing-quota treatment; `groway-billing-workflow.md`'s quota semantics are a separate question, reconciled if the future create-appointment document says otherwise — §8 item 2.)
 6. **Subtract elapsed time**: if `T` is today (store timezone), subtract `[store-midnight(T), now() + min_lead_minutes]`.
 7. **Slice into candidate starts**: for each remaining interval `[a, b]`, a start `s` is feasible iff `[s - Bb, s + D + Ba] ⊆ [a, b]`, i.e. `s ∈ [a + Bb, b - Ba - D]`, aligned up to the nearest `slot_granularity_minutes` step from the lower bound. An interval too short to fit the whole block is skipped entirely — no half-length slots are ever offered.
+
+**Step 5b — store-level capacity filter (2026-09-30), after the per-assignment loop, before Step 8's merge:** Steps 1–7 above compute availability *per staff member* — a store with fewer beds/chairs than staff (e.g. 3 staff, 2 beds) can still oversell if each staff member's own schedule looks free, because the thing actually in short supply is the store's concurrent capacity, not any one person's time. This step is store-wide, not per-assignment, and runs once against the *combined* `slotsByStart` built by the loop, not inside it.
+
+Skipped entirely when `booking_settings.capacity IS NULL` (not configured = unlimited, §3 in `store-onboarding-v1-design.md`). Otherwise:
+
+- A booking counts toward concurrency when: its snapshot `occupies_capacity = true`; `status` is one that still holds the slot (today, `confirmed`; a future `pending` state would count too, the same way Step 5 would need to once one exists); not soft-deleted. Its occupied interval is the same `[starts_at - buffer_before_minutes, ends_at + buffer_after_minutes]` header snapshot Step 5 already uses — capacity and staff occupancy read the identical interval, just aggregated differently (per-store instead of per-staff).
+- Sweep every such interval at the store for date `T` into a set of "full" sub-intervals where concurrent count `≥ capacity`.
+- Drop any candidate `start` (in *either* "any staff" or "specific staff" mode — a full store is full regardless of who's asking) whose block `[s - Bb, s + D + Ba]` intersects a full interval. In "any staff" mode this removes the whole `start` key, not just individual `staff_ids` — if the store is full, no staff substitution helps.
+
+This is a filter, not a new occupancy source of truth — the actual prevention of overselling happens in the appointment-creation transaction (outside this document's scope), the same division of labor this document already has with staff-level double-booking: this engine answers "what looks bookable," the transaction is what actually makes it safe under concurrent requests.
+
 8. **Merge (only in "any staff" mode)**: group by `start`; `staff_ids` is every person who can serve that start (ordered by, e.g., assignment sort order or creation time).
 
 ### Pseudocode
@@ -98,10 +109,19 @@ function getSlots(store, service, option, date, staffId?):
         for [s_lo, s_hi] in feasibleStarts(A, Bb, Ba, D, slot_granularity_minutes):
             for s in range(s_lo, s_hi + 1, slot_granularity_minutes):
                 slotsByStart[s].add(a.staff_id)   # person-level id in the output
+
+    cap = bookingSettings(store).capacity
+    if cap is not NULL:                              # Step 5b
+        blocks = storeWideOccupiedBlocks(store.id, date)   # store-wide, not per-staff - deliberately a different query than occupiedBlocks above
+        full = sweepFullIntervals(blocks, cap)             # intervals where concurrent count >= cap
+        for s in list(keys(slotsByStart)):
+            if intersects([s - Bb, s + D + Ba], full):
+                delete slotsByStart[s]                     # whole start removed, not just staff_ids
+
     return sorted(slotsByStart)
 ```
 
-Complexity: one store, one day — trivial, milliseconds. **V1 computes this live on every call, no caching** (correctness first — same philosophy as the `from`-price computation in `store-onboarding-v1-design.md` §7.4).
+Complexity: one store, one day — trivial, milliseconds, including Step 5b's interval sweep (O(n log n) in the number of occupying appointments that day, negligible at V1 volume). **V1 computes this live on every call, no caching** (correctness first — same philosophy as the `from`-price computation in `store-onboarding-v1-design.md` §7.4).
 
 ## 5. "Any staff" vs. a specific one
 
@@ -131,4 +151,4 @@ Complexity: one store, one day — trivial, milliseconds. **V1 computes this liv
 ## 9. Explicitly not in V1
 
 - Slot pre-reservation / temporary locking — correctness is guaranteed by the (future) creation transaction's atomicity instead; a losing race reports `SLOT_TAKEN` and the client re-queries.
-- Waitlists; time-of-day dynamic pricing; capacity-based services (one slot, many attendees) — `max_guests`/`allow_group` were deliberately cut (`store-onboarding-v1-design.md` §4's `booking_settings`).
+- Waitlists; time-of-day dynamic pricing; **multi-attendee services** (one slot, many customers — e.g. a group class) — `max_guests`/`allow_group` were deliberately cut (`store-onboarding-v1-design.md` §4's `booking_settings`). Not to be confused with Step 5b's store-level concurrent *capacity* (bed/chair count) above, which is a different, unrelated concept despite the similar name — that one's in scope, this one isn't.
