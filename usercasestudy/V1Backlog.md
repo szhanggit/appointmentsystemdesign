@@ -62,3 +62,39 @@ design into the relevant `usercasestudy/` doc and delete the line here.
 - AI recall (win back customers quiet 60+ days).
 - Zero design docs exist for any of the three as of 2026-10-02 — this is the largest
   blank area in the repo relative to its strategic weight.
+
+## V1 architectural reservations (seams V1 must not close)
+
+Not features — these are the extension points V1 schema/code must leave open so
+V2/V3 don't need breaking migrations. Rule: **reserve the seam, don't build the
+room.** When a reservation is consumed (the feature gets built), delete the line.
+(Three more reservations already live under their feature headings: `reviews.staff_id`
+under Customers, the inert `min_rating` param under Customers, the waitlist nav slot
+under Store operations.)
+
+- `appointments.payment_intent_id TEXT` + `payment_status`
+  (`none|awaiting|succeeded|failed|refunded|partially_refunded`) — columns exist from
+  day one so deposits/pre-auth (V2+) need no backfill; the state machine already names
+  the future states (`create-appointment-transaction-design.md` §14,
+  `payment-deposit-preauth-design.md` §7).
+- `store.messages` uses the `system_subtype` pattern — a new system-generated message
+  kind never widens `message_type`'s enum (`groway-store-notifications-workflow.md` §1).
+- `platform.spoken_languages` (BCP 47) stays permanently independent from the customer
+  notification language — never "unify" the two taxonomies (staff-profile-design.md §4).
+- No cross-schema foreign keys, ever — cross-module references are application-level IDs,
+  so a schema can later move to its own database without breaking
+  (`groway-v1-architecture.md` §5).
+- `appointment.customer_linked` domain event is emitted with no V1 consumers — reserved
+  for future consumers (`customer-records-design.md` §4.4).
+- `stores.geo_place_id` is kept on every address write — the one input a future
+  geocoding-provider migration needs (`growayshop-registration-workflow.md` §2.2).
+- Impersonation `ticket_ref` rule is forward-looking — suspend/refund aren't built, but
+  the ticket-required enforcement applies automatically the day they are
+  (`groway-admin-impersonation-design.md` §4).
+- One person, multiple chains = separate logins; no cross-chain session, no "switch
+  account" (`growayshop-registration-workflow.md` §6.0).
+- "Merchant" terminology is retired and reserved for a different future use — do not
+  reuse it for chain/store (`store-onboarding-v1-design.md` §1).
+- Med-aesthetics clinical module ships later as a default-off module on the shared booking
+  engine; health-data tables must be isolatable (encryption, audit logs, hard permissions).
+  **Legal review required before storing any health data (PHIPA).**
