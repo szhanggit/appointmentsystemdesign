@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booking confirmed — Groway</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container">
+    <a class="navbar-brand font-display fs-4" href="../index.html">Groway</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link active" href="map.html">Discover</a></li>
+        <li class="nav-item"><a class="nav-link" href="bookings.html">My bookings</a></li>
+        <li class="nav-item"><a class="nav-link" href="../login-client.html">Sign in</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container py-5 text-center" style="max-width:560px">
+  <div class="mb-3"><span class="step-dot done" style="width:64px;height:64px;font-size:1.8rem">✓</span></div>
+  <h1 class="font-display">You're booked!</h1>
+  <p class="text-muted">A confirmation text is on its way to <strong id="sPhone"></strong>.</p>
+  <div class="card my-4"><div class="card-body">
+    <div class="detail-label mb-1">Reference code</div>
+    <div class="font-display fs-2 letter-spacing-2" id="sRef" style="letter-spacing:.15em"></div>
+    <hr>
+    <div class="text-start">
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">Service</span><strong id="sSvc"></strong></div>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">Therapist</span><strong id="sStaff"></strong></div>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">When</span><strong id="sWhen"></strong></div>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">Where</span><strong>Selah Head Spa</strong></div>
+    </div>
+  </div></div>
+  <div class="d-grid gap-2 mb-4">
+    <a href="#" id="ics" class="btn btn-outline-primary" download="groway-booking.ics">Download calendar (.ics)</a>
+    <a href="bookings.html" class="btn btn-primary">View my bookings</a>
+  </div>
+  <div class="card text-start bg-light"><div class="card-body">
+    <h6 class="font-display">Save as a member?</h6>
+    <p class="small text-muted mb-2">Keep this phone number on file for one-tap rebooking and reminders.</p>
+    <a href="register.html" class="btn btn-gold btn-sm">Create free account</a>
+  </div></div>
+</div>
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+const BK={get(){try{return JSON.parse(sessionStorage.getItem('groway_booking')||'{}')}catch(e){return{}}}};
+$(function(){
+  const b=BK.get();const ref=new URLSearchParams(location.search).get("ref")||b.ref||"GW-8X2K4N";
+  $("#sRef").text(ref);$("#sPhone").text(b.contactPhone||"(416) 555-0100");
+  $("#sSvc").text(b.serviceName||"Signature Soothing Head Spa");
+  $("#sStaff").text(b.staffName||"First available");
+  $("#sWhen").text((b.date||"Sat, Oct 3, 2026")+", "+(b.time||"2:00 PM"));
+  const ics=["BEGIN:VCALENDAR","VERSION:2.0","BEGIN:VEVENT","UID:"+ref+"@groway.demo",
+    "SUMMARY:"+(b.serviceName||"Spa appointment")+" — Selah Head Spa",
+    "LOCATION:8120 Bayview Ave\\, Richmond Hill","END:VEVENT","END:VCALENDAR"].join("\r\n");
+  $("#ics").attr("href","data:text/calendar;charset=utf-8,"+encodeURIComponent(ics));
+});
+</script>
+</body>
+</html>

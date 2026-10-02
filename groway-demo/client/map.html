@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discover beauty near you — Groway</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container">
+    <a class="navbar-brand font-display fs-4" href="../index.html">Groway</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link active" href="map.html">Discover</a></li>
+        <li class="nav-item"><a class="nav-link" href="bookings.html">My bookings</a></li>
+        <li class="nav-item"><a class="nav-link" href="../login-client.html">Sign in</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="demo-bar text-center py-1">Investor demo — static prototype. No real data, no real bookings.</div>
+
+<div class="container py-4">
+  <h1 class="font-display mb-1">Find your ritual</h1>
+  <p class="text-muted mb-4">Head spas, nails, massage &amp; more across the GTA — book in under a minute, no account needed.</p>
+
+  <div class="row g-2 mb-3 align-items-center">
+    <div class="col-md-5"><input id="q" class="form-control" placeholder="Search by store name…"></div>
+    <div class="col-md-4">
+      <select id="maxPrice" class="form-select">
+        <option value="">Max price: any</option>
+        <option value="50">Up to $50</option>
+        <option value="100">Up to $100</option>
+        <option value="150">Up to $150</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <div class="form-check form-switch mt-2">
+        <input class="form-check-input" type="checkbox" id="openNow">
+        <label class="form-check-label" for="openNow">Open now</label>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap mb-4" id="chips"></div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="position-relative border rounded overflow-hidden bg-white" style="min-height:420px">
+        <svg id="map" viewBox="0 0 100 75" class="w-100 d-block" style="height:480px" role="img" aria-label="Stylized map of Toronto area">
+          <rect x="0" y="0" width="100" height="75" fill="#f3efe4"/>
+          <path d="M0,58 Q22,51 48,57 T100,60 L100,75 L0,75 Z" fill="#bcd3e0"/>
+          <g stroke="#ddd5c0" stroke-width="0.5">
+            <line x1="0" y1="20" x2="100" y2="20"/>
+            <line x1="0" y1="34" x2="100" y2="34"/>
+            <line x1="0" y1="47" x2="100" y2="47"/>
+            <line x1="18" y1="0" x2="18" y2="60"/>
+            <line x1="48" y1="0" x2="48" y2="60"/>
+            <line x1="70" y1="0" x2="70" y2="60"/>
+            <line x1="88" y1="0" x2="88" y2="60"/>
+            <path d="M30,0 Q38,25 52,45 T60,60" fill="none"/>
+          </g>
+          <g fill="#9a917f" font-size="3" font-family="Georgia,serif">
+            <text x="58" y="24">Richmond Hill</text>
+            <text x="80" y="32">Markham</text>
+            <text x="44" y="50">North York</text>
+            <text x="34" y="66">Toronto</text>
+            <text x="82" y="56">Scarborough</text>
+          </g>
+          <g id="pins"></g>
+        </svg>
+        <div id="preview" class="position-absolute bottom-0 start-0 end-0 m-3 d-none">
+          <div class="card shadow">
+            <button type="button" class="btn-close position-absolute top-0 end-0 m-2" id="previewClose" aria-label="Close"></button>
+            <div class="row g-0">
+              <div class="col-4"><img id="pvImg" class="img-fluid rounded-start h-100" style="object-fit:cover;min-height:140px" alt=""></div>
+              <div class="col-8">
+                <div class="card-body">
+                  <h5 class="card-title font-display mb-1" id="pvName"></h5>
+                  <div class="small text-muted mb-1" id="pvMeta"></div>
+                  <div class="mb-2" id="pvCats"></div>
+                  <a href="#" id="pvLink" class="btn btn-primary btn-sm">View details</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="kbd-hint mt-2">Tap a pin to preview a store.</div>
+    </div>
+    <div class="col-lg-5">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="font-display mb-0">Nearby stores</h5>
+        <span class="text-muted small" id="count"></span>
+      </div>
+      <div id="list" class="d-flex flex-column gap-3"></div>
+    </div>
+  </div>
+</div>
+
+<footer class="bg-teal-dark text-white-50 mt-5 py-4">
+  <div class="container small">© 2026 Groway · Investor demo prototype</div>
+</footer>
+
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+const taxName = s => (DEMO.taxonomy.find(t => t[0] === s) || [s, s])[1];
+let activeCat = "";
+
+function renderChips() {
+  const c = $("#chips");
+  c.append(`<button class="chip active" data-cat="">All</button>`);
+  DEMO.taxonomy.forEach(([slug, name]) => c.append(`<button class="chip" data-cat="${slug}">${name}</button>`));
+  c.on("click", ".chip", function () {
+    c.find(".chip").removeClass("active"); $(this).addClass("active");
+    activeCat = $(this).data("cat"); applyFilters();
+  });
+}
+function filtered() {
+  const q = $("#q").val().toLowerCase(), mp = $("#maxPrice").val(), on = $("#openNow").is(":checked");
+  return DEMO.stores.filter(s =>
+    (!q || s.name.toLowerCase().includes(q)) &&
+    (!activeCat || s.categories.includes(activeCat)) &&
+    (!mp || s.priceFrom <= +mp) &&
+    (!on || s.openNow));
+}
+function renderPins(list) {
+  const g = $("#pins"); g.empty();
+  DEMO.stores.forEach(s => {
+    const vis = list.includes(s) ? "" : "display:none";
+    g.append(`<g class="map-pin" data-id="${s.id}" style="${vis}" transform="translate(${s.mapX},${s.mapY})">
+      <circle class="halo" r="5"/><circle r="3.1" fill="#14655a" stroke="#fff" stroke-width="0.6"/>
+      <text y="7.6" text-anchor="middle" font-size="3" font-weight="bold" fill="#0d3f39">$${s.priceFrom}+</text>
+    </g>`);
+  });
+  g.find(".map-pin").on("click", function () { showPreview($(this).data("id")); });
+}
+function catChips(s) { return s.categories.map(c => `<span class="chip me-1" style="cursor:default;font-size:.72rem;padding:.2rem .6rem">${taxName(c)}</span>`).join(""); }
+function renderList(list) {
+  const el = $("#list"); el.empty();
+  $("#count").text(list.length + " found");
+  if (!list.length) { el.append(`<div class="alert alert-light">No stores match — try widening your filters.</div>`); return; }
+  list.forEach(s => {
+    el.append(`<a href="store.html?id=${s.id}" class="card card-hover text-decoration-none text-dark">
+      <div class="row g-0">
+        <div class="col-4"><img src="../assets/img/${s.photos[0]}" class="img-fluid rounded-start h-100" style="object-fit:cover;min-height:130px" alt="${s.name}"></div>
+        <div class="col-8"><div class="card-body py-2">
+          <div class="d-flex justify-content-between align-items-start">
+            <h6 class="font-display mb-1">${s.name}</h6>
+            ${s.openNow ? `<span class="badge bg-success">Open now</span>` : `<span class="badge bg-secondary">Closed</span>`}
+          </div>
+          <div class="small text-muted mb-1">★ ${s.rating} (${s.reviews}) · ${s.city}</div>
+          <div class="mb-1">${catChips(s)}</div>
+          <div class="small">${s.address}</div>
+          <div class="mt-1"><span class="price-badge">from $${s.priceFrom}</span></div>
+        </div></div>
+      </div></a>`);
+  });
+}
+function showPreview(id) {
+  const s = DEMO.stores.find(x => x.id === id); if (!s) return;
+  $("#pvImg").attr("src", "../assets/img/" + s.photos[0]);
+  $("#pvName").text(s.name);
+  $("#pvMeta").html(`★ ${s.rating} (${s.reviews}) · <span class="${s.openNow ? "text-success" : "text-muted"}">${s.openNow ? "Open now · " + s.hours : s.hours}</span>`);
+  $("#pvCats").html(catChips(s));
+  $("#pvLink").attr("href", "store.html?id=" + s.id);
+  $("#preview").removeClass("d-none");
+}
+function applyFilters() { const l = filtered(); renderPins(l); renderList(l); }
+$(function () {
+  renderChips();
+  $("#q").on("input", applyFilters); $("#maxPrice").on("change", applyFilters); $("#openNow").on("change", applyFilters);
+  $("#previewClose").on("click", () => $("#preview").addClass("d-none"));
+  applyFilters();
+});
+</script>
+</body>
+</html>

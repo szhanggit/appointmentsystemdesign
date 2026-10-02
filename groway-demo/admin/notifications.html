@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groway Admin — Notification templates</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+.sidebar .nav-link{color:rgba(255,255,255,.65);border-left:3px solid transparent;border-radius:0}
+.sidebar .nav-link:hover{color:#fff;background:rgba(255,255,255,.05)}
+.sidebar .nav-link.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:#b98a2f}
+.phone{width:270px;margin:0 auto;background:#111;border-radius:2rem;padding:.7rem}
+.phone .screen{background:#f4f1ea;border-radius:1.4rem;padding:1rem .8rem;min-height:300px}
+.bubble{background:#fff;border-radius:1rem;padding:.6rem .8rem;font-size:.82rem;box-shadow:0 1px 3px rgba(0,0,0,.12);margin-bottom:.5rem}
+</style>
+</head>
+<body>
+<div class="demo-bar text-center py-1">Investor demo — all data is fictional, no backend connected.</div>
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-3 col-lg-2 px-0">
+<nav class="sidebar bg-teal-dark text-white d-flex flex-column min-vh-100 sticky-top">
+<div class="p-3 border-bottom border-secondary">
+<div class="font-display fs-5">Groway <span class="text-gold">Admin</span></div>
+<div class="small" style="color:rgba(255,255,255,.55)">Platform console</div>
+</div>
+<ul class="nav flex-column py-2">
+<li class="nav-item"><a class="nav-link px-3 py-2" href="overview.html">Overview</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="stores.html">Stores</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="photos.html">Photos <span class="badge bg-gold text-dark ms-1">6</span></a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="taxonomy.html">Taxonomy</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="appointments.html">Appointments</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="revenue.html">Revenue</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2 active" href="notifications.html">Notifications</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="accounts.html">Accounts</a></li>
+</ul>
+<div class="mt-auto p-3 small" style="color:rgba(255,255,255,.45)">v0.1 investor demo<br>All data fictional</div>
+</nav>
+</div>
+<main class="col-md-9 col-lg-10 p-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+<div><h1 class="font-display h3 mb-0">Notification templates</h1><div class="text-muted small">Every automated message a customer ever gets — editable in one place</div></div>
+<div class="d-flex align-items-center gap-2">
+<span class="badge text-bg-success">Live demo</span>
+<img src="../assets/img/avatar-56.jpg" class="rounded-circle" width="36" height="36" alt="Admin">
+<div class="small"><div class="fw-semibold">Platform Admin</div><div class="text-muted">admin@groway.demo</div></div>
+</div>
+</div>
+
+<div class="card"><div class="card-body p-0">
+<table class="table align-middle mb-0">
+<thead class="table-light"><tr><th class="ps-3">Template</th><th>Channel</th><th>Trigger</th><th>Enabled</th><th class="text-end pe-3"></th></tr></thead>
+<tbody id="tplRows"></tbody>
+</table>
+</div></div>
+<p class="small text-muted mt-2">Variables: <code>{{customer_name}}</code> <code>{{store_name}}</code> <code>{{service}}</code> <code>{{date}}</code> <code>{{time}}</code> <code>{{staff_name}}</code> <code>{{reference_code}}</code> <code>{{review_link}}</code></p>
+</main>
+</div>
+</div>
+
+<div class="modal fade" id="prevModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title font-display" id="pvTitle"></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><div class="phone"><div class="screen"><div class="text-center small text-muted mb-2" id="pvWhen"></div><div class="bubble" id="pvBody"></div></div></div></div>
+</div></div></div>
+
+<div class="modal fade" id="editModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title font-display" id="edTitle"></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body">
+<label class="form-label small fw-semibold">Message body</label>
+<textarea class="form-control" id="edBody" rows="6"></textarea>
+<div class="form-text">Use the variables listed on the page — they are filled in per booking at send time.</div>
+</div>
+<div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="edSave">Save template</button></div>
+</div></div></div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+let tpls=[
+ {name:"Booking confirmation",ch:"SMS",trig:"Immediately after booking",on:true,
+  body:"Hi {{customer_name}}, your booking at {{store_name}} is confirmed: {{service}} on {{date}} at {{time}} with {{staff_name}}. Ref {{reference_code}}. Reply C to cancel."},
+ {name:"Reminder 24h",ch:"SMS",trig:"24 hours before start",on:true,
+  body:"Reminder: {{service}} at {{store_name}} tomorrow, {{date}} at {{time}}. Running late? Reply R to reschedule, C to cancel."},
+ {name:"No-show follow-up",ch:"Email",trig:"30 min after a no-show",on:true,
+  body:"Subject: We missed you at {{store_name}}\n\nHi {{customer_name}}, we held your {{service}} slot today at {{time}} but didn't see you. Life happens — tap here to rebook in one step: {{review_link}}"},
+ {name:"Review request",ch:"SMS",trig:"2 hours after completion",on:false,
+  body:"Thanks for visiting {{store_name}}! How was your {{service}} with {{staff_name}}? Tap to leave a review: {{review_link}}"}
+];
+let modal=null, emodal=null, editIdx=-1;
+function toast(msg){const t=$('<div class="toast align-items-center text-bg-dark border-0"><div class="d-flex"><div class="toast-body">'+msg+'</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>');$("#toasts").append(t);new bootstrap.Toast(t[0],{delay:2600}).show();t.on("hidden.bs.toast",()=>t.remove());}
+function fill(s){return s.replace("{{customer_name}}","Brianna").replace("{{store_name}}","Selah Head Spa").replace("{{service}}","Signature Soothing Head Spa").replace("{{date}}","Sat, Oct 3").replace("{{time}}","2:00 PM").replace("{{staff_name}}","Amy").replace("{{reference_code}}","GW-8X2K4N").replace("{{review_link}}","groway.demo/r/8X2K4N");}
+function render(){$("#tplRows").html(tpls.map((t,i)=>'<tr><td class="ps-3"><div class="fw-semibold">'+t.name+'</div><div class="small text-muted">Last edited Sep 28, 2026</div></td><td><span class="badge '+(t.ch==="SMS"?"text-bg-primary":"text-bg-info")+'">'+t.ch+'</span></td><td class="small text-muted">'+t.trig+'</td><td><div class="form-check form-switch"><input class="form-check-input" type="checkbox" data-tgl="'+i+'" '+(t.on?"checked":"")+'></div></td><td class="text-end pe-3"><button class="btn btn-sm btn-outline-secondary me-1" data-pv="'+i+'">Preview</button><button class="btn btn-sm btn-outline-primary" data-ed="'+i+'">Edit</button></td></tr>').join(""));}
+$(document).on("change","[data-tgl]",function(){const t=tpls[$(this).data("tgl")];t.on=this.checked;toast(t.name+(t.on?" enabled.":" paused."));});
+$(document).on("click","[data-pv]",function(){const t=tpls[$(this).data("pv")];$("#pvTitle").text(t.name+" — preview");$("#pvWhen").text(t.ch==="SMS"?"Today 9:41 AM":"Today 2:30 PM");$("#pvBody").html(fill(t.body).replace(/\n/g,"<br>"));modal=modal||new bootstrap.Modal("#prevModal");modal.show();});
+$(document).on("click","[data-ed]",function(){editIdx=$(this).data("ed");$("#edTitle").text("Edit — "+tpls[editIdx].name);$("#edBody").val(tpls[editIdx].body);emodal=emodal||new bootstrap.Modal("#editModal");emodal.show();});
+$("#edSave").click(()=>{tpls[editIdx].body=$("#edBody").val();emodal.hide();toast("Template saved.");});
+render();
+</script>
+</body>
+</html>

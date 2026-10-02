@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choose your therapist — Groway</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container">
+    <a class="navbar-brand font-display fs-4" href="../index.html">Groway</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link active" href="map.html">Discover</a></li>
+        <li class="nav-item"><a class="nav-link" href="bookings.html">My bookings</a></li>
+        <li class="nav-item"><a class="nav-link" href="../login-client.html">Sign in</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container py-4" style="max-width:760px">
+  <div class="d-flex align-items-center gap-2 mb-1 flex-wrap" id="steps"></div>
+  <h2 class="font-display mb-1">Choose your therapist</h2>
+  <p class="text-muted mb-4" id="svcLine"></p>
+  <div class="d-grid gap-2" id="staffList"></div>
+  <a href="book-1-service.html" class="btn btn-link mt-3">← Back to services</a>
+</div>
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+const BK={get(){try{return JSON.parse(sessionStorage.getItem('groway_booking')||'{}')}catch(e){return{}}},set(p){const b=Object.assign(this.get(),p);sessionStorage.setItem('groway_booking',JSON.stringify(b));return b}};
+function renderSteps(n){const L=["Service","Staff","Time","Details","Confirm"];$("#steps").html(L.map((l,i)=>`${i?'<span class="text-muted">—</span>':''}<span class="d-flex align-items-center gap-1"><span class="step-dot ${i<n?'done':i===n?'now':''}">${i<n?'✓':i+1}</span><span class="small ${i===n?'fw-bold':''}">${l}</span></span>`).join(""))}
+const preStaff=new URLSearchParams(location.search).get("staff");
+$(function(){
+  let b=BK.get();
+  if(!b.serviceId){const sv=DEMO.services[0];b=BK.set({serviceId:sv.id,serviceName:sv.name,mins:sv.mins,price:sv.price,staffNames:sv.staff});}
+  renderSteps(1);
+  $("#svcLine").text(`${b.serviceName} · ${b.mins} mins · $${b.price}`);
+  const list=$("#staffList");
+  const pick=(id,name)=>{BK.set({staffId:id,staffName:name});location.href="book-3-time.html";};
+  list.append(`<button class="btn btn-outline-primary text-start p-3 d-flex justify-content-between align-items-center" data-id="" data-name="First available">
+    <span><span class="fw-semibold">First available</span><br><span class="small text-muted">We'll match you with the earliest open therapist</span></span><span>→</span></button>`);
+  const names=b.staffNames||[];
+  names.forEach(n=>{
+    const t=DEMO.staff.find(x=>x.name.toLowerCase()===n.toLowerCase());
+    const img=t?`../assets/img/${t.avatar}`:null;
+    const pre=t&&t.id===preStaff?' border-primary border-2':'';
+    list.append(`<button class="btn btn-outline-secondary text-start p-3 d-flex gap-3 align-items-center${pre}" data-id="${t?t.id:''}" data-name="${n}">
+      ${img?`<img src="${img}" class="rounded-circle" style="width:52px;height:52px;object-fit:cover">`:`<span class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center" style="width:52px;height:52px">${n[0]}</span>`}
+      <span><span class="fw-semibold">${n}</span>${t?`<br><span class="small text-muted">${t.title} · ★ ${t.completed.toLocaleString()} completed</span>`:'<br><span class="small text-muted">Therapist</span>'}</span></button>`);
+  });
+  list.on("click","button",function(){pick($(this).data("id"),$(this).data("name"));});
+});
+</script>
+</body>
+</html>

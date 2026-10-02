@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Services — Selah Head Spa · Groway Business</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+  .sidebar { width: 232px; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
+  .sidebar .nav-link { color: rgba(255,255,255,.72); border-radius: .5rem; padding: .55rem .8rem; font-size: .92rem; }
+  .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,.14); font-weight: 600; }
+  .mini-av { width:26px; height:26px; border-radius:50%; object-fit:cover; border:2px solid #fff; margin-left:-8px; }
+</style>
+</head>
+<body>
+<div class="demo-bar text-center py-1">Groway demo — Store back office · Selah Head Spa · <span class="text-muted">static prototype, no backend</span></div>
+<div class="d-flex">
+  <aside class="sidebar bg-teal-dark text-white d-flex flex-column flex-shrink-0">
+    <div class="p-3 border-bottom border-light border-opacity-10">
+      <div class="font-display fs-5 fw-bold">SELAH HEAD SPA</div>
+      <div class="text-white-50 small">Groway Business</div>
+    </div>
+    <nav class="nav flex-column p-2 gap-1">
+      <a class="nav-link" href="dashboard.html">&#128197; Appointments</a>
+      <a class="nav-link" href="customers.html">&#128100; Customers</a>
+      <a class="nav-link" href="staff.html">&#128101; Staff</a>
+      <a class="nav-link active" href="services.html">&#128134; Services</a>
+      <a class="nav-link" href="reports.html">&#128202; Reports</a>
+      <a class="nav-link" href="settings.html">&#9881; Settings</a>
+    </nav>
+    <div class="mt-auto p-3 small text-white-50 border-top border-light border-opacity-10">
+      <div>Mei Lin · Store admin</div>
+      <a href="../index.html" class="text-gold text-decoration-none">← Back to Groway</a>
+    </div>
+  </aside>
+
+  <main class="flex-grow-1 p-4" style="min-width:0">
+    <div class="d-flex align-items-center mb-3">
+      <h4 class="font-display fw-bold mb-0">Services</h4>
+      <span class="badge bg-primary rounded-pill ms-2" id="svcCount"></span>
+      <button class="btn btn-primary btn-sm ms-auto" id="addSvc">+ Add service</button>
+    </div>
+    <div id="groups"></div>
+  </main>
+</div>
+
+<div class="modal fade" id="svcModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title font-display fw-bold" id="svcModalTitle">Edit service</h6>
+        <button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <label class="detail-label">Service name</label>
+        <input class="form-control form-control-sm mb-2" id="fName">
+        <div class="row g-2 mb-2">
+          <div class="col-4"><label class="detail-label">Category</label><select class="form-select form-select-sm" id="fCat"></select></div>
+          <div class="col-4"><label class="detail-label">Duration (mins)</label><input type="number" class="form-control form-control-sm" id="fMins" min="15" step="15"></div>
+          <div class="col-4"><label class="detail-label">Price (CAD)</label><input type="number" class="form-control form-control-sm" id="fPrice" min="0"></div>
+        </div>
+        <label class="detail-label">Assigned staff</label>
+        <div class="d-flex flex-wrap gap-2" id="fStaff"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-sm btn-primary" id="saveSvc">Save service</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+function toast(msg){ const t=$(`<div class="toast align-items-center"><div class="d-flex"><div class="toast-body">${msg}</div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
+  $("#toasts").append(t); new bootstrap.Toast(t[0],{delay:2600}).show(); }
+const AV = { Amy:"avatar-44.jpg", ELLA:"avatar-65.jpg", Luna:"avatar-26.jpg", Eva:"avatar-68.jpg",
+  Connie:"avatar-47.jpg", Nina:"avatar-17.jpg", Lucy:"avatar-33.jpg", Emily:"avatar-56.jpg" };
+const NAMES = ["Amy","ELLA","Luna","Eva","Connie","Nina","Lucy","Emily","Cindy"];
+const CATS = [...new Set(DEMO.services.map(s=>s.cat))];
+function catColor(cat){ return cat==="Signature Head Spa"?"#14655a":cat==="Facial Care"?"#b0578d":cat==="Foot Massage"?"#2f6f9f":"#6a5acd"; }
+function avatars(staff){ return staff.map(n=> AV[n]
+  ? `<img src="../assets/img/${AV[n]}" class="mini-av" title="${n}">`
+  : `<span class="mini-av bg-secondary text-white d-inline-flex align-items-center justify-content-center small" title="${n}">${n[0]}</span>`).join(""); }
+
+function render(){
+  $("#svcCount").text(DEMO.services.length+" services");
+  $("#groups").html(CATS.map(c=>{
+    const items = DEMO.services.filter(s=>s.cat===c);
+    return `<div class="bg-white border rounded mb-3">
+      <div class="px-3 py-2 border-bottom d-flex align-items-center gap-2">
+        <span class="rounded-circle d-inline-block" style="width:12px;height:12px;background:${catColor(c)}"></span>
+        <strong>${c}</strong><span class="badge bg-light text-dark border">${items.length}</span>
+      </div>
+      <table class="table table-hover mb-0"><tbody>
+      ${items.map(s=>`<tr>
+        <td class="fw-bold">${s.name}</td>
+        <td class="text-muted" style="width:90px">${s.mins} mins</td>
+        <td class="fw-bold" style="width:90px">$${s.price}.00</td>
+        <td style="width:200px"><div class="d-flex ps-2">${avatars(s.staff)}</div></td>
+        <td class="text-end" style="width:80px"><button class="btn btn-sm btn-outline-secondary editSvc" data-id="${s.id}">Edit</button></td>
+      </tr>`).join("")}</tbody></table></div>`;
+  }).join(""));
+}
+let editing = null;
+function openModal(s){
+  editing = s;
+  $("#svcModalTitle").text(s? "Edit service":"Add service");
+  $("#fName").val(s?s.name:""); $("#fMins").val(s?s.mins:60); $("#fPrice").val(s?s.price:"");
+  $("#fCat").html(CATS.map(c=>`<option${s&&s.cat===c?" selected":""}>${c}</option>`).join(""));
+  $("#fStaff").html(NAMES.map(n=>`<label class="small border rounded-pill px-2 py-1">
+    <input type="checkbox" class="form-check-input me-1 fstaff" value="${n}" ${s&&s.staff.includes(n)?"checked":""}>${n}</label>`).join(""));
+  new bootstrap.Modal($("#svcModal")[0]).show();
+}
+$(document).on("click",".editSvc",function(){ openModal(DEMO.services.find(s=>s.id===$(this).data("id"))); });
+$("#addSvc").click(()=>openModal(null));
+$("#saveSvc").click(()=>{ bootstrap.Modal.getInstance($("#svcModal")[0]).hide(); toast(editing? "Service updated":"Service added"); });
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groway Admin — Overview</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+.sidebar .nav-link{color:rgba(255,255,255,.65);border-left:3px solid transparent;border-radius:0}
+.sidebar .nav-link:hover{color:#fff;background:rgba(255,255,255,.05)}
+.sidebar .nav-link.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:#b98a2f}
+.bar{width:100%;background:#e9e2d2;border-radius:.4rem .4rem 0 0;min-height:6px;transition:background .15s}
+.bar:hover{background:#14655a}
+</style>
+</head>
+<body>
+<div class="demo-bar text-center py-1">Investor demo — all data is fictional, no backend connected.</div>
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-3 col-lg-2 px-0">
+<nav class="sidebar bg-teal-dark text-white d-flex flex-column min-vh-100 sticky-top">
+<div class="p-3 border-bottom border-secondary">
+<div class="font-display fs-5">Groway <span class="text-gold">Admin</span></div>
+<div class="small" style="color:rgba(255,255,255,.55)">Platform console</div>
+</div>
+<ul class="nav flex-column py-2">
+<li class="nav-item"><a class="nav-link px-3 py-2 active" href="overview.html">Overview</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="stores.html">Stores</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="photos.html">Photos <span class="badge bg-gold text-dark ms-1">6</span></a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="taxonomy.html">Taxonomy</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="appointments.html">Appointments</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="revenue.html">Revenue</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="notifications.html">Notifications</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="accounts.html">Accounts</a></li>
+</ul>
+<div class="mt-auto p-3 small" style="color:rgba(255,255,255,.45)">v0.1 investor demo<br>All data fictional</div>
+</nav>
+</div>
+<main class="col-md-9 col-lg-10 p-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+<div><h1 class="font-display h3 mb-0">Platform overview</h1><div class="text-muted small">Friday, October 2, 2026 · Greater Toronto Area</div></div>
+<div class="d-flex align-items-center gap-2">
+<span class="badge text-bg-success">Live demo</span>
+<img src="../assets/img/avatar-56.jpg" class="rounded-circle" width="36" height="36" alt="Admin">
+<div class="small"><div class="fw-semibold">Platform Admin</div><div class="text-muted">admin@groway.demo</div></div>
+</div>
+</div>
+
+<div class="row g-3 mb-4">
+<div class="col-md-3"><div class="card h-100"><div class="card-body">
+<div class="detail-label mb-1">Total stores</div><div class="stat-num">5</div>
+<div class="small text-muted">3 on Pro · 2 on Free</div></div></div></div>
+<div class="col-md-3"><div class="card h-100"><div class="card-body">
+<div class="detail-label mb-1">Bookings today</div><div class="stat-num">47</div>
+<div class="small text-success">▲ 12% vs yesterday</div></div></div></div>
+<div class="col-md-3"><div class="card h-100"><div class="card-body">
+<div class="detail-label mb-1">GMV today</div><div class="stat-num">$3,812</div>
+<div class="small text-muted">Avg ticket $81 · 47 bookings</div></div></div></div>
+<div class="col-md-3"><div class="card h-100 border-warning"><div class="card-body">
+<div class="detail-label mb-1">Pending reviews</div><div class="stat-num">8</div>
+<div class="small"><a href="photos.html">6 photos</a> · <a href="stores.html#applications">2 stores</a></div></div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+<div class="col-lg-7"><div class="card h-100"><div class="card-body">
+<h6 class="font-display mb-3">Bookings — last 7 days</h6>
+<div class="d-flex align-items-end gap-2" style="height:150px" id="bookChart"></div>
+<div class="d-flex gap-2 mt-1 small text-muted" id="bookChartLbl"></div>
+</div></div></div>
+<div class="col-lg-5"><div class="card h-100"><div class="card-body">
+<h6 class="font-display mb-3">Revenue — last 7 days</h6>
+<svg viewBox="0 0 560 170" class="w-100" role="img" aria-label="Revenue trend">
+<polyline id="revLine" fill="none" stroke="#14655a" stroke-width="3" points=""/>
+<polyline id="revArea" fill="rgba(20,101,90,.12)" stroke="none" points=""/>
+</svg>
+<div class="d-flex justify-content-between small text-muted"><span>Sep 26</span><span>Oct 2</span></div>
+<div class="mt-2 small">7-day total <strong>$28,972</strong> · <span class="text-success">▲ 9.4% WoW</span></div>
+</div></div></div>
+</div>
+
+<div class="row g-3">
+<div class="col-lg-6"><div class="card h-100"><div class="card-body">
+<div class="d-flex justify-content-between align-items-center mb-2">
+<h6 class="font-display mb-0">Pending approvals</h6>
+<span class="badge text-bg-warning">8 waiting</span></div>
+<table class="table table-sm align-middle mb-0">
+<tbody id="approvalRows"></tbody>
+</table>
+</div></div></div>
+<div class="col-lg-6"><div class="card h-100"><div class="card-body">
+<div class="d-flex justify-content-between align-items-center mb-2">
+<h6 class="font-display mb-0">Recent bookings</h6>
+<a href="appointments.html" class="small">View all</a></div>
+<table class="table table-sm align-middle mb-0">
+<thead><tr class="small text-muted"><th>Time</th><th>Customer</th><th>Service</th><th>Store</th><th>Status</th></tr></thead>
+<tbody id="recentRows"></tbody>
+</table>
+</div></div></div>
+</div>
+</main>
+</div>
+</div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+const APPT_STORE = {"A-1808131":"zenith","A-1808132":"zenith","A-1808139":"aurelia"};
+const storeName = id => (DEMO.stores.find(s=>s.id===(APPT_STORE[id]||"selah"))||{}).name || "—";
+function statusBadge(s){return '<span class="badge text-bg-'+(STATUS_COLORS[s]||"secondary")+'">'+s+'</span>';}
+// bookings bar chart
+const days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], vals=[38,41,44,47,52,61,49], mx=Math.max(...vals);
+$("#bookChart").html(vals.map(v=>'<div class="flex-fill d-flex flex-column align-items-center justify-content-end h-100"><div class="small fw-semibold">'+v+'</div><div class="bar" style="height:'+Math.round(v/mx*100)+'%" title="'+v+' bookings"></div></div>').join(""));
+$("#bookChartLbl").html(days.map(d=>'<div class="flex-fill text-center">'+d+'</div>').join(""));
+// revenue line
+const rev=[2940,3180,3350,3812,4210,5020,4460], rmx=Math.max(...rev);
+const pts=rev.map((v,i)=>[20+i*(520/6), 150-(v/rmx)*130]);
+$("#revLine").attr("points", pts.map(p=>p.join(",")).join(" "));
+$("#revArea").attr("points", "20,160 "+pts.map(p=>p.join(",")).join(" ")+" 540,160");
+// pending approvals
+const approvals=[
+ ["Store","Blossom Nails — Mississauga","2 h ago","stores.html#applications","Review"],
+ ["Store","The Groom Room — Etobicoke","5 h ago","stores.html#applications","Review"],
+ ["Photo","headspa-1.webp — Selah Head Spa","12 min ago","photos.html","Moderate"],
+ ["Photo","headspa-2.webp — Selah Head Spa","26 min ago","photos.html","Moderate"],
+ ["Photo","facial-1.png — Aurelia Skin Clinic","1 h ago","photos.html","Moderate"],
+ ["Photo","nails-1.webp — Lumière Nail Bar","3 h ago","photos.html","Moderate"]
+];
+$("#approvalRows").html(approvals.map(a=>'<tr><td><span class="badge '+(a[0]==="Store"?"text-bg-primary":"text-bg-info")+'">'+a[0]+'</span></td><td>'+a[1]+'</td><td class="text-muted small">'+a[2]+'</td><td class="text-end"><a href="'+a[3]+'" class="btn btn-sm btn-outline-primary">'+a[4]+'</a></td></tr>').join(""));
+// recent bookings
+$("#recentRows").html(DEMO.appointments.slice(0,8).map(a=>'<tr><td class="small">'+a.start+'</td><td>'+a.customer+'</td><td class="small">'+a.service+'</td><td class="small text-muted">'+storeName(a.id)+'</td><td>'+statusBadge(a.status)+'</td></tr>').join(""));
+</script>
+</body>
+</html>

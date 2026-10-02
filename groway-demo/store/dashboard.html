@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Appointments — Selah Head Spa · Groway Business</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+  .sidebar { width: 232px; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
+  .sidebar .nav-link { color: rgba(255,255,255,.72); border-radius: .5rem; padding: .55rem .8rem; font-size: .92rem; }
+  .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,.14); font-weight: 600; }
+  .day-grid { display: grid; grid-template-columns: 56px repeat(9, minmax(118px, 1fr)); }
+  .staff-col { position: relative; border-left: 1px solid #e7e1d3; min-height: 832px; background: #fff; }
+  .hour-line { position: absolute; left: 0; right: 0; border-top: 1px solid #f0ebdd; }
+  .appt-block { position: absolute; left: 4px; right: 4px; }
+  .appt-block.group { outline: 2px dashed rgba(255,255,255,.75); outline-offset: -2px; }
+  .group-tag { font-size: .62rem; background: rgba(0,0,0,.28); border-radius: 3px; padding: 0 .3rem; }
+  .off-block { position: absolute; left: 4px; right: 4px; background: #e8e4da; color: #8a8172;
+    border-radius: .4rem; padding: .3rem .5rem; font-size: .75rem; }
+  .toolbar-btn { white-space: nowrap; }
+  .offcanvas { --bs-offcanvas-width: 430px; }
+  .tl { position: relative; padding-left: 22px; }
+  .tl::before { content:""; position:absolute; left:5px; top:14px; bottom:0; width:2px; background:#e7e1d3; }
+  .tl-item { position: relative; padding-bottom: 1rem; }
+  .tl-item .timeline-dot { position:absolute; left:-22px; top:3px; }
+  .svc-card { cursor:pointer; border:1px solid #e0d9c6; border-radius:.6rem; }
+  .svc-card:hover { border-color:#14655a; }
+  .svc-card.sel { border-color:#14655a; box-shadow:0 0 0 2px rgba(20,101,90,.25); }
+  .cat-item { cursor:pointer; border-radius:.5rem; padding:.5rem .7rem; }
+  .cat-item:hover, .cat-item.active { background:#eef4f2; font-weight:600; }
+  .week-cell { min-height: 120px; border-left:1px solid #e7e1d3; padding:4px; background:#fff; }
+  .week-mini { font-size:.68rem; border-radius:3px; padding:2px 4px; margin-bottom:3px; color:#fff; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="demo-bar text-center py-1">Groway demo — Store back office · Selah Head Spa · <span class="text-muted">static prototype, no backend</span></div>
+<div class="d-flex">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar bg-teal-dark text-white d-flex flex-column flex-shrink-0">
+    <div class="p-3 border-bottom border-light border-opacity-10">
+      <div class="font-display fs-5 fw-bold">SELAH HEAD SPA</div>
+      <div class="text-white-50 small">Groway Business</div>
+    </div>
+    <nav class="nav flex-column p-2 gap-1">
+      <a class="nav-link active" href="dashboard.html">&#128197; Appointments</a>
+      <a class="nav-link" href="customers.html">&#128100; Customers</a>
+      <a class="nav-link" href="staff.html">&#128101; Staff</a>
+      <a class="nav-link" href="services.html">&#128134; Services</a>
+      <a class="nav-link" href="reports.html">&#128202; Reports</a>
+      <a class="nav-link" href="settings.html">&#9881; Settings</a>
+    </nav>
+    <div class="mt-auto p-3 small text-white-50 border-top border-light border-opacity-10">
+      <div>Mei Lin · Store admin</div>
+      <a href="../index.html" class="text-gold text-decoration-none">← Back to Groway</a>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="flex-grow-1" style="min-width:0">
+    <!-- toolbar -->
+    <div class="bg-white border-bottom px-3 py-2 d-flex align-items-center gap-2 flex-wrap sticky-top" style="z-index:50">
+      <button class="btn btn-sm btn-outline-secondary toolbar-btn" id="clockBtn">CLOCK IN</button>
+      <button class="btn btn-sm btn-outline-secondary toolbar-btn" id="filterStaffBtn">FILTER STAFF</button>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle toolbar-btn" data-bs-toggle="dropdown">Status: <span id="statusCount">6</span> selected</button>
+        <ul class="dropdown-menu p-2" id="statusMenu" style="min-width:180px"></ul>
+      </div>
+      <div class="btn-group btn-group-sm" role="group" id="viewSwitch">
+        <button class="btn btn-outline-primary active" data-view="day">Day</button>
+        <button class="btn btn-outline-primary" data-view="week">Week</button>
+        <button class="btn btn-outline-primary" data-view="list">List</button>
+      </div>
+      <div class="d-flex align-items-center gap-1 ms-1">
+        <button class="btn btn-sm btn-outline-secondary" id="prevDay">&lt;</button>
+        <strong id="dateLabel">Oct 2, 2026</strong>
+        <button class="btn btn-sm btn-outline-secondary" id="nextDay">&gt;</button>
+      </div>
+      <span class="badge bg-primary rounded-pill" id="apptCount" title="appointments">12</span>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <div class="input-group input-group-sm" style="width:210px">
+          <input class="form-control" id="searchBox" placeholder="Search customer / service">
+        </div>
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-secondary position-relative" data-bs-toggle="dropdown">&#128276;
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">2</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end p-2" style="min-width:260px">
+            <li class="small px-2 py-1"><strong>New online booking</strong><br><span class="text-muted">Kevin Liu — Deluxe Royal Head Spa, 6:00 PM</span></li>
+            <li class="small px-2 py-1"><strong>No-show</strong><br><span class="text-muted">Olivia Zhang — 10:00 AM facial</span></li>
+          </ul>
+        </div>
+        <button class="btn btn-sm btn-primary fw-bold" id="newBtn">+ NEW</button>
+      </div>
+    </div>
+
+    <!-- views -->
+    <div class="p-3">
+      <div id="view-day">
+        <div class="day-grid border rounded overflow-auto bg-white" id="dayGrid" style="max-width:100%"></div>
+      </div>
+      <div id="view-week" class="d-none">
+        <div class="border rounded bg-white p-2">
+          <div class="d-flex" id="weekGrid"></div>
+        </div>
+      </div>
+      <div id="view-list" class="d-none">
+        <div class="bg-white border rounded" id="listRows"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ SLIDE-OVER DETAIL ============ -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="detailPanel">
+  <div class="offcanvas-header border-bottom">
+    <h6 class="offcanvas-title font-display fw-bold">Appointment detail</h6>
+    <button class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body" id="detailBody"></div>
+  <div class="offcanvas-footer border-top p-3 d-flex gap-2">
+    <button class="btn btn-sm btn-outline-primary flex-fill" data-act="review">SEND REVIEW LINK</button>
+    <button class="btn btn-sm btn-primary flex-fill" data-act="checkout">CHECKOUT</button>
+    <button class="btn btn-sm btn-outline-secondary flex-fill" data-act="update">UPDATE</button>
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">&#8230;</button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item small" href="#" data-act="rebook">Rebook</a></li>
+        <li><a class="dropdown-item small" href="#" data-act="note">Add notes</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item small text-danger" href="#" data-act="cancel">Cancel appointment</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============ NEW: choice ============ -->
+<div class="modal fade" id="modalChoice" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content text-center p-4">
+      <h6 class="font-display fw-bold mb-3">New entry</h6>
+      <button class="btn btn-primary w-100 mb-2" id="goAppt">APPOINTMENT</button>
+      <button class="btn btn-outline-secondary w-100" id="goTimeOff">TIME OFF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ NEW: appointment (3 columns) ============ -->
+<div class="modal fade" id="modalAppt" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title font-display fw-bold">New appointment</h6>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-3">
+            <div class="detail-label mb-2">Categories</div>
+            <div id="catList"></div>
+          </div>
+          <div class="col-5">
+            <div class="detail-label mb-2">Services</div>
+            <input class="form-control form-control-sm mb-2" id="svcSearch" placeholder="Search service">
+            <div class="d-flex flex-column gap-2" id="svcCards" style="max-height:380px;overflow:auto"></div>
+          </div>
+          <div class="col-4">
+            <div class="detail-label mb-2">Current appointment <span class="badge bg-secondary" id="sumCount">0</span></div>
+            <div class="small mb-1"><strong>1.</strong> Select a customer</div>
+            <select class="form-select form-select-sm mb-2" id="newCustomer"></select>
+            <div class="small mb-1"><strong>2.</strong> Select date &amp; time</div>
+            <div class="d-flex gap-2 mb-2">
+              <input type="date" class="form-control form-control-sm" id="newDate" value="2026-10-02">
+              <select class="form-select form-select-sm" id="newTime"></select>
+            </div>
+            <div class="small mb-1"><strong>3.</strong> Services</div>
+            <div id="sumServices" class="small text-muted mb-2">No service selected</div>
+            <div class="small mb-1">MEMO</div>
+            <textarea class="form-control form-control-sm mb-3" id="newMemo" rows="2" placeholder="Optional note"></textarea>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-dark flex-fill" id="clearNew">CLEAR ALL</button>
+              <button class="btn btn-sm btn-primary flex-fill" id="finishNew" disabled>FINISH</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ NEW: time off ============ -->
+<div class="modal fade" id="modalTimeOff" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content p-3">
+      <h6 class="font-display fw-bold mb-3">Time off</h6>
+      <label class="detail-label">Staff</label>
+      <select class="form-select form-select-sm mb-2" id="offStaff"></select>
+      <label class="detail-label">Date</label>
+      <input type="date" class="form-control form-control-sm mb-2" value="2026-10-02">
+      <label class="detail-label">Reason</label>
+      <input class="form-control form-control-sm mb-3" placeholder="e.g. Sick leave">
+      <button class="btn btn-primary btn-sm w-100" id="saveTimeOff">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+const HOUR_PX = 64, DAY_START = 9, DAY_END = 22; // 9AM–10PM
+const COLS = ["Amy","ELLA","Luna","Eva","Connie","Nina","Lucy","Emily","Cindy"];
+const AV = { Amy:"avatar-44.jpg", ELLA:"avatar-65.jpg", Luna:"avatar-26.jpg", Eva:"avatar-68.jpg",
+  Connie:"avatar-47.jpg", Nina:"avatar-17.jpg", Lucy:"avatar-33.jpg", Emily:"avatar-56.jpg" };
+const EXTRA_AV = { Cindy:null };
+function avatarFor(n){ return AV[n] ? `../assets/img/${AV[n]}` : null; }
+function parseT(s){ const m = s.match(/(\d+):(\d+)\s(AM|PM)/); let h=+m[1]%12; if(m[3]==="PM")h+=12; return h*60+ +m[2]; }
+function topFor(s){ return (parseT(s)-DAY_START*60)/60*HOUR_PX; }
+function hFor(s,e){ return (parseT(e)-parseT(s))/60*HOUR_PX; }
+const activeStatuses = new Set(["New","Confirmed","Arrived","Serving","Completed","No-Show"]);
+let timeOffs = [];
+let currentAppt = null;
+
+function svcCatKey(cat){ return cat==="Signature Head Spa"?"headspa":cat==="Facial Care"?"facial":cat==="Foot Massage"?"foot":"massage"; }
+
+function toast(msg){
+  const t = $(`<div class="toast align-items-center" role="alert"><div class="d-flex">
+    <div class="toast-body">${msg}</div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
+  $("#toasts").append(t); new bootstrap.Toast(t[0],{delay:2600}).show();
+}
+
+/* ---------- status filter menu ---------- */
+function renderStatusMenu(){
+  $("#statusMenu").html(Object.keys(STATUS_COLORS).map(s=>
+    `<li><label class="dropdown-item small"><input type="checkbox" class="form-check-input me-2 statusChk"
+      value="${s}" ${activeStatuses.has(s)?"checked":""}> ${s}</label></li>`).join(""));
+}
+$(document).on("change",".statusChk",function(){
+  const s = $(this).val();
+  this.checked ? activeStatuses.add(s) : activeStatuses.delete(s);
+  $("#statusCount").text(activeStatuses.size);
+  renderDay(); renderList();
+});
+
+/* ---------- DAY VIEW ---------- */
+function renderDay(){
+  const q = $("#searchBox").val().toLowerCase();
+  let html = `<div style="grid-column:1" class="position-relative bg-light">`;
+  for(let h=DAY_START; h<=DAY_END; h++){
+    const lbl = h===12?"12 PM": h<12? h+" AM" : (h-12)+" PM";
+    html += `<div class="position-absolute small text-muted" style="top:${(h-DAY_START)*HOUR_PX-8}px;left:4px">${lbl}</div>`;
+  }
+  html += `</div>`;
+  COLS.forEach(name=>{
+    const av = avatarFor(name);
+    html += `<div class="staff-col" data-staff="${name}" style="grid-column:auto">
+      <div class="text-center border-bottom py-2 bg-white position-sticky" style="top:0;z-index:5">
+        ${av?`<img src="${av}" class="rounded-circle" width="30" height="30" style="object-fit:cover">`
+             :`<span class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center" style="width:30px;height:30px">${name[0]}</span>`}
+        <div class="small fw-bold">${name}</div>
+      </div>
+      <div class="position-relative" style="height:${(DAY_END-DAY_START)*HOUR_PX}px">`;
+    for(let h=DAY_START; h<=DAY_END; h++)
+      html += `<div class="hour-line" style="top:${(h-DAY_START)*HOUR_PX}px"></div>`;
+    DEMO.appointments.filter(a=>a.staff.includes(name) && activeStatuses.has(a.status)).forEach(a=>{
+      if(q && !(a.customer+" "+a.service+" "+name).toLowerCase().includes(q)) return;
+      const c = CAT_COLORS[a.cat]||"#14655a";
+      const grp = a.group?`<span class="group-tag">${a.group} · group</span> `:"";
+      const multi = a.staff.length>1?`<div class="opacity-75">${a.staff.join(" + ")}</div>`:"";
+      html += `<div class="appt-block ${a.group?"group":""}" data-id="${a.id}" title="${a.customer} — ${a.service}"
+        style="top:${topFor(a.start)}px;height:${Math.max(hFor(a.start,a.end)-3,30)}px;background:${c};border-left-color:${c}">
+        <div class="fw-bold">${a.start} – ${a.end}</div>
+        <div>${a.customer}</div><div class="opacity-75">${a.service}</div>${grp}${multi}</div>`;
+    });
+    timeOffs.filter(t=>t.staff===name).forEach(t=>{
+      html += `<div class="off-block" style="top:0;height:100%">${t.reason}<br><span class="small">Time off</span></div>`;
+    });
+    html += `</div></div>`;
+  });
+  $("#dayGrid").html(html);
+}
+
+/* ---------- WEEK VIEW ---------- */
+function renderWeek(){
+  const days = ["Fri Oct 2","Sat Oct 3","Sun Oct 4","Mon Oct 5","Tue Oct 6","Wed Oct 7","Thu Oct 8"];
+  let html = "";
+  days.forEach((d,di)=>{
+    html += `<div class="week-cell flex-fill"><div class="small fw-bold mb-1 ${di===0?"text-primary":""}">${d}</div>`;
+    const list = di===0 ? DEMO.appointments.slice(0,6) : null;
+    if(list){
+      list.forEach(a=>{ html += `<div class="week-mini" data-id="${a.id}" style="background:${CAT_COLORS[a.cat]}">${a.start} ${a.customer}</div>`; });
+    } else {
+      for(let i=0;i<4;i++){
+        const s = DEMO.services[(i*3+di)%DEMO.services.length];
+        const times = ["10:00 AM","1:00 PM","3:30 PM","6:00 PM"];
+        html += `<div class="week-mini" style="background:${CAT_COLORS[svcCatKey(s.cat)]};opacity:.85">${times[i]} · ${s.name}</div>`;
+      }
+    }
+    html += `</div>`;
+  });
+  $("#weekGrid").html(html);
+}
+
+/* ---------- LIST VIEW ---------- */
+function renderList(){
+  const q = $("#searchBox").val().toLowerCase();
+  const rows = DEMO.appointments.filter(a=>activeStatuses.has(a.status))
+    .filter(a=>!q || (a.customer+a.service+a.phone).toLowerCase().includes(q))
+    .sort((a,b)=>parseT(a.start)-parseT(b.start));
+  $("#listRows").html(rows.map(a=>`
+    <div class="d-flex align-items-center gap-3 px-3 py-2 border-bottom appt-row" data-id="${a.id}" style="cursor:pointer">
+      <div class="small text-muted" style="width:150px">${a.start} - ${a.end}</div>
+      <span class="rounded-circle d-inline-block" style="width:12px;height:12px;background:${CAT_COLORS[a.cat]}"></span>
+      <div class="small text-muted" style="width:90px">#${a.id.replace("A-","")}</div>
+      <div style="width:230px"><div class="fw-bold small">${a.customer}</div><div class="small text-muted">${a.phone}</div></div>
+      <div class="flex-grow-1 small">${a.service} <span class="text-muted">(${a.mins}mins)</span>
+        ${a.group?`<span class="badge bg-warning text-dark ms-1">${a.group}</span>`:""}</div>
+      <div class="small text-muted">Staff: ${a.staff.join(", ")}</div>
+      <span class="badge bg-${STATUS_COLORS[a.status]}">${a.status}</span>
+    </div>`).join("") || `<div class="p-4 text-muted">No appointments match.</div>`);
+  $("#apptCount").text(rows.length);
+}
+
+/* ---------- DETAIL PANEL ---------- */
+function openDetail(id){
+  const a = DEMO.appointments.find(x=>x.id===id); if(!a) return;
+  currentAppt = a;
+  const c = CAT_COLORS[a.cat];
+  const tl = [];
+  if(a.id==="A-1808098") tl.push(["Staffer Changed","1:47 PM","from ELLA to Amy"]);
+  if(a.id==="A-1808119") tl.push(["Appointment Rescheduled","9:05 AM","from 10:00 AM to 9:30 AM · Created by"]);
+  tl.push(["New Appointment","8:04 AM",`Created by: ${a.source==="Online"?"Client":a.source}`]);
+  $("#detailBody").html(`
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-${STATUS_COLORS[a.status]} dropdown-toggle fw-bold" data-bs-toggle="dropdown">${a.status.toUpperCase()}</button>
+        <ul class="dropdown-menu">${Object.keys(STATUS_COLORS).map(s=>
+          `<li><a class="dropdown-item small statusSet" href="#" data-s="${s}">${s}</a></li>`).join("")}</ul>
+      </div>
+      <span class="badge bg-light text-dark border">${a.source}</span>
+      ${a.group?`<span class="badge bg-warning text-dark">Group ${a.group}</span>`:""}
+    </div>
+    <h6 class="font-display fw-bold">Fri, Oct 2 2026 · ${a.start}</h6>
+    <div class="detail-label mt-3 mb-1">Service</div>
+    <div class="border rounded p-2 mb-1">
+      <div class="d-flex justify-content-between small"><span>${a.start}</span><span class="fw-bold">$${a.price}.00</span></div>
+      <div class="small">${a.service} <span class="text-muted">(${a.mins}mins)</span></div>
+      <div class="small text-muted">with ${a.staff.join(" + ")}
+        <button class="btn btn-sm btn-link p-0 ms-2" id="reassignBtn">REASSIGN</button></div>
+    </div>
+    <div class="d-flex justify-content-between small fw-bold border-top pt-2"><span>Total</span><span>${a.mins}mins · $${a.price}.00</span></div>
+    <div class="detail-label mt-3 mb-1">Contact info</div>
+    <div class="small">${a.customer}<br><span class="text-muted">${a.phone}${a.email?" · "+a.email:""}</span></div>
+    <div class="detail-label mt-3 mb-2">Activities</div>
+    <div class="tl">${tl.map(t=>`<div class="tl-item"><span class="timeline-dot"></span>
+      <div class="small fw-bold">${t[0]}</div><div class="small text-muted">${t[1]} — ${t[2]}</div></div>`).join("")}</div>`);
+  new bootstrap.Offcanvas($("#detailPanel")[0]).show();
+}
+$(document).on("click",".appt-block,.appt-row,.week-mini",function(){ openDetail($(this).data("id")); });
+$(document).on("click",".statusSet",function(e){
+  e.preventDefault();
+  currentAppt.status = $(this).data("s");
+  toast(`Status set to ${currentAppt.status}`);
+  openDetail(currentAppt.id); renderDay(); renderList();
+});
+$(document).on("click","#reassignBtn",function(){
+  const names = COLS.filter(n=>!currentAppt.staff.includes(n));
+  const pick = names[Math.floor(Math.random()*names.length)];
+  currentAppt.staff = [pick];
+  toast(`Reassigned to ${pick}`);
+  openDetail(currentAppt.id); renderDay(); renderList();
+});
+$(document).on("click","[data-act]",function(e){
+  e.preventDefault();
+  const act = $(this).data("act"), a = currentAppt;
+  if(act==="cancel"){
+    if(confirm(`Cancel appointment for ${a.customer}?`)){ a.status="Cancelled"; toast("Appointment cancelled"); renderDay(); renderList(); }
+    return;
+  }
+  const msgs = { review:`Review link sent to ${a.customer}`, checkout:`Checked out — $${a.price}.00 collected`,
+    update:`Appointment ${a.id} updated`, rebook:`Rebook flow started for ${a.customer}`, note:`Note saved` };
+  toast(msgs[act]||"Done");
+  bootstrap.Offcanvas.getInstance($("#detailPanel")[0]).hide();
+});
+
+/* ---------- view switch / nav ---------- */
+$("#viewSwitch button").click(function(){
+  $("#viewSwitch button").removeClass("active"); $(this).addClass("active");
+  const v = $(this).data("view");
+  $("#view-day").toggleClass("d-none", v!=="day");
+  $("#view-week").toggleClass("d-none", v!=="week");
+  $("#view-list").toggleClass("d-none", v!=="list");
+});
+$("#prevDay,#nextDay").click(()=>toast("Demo covers Friday, October 2, 2026 only"));
+$("#searchBox").on("input",()=>{ renderDay(); renderList(); });
+$("#clockBtn").click(function(){ const on = $(this).text()==="CLOCK IN"; $(this).text(on?"CLOCK OUT":"CLOCK IN").toggleClass("btn-warning",on).toggleClass("btn-outline-secondary",!on); toast(on?"Clocked in — have a great day":"Clocked out"); });
+$("#filterStaffBtn").click(()=>toast("Staff filter: all 9 staff shown"));
+
+/* ---------- NEW appointment ---------- */
+const cats = [...new Set(DEMO.services.map(s=>s.cat))];
+let selCat = "All", selSvc = null;
+$("#newBtn").click(()=>new bootstrap.Modal($("#modalChoice")[0]).show());
+$("#goAppt").click(()=>{ bootstrap.Modal.getInstance($("#modalChoice")[0]).hide(); initNewAppt(); new bootstrap.Modal($("#modalAppt")[0]).show(); });
+$("#goTimeOff").click(()=>{ bootstrap.Modal.getInstance($("#modalChoice")[0]).hide();
+  $("#offStaff").html(COLS.map(n=>`<option>${n}</option>`).join(""));
+  new bootstrap.Modal($("#modalTimeOff")[0]).show(); });
+$("#saveTimeOff").click(()=>{ timeOffs.push({staff:$("#offStaff").val(), reason:$("#modalTimeOff input[placeholder]").val()||"Time off"});
+  bootstrap.Modal.getInstance($("#modalTimeOff")[0]).hide(); renderDay(); toast("Time off saved"); });
+
+function initNewAppt(){
+  $("#catList").html(`<div class="cat-item active" data-c="All">All Services</div>` +
+    cats.map(c=>`<div class="cat-item" data-c="${c}">${c}</div>`).join(""));
+  const custs = [...new Set(DEMO.appointments.map(a=>a.customer))];
+  $("#newCustomer").html(custs.map(c=>`<option>${c}</option>`).join(""));
+  $("#newTime").html(["9:00 AM","10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","6:00 PM","7:00 PM"].map(t=>`<option${t==="2:00 PM"?" selected":""}>${t}</option>`).join(""));
+  selSvc = null; renderSvcCards(); updateSummary();
+}
+$(document).on("click",".cat-item",function(){ $(".cat-item").removeClass("active"); $(this).addClass("active"); selCat=$(this).data("c"); renderSvcCards(); });
+$("#svcSearch").on("input", renderSvcCards);
+function renderSvcCards(){
+  const q = $("#svcSearch").val().toLowerCase();
+  $("#svcCards").html(DEMO.services.filter(s=>(selCat==="All"||s.cat===selCat)&&s.name.toLowerCase().includes(q)).map(s=>`
+    <div class="svc-card p-2 d-flex gap-2 align-items-center ${selSvc&&selSvc.id===s.id?"sel":""}" data-sid="${s.id}">
+      <span class="rounded d-inline-flex align-items-center justify-content-center text-white small fw-bold" style="width:38px;height:38px;background:${CAT_COLORS[svcCatKey(s.cat)]}">${s.mins}</span>
+      <div class="flex-grow-1"><div class="small fw-bold">${s.name}</div><div class="small text-muted">${s.mins}mins</div></div>
+      <div class="small fw-bold">$${s.price}.00</div>
+    </div>`).join(""));
+}
+$(document).on("click",".svc-card",function(){ selSvc = DEMO.services.find(s=>s.id===$(this).data("sid")); renderSvcCards(); updateSummary(); });
+function updateSummary(){
+  if(selSvc){ $("#sumServices").html(`${selSvc.name} (${selSvc.mins}mins) — $${selSvc.price}.00`); $("#sumCount").text(1); $("#finishNew").prop("disabled",false); }
+  else { $("#sumServices").html("No service selected"); $("#sumCount").text(0); $("#finishNew").prop("disabled",true); }
+}
+$("#clearNew").click(()=>{ selSvc=null; $("#newMemo").val(""); renderSvcCards(); updateSummary(); });
+$("#finishNew").click(()=>{
+  const t = $("#newTime").val(), mins = selSvc.mins;
+  const end = fmtEnd(t, mins);
+  DEMO.appointments.push({ id:"A-1808"+(100+DEMO.appointments.length), customer:$("#newCustomer").val(),
+    phone:"(416) 555-0100", service:selSvc.name, mins, price:selSvc.price, staff:[selSvc.staff[0]],
+    start:t, end, status:"New", source:"Phone", cat: svcCatKey(selSvc.cat) });
+  bootstrap.Modal.getInstance($("#modalAppt")[0]).hide();
+  renderDay(); renderList(); renderWeek();
+  toast("Appointment created — confirmation sent to customer");
+});
+function fmtEnd(t, mins){ const m = parseT(t)+mins; let h=Math.floor(m/60), mm=m%60; const ap=h>=12?"PM":"AM"; h=h%12||12; return `${h}:${String(mm).padStart(2,"0")} ${ap}`; }
+
+/* ---------- init ---------- */
+renderStatusMenu(); renderDay(); renderWeek(); renderList();
+</script>
+</body>
+</html>

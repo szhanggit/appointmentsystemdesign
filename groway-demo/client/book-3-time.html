@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pick a time — Groway</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container">
+    <a class="navbar-brand font-display fs-4" href="../index.html">Groway</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link active" href="map.html">Discover</a></li>
+        <li class="nav-item"><a class="nav-link" href="bookings.html">My bookings</a></li>
+        <li class="nav-item"><a class="nav-link" href="../login-client.html">Sign in</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container py-4" style="max-width:760px">
+  <div class="d-flex align-items-center gap-2 mb-1 flex-wrap" id="steps"></div>
+  <h2 class="font-display mb-1">Pick a time</h2>
+  <p class="text-muted mb-4" id="svcLine"></p>
+  <div class="d-flex gap-2 flex-wrap mb-4" id="dates"></div>
+  <div class="row g-2" id="slots"></div>
+  <div class="d-flex justify-content-between mt-4">
+    <a href="book-2-staff.html" class="btn btn-link">← Back</a>
+    <button class="btn btn-primary px-5" id="next" disabled>Continue</button>
+  </div>
+</div>
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+const BK={get(){try{return JSON.parse(sessionStorage.getItem('groway_booking')||'{}')}catch(e){return{}}},set(p){const b=Object.assign(this.get(),p);sessionStorage.setItem('groway_booking',JSON.stringify(b));return b}};
+function renderSteps(n){const L=["Service","Staff","Time","Details","Confirm"];$("#steps").html(L.map((l,i)=>`${i?'<span class="text-muted">—</span>':''}<span class="d-flex align-items-center gap-1"><span class="step-dot ${i<n?'done':i===n?'now':''}">${i<n?'✓':i+1}</span><span class="small ${i===n?'fw-bold':''}">${l}</span></span>`).join(""))}
+const DAYS=["Fri, Oct 2","Sat, Oct 3","Sun, Oct 4","Mon, Oct 5","Tue, Oct 6","Wed, Oct 7","Thu, Oct 8"];
+const TIMES=[];for(let h=10;h<=19;h++){TIMES.push(h+":00",h+":30");}TIMES.pop();
+function fmt(t){let[h,m]=t.split(":").map(Number);const ap=h>=12?"PM":"AM";h=h%12||12;return `${h}:${m===0?"00":"30"} ${ap}`;}
+let selDate=DAYS[1], selTime=null;
+function renderSlots(){
+  const el=$("#slots");el.empty();selTime=null;$("#next").prop("disabled",true);
+  TIMES.forEach((t,i)=>{
+    const off=(i+selDate.length)%6===2||(i+selDate.length)%9===5;
+    el.append(`<div class="col-4 col-md-3"><div class="slot${off?' off':''}" data-t="${fmt(t)}">${fmt(t)}</div></div>`);
+  });
+}
+$(function(){
+  const b=BK.get();
+  if(!b.serviceId)location.href="book-1-service.html";
+  renderSteps(2);
+  $("#svcLine").text(`${b.serviceName} · with ${b.staffName||"First available"}`);
+  DAYS.forEach((d,i)=>$("#dates").append(`<button class="chip${i===1?' active':''}" data-d="${d}">${d}</button>`));
+  $("#dates").on("click",".chip",function(){$("#dates .chip").removeClass("active");$(this).addClass("active");selDate=$(this).data("d");renderSlots();});
+  $("#slots").on("click",".slot:not(.off)",function(){$("#slots .slot").removeClass("sel");$(this).addClass("sel");selTime=$(this).data("t");$("#next").prop("disabled",false);});
+  $("#next").on("click",()=>{BK.set({date:selDate+", 2026",time:selTime});location.href="book-4-contact.html";});
+  renderSlots();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groway Admin — Stores</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+.sidebar .nav-link{color:rgba(255,255,255,.65);border-left:3px solid transparent;border-radius:0}
+.sidebar .nav-link:hover{color:#fff;background:rgba(255,255,255,.05)}
+.sidebar .nav-link.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:#b98a2f}
+.doc-row{display:flex;align-items:center;gap:.5rem;padding:.35rem 0;border-bottom:1px dashed #e9e2d2}
+</style>
+</head>
+<body>
+<div class="demo-bar text-center py-1">Investor demo — all data is fictional, no backend connected.</div>
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-3 col-lg-2 px-0">
+<nav class="sidebar bg-teal-dark text-white d-flex flex-column min-vh-100 sticky-top">
+<div class="p-3 border-bottom border-secondary">
+<div class="font-display fs-5">Groway <span class="text-gold">Admin</span></div>
+<div class="small" style="color:rgba(255,255,255,.55)">Platform console</div>
+</div>
+<ul class="nav flex-column py-2">
+<li class="nav-item"><a class="nav-link px-3 py-2" href="overview.html">Overview</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2 active" href="stores.html">Stores</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="photos.html">Photos <span class="badge bg-gold text-dark ms-1">6</span></a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="taxonomy.html">Taxonomy</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="appointments.html">Appointments</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="revenue.html">Revenue</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="notifications.html">Notifications</a></li>
+<li class="nav-item"><a class="nav-link px-3 py-2" href="accounts.html">Accounts</a></li>
+</ul>
+<div class="mt-auto p-3 small" style="color:rgba(255,255,255,.45)">v0.1 investor demo<br>All data fictional</div>
+</nav>
+</div>
+<main class="col-md-9 col-lg-10 p-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+<div><h1 class="font-display h3 mb-0">Stores</h1><div class="text-muted small">Every storefront on the marketplace</div></div>
+<div class="d-flex align-items-center gap-2">
+<span class="badge text-bg-success">Live demo</span>
+<img src="../assets/img/avatar-56.jpg" class="rounded-circle" width="36" height="36" alt="Admin">
+<div class="small"><div class="fw-semibold">Platform Admin</div><div class="text-muted">admin@groway.demo</div></div>
+</div>
+</div>
+
+<div class="card mb-4"><div class="card-body p-0">
+<table class="table align-middle mb-0">
+<thead class="table-light"><tr><th class="ps-3">Store</th><th>City</th><th>Plan</th><th>Status</th><th>Bookings MTD</th><th>Rating</th><th class="text-end pe-3"></th></tr></thead>
+<tbody id="storeRows"></tbody>
+</table>
+</div></div>
+
+<h5 class="font-display mb-3" id="applications">Onboarding applications <span class="badge text-bg-warning ms-1">2 pending</span></h5>
+<div class="row g-3" id="appCards"></div>
+</main>
+</div>
+</div>
+
+<div class="modal fade" id="storeModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title font-display" id="mName"></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body">
+<div class="row g-3">
+<div class="col-md-6">
+<div class="detail-label mb-1">Profile</div>
+<div class="small" id="mProfile"></div>
+<div class="detail-label mt-3 mb-1">Documents</div>
+<div id="mDocs"></div>
+</div>
+<div class="col-md-6">
+<div class="detail-label mb-1">Marketplace presence</div>
+<div class="small" id="mMarket"></div>
+<div class="detail-label mt-3 mb-1">This month</div>
+<div class="small" id="mStats"></div>
+</div>
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn btn-outline-secondary" id="mMapBtn">View on map</button>
+<button class="btn btn-outline-danger" id="mSuspendBtn">Suspend</button>
+<button class="btn btn-primary" id="mApproveBtn">Approve</button>
+</div>
+</div></div></div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+const PLANS={selah:"Pro",lumiere:"Pro",zenith:"Free",gilded:"Pro",aurelia:"Free"};
+const MTD={selah:412,lumiere:268,zenith:154,gilded:301,aurelia:96};
+function toast(msg){const t=$('<div class="toast align-items-center text-bg-dark border-0"><div class="d-flex"><div class="toast-body">'+msg+'</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>');$("#toasts").append(t);new bootstrap.Toast(t[0],{delay:2600}).show();t.on("hidden.bs.toast",()=>t.remove());}
+$("#storeRows").html(DEMO.stores.map(s=>'<tr><td class="ps-3"><div class="fw-semibold">'+s.name+'</div><div class="small text-muted">'+s.chain+'</div></td><td>'+s.city+'</td><td><span class="badge '+(PLANS[s.id]==="Pro"?"bg-gold text-dark":"text-bg-secondary")+'">'+PLANS[s.id]+'</span></td><td><span class="badge text-bg-success">Active</span></td><td>'+MTD[s.id]+'</td><td>★ '+s.rating+' <span class="text-muted">('+s.reviews+')</span></td><td class="text-end pe-3"><button class="btn btn-sm btn-outline-primary" data-view="'+s.id+'">View</button></td></tr>').join(""));
+const APPS=[
+ {name:"Blossom Nails",city:"Mississauga",phone:"(905) 555-0188",cat:"Nails",since:"2 hours ago",docs:[["Business license",1],["Liability insurance",1],["Health permit",0]]},
+ {name:"The Groom Room",city:"Etobicoke",phone:"(416) 555-0120",cat:"Barbering",since:"5 hours ago",docs:[["Business license",1],["Liability insurance",0],["Health permit",0]]}
+];
+$("#appCards").html(APPS.map((a,i)=>'<div class="col-md-6"><div class="card h-100"><div class="card-body"><div class="d-flex justify-content-between"><h6 class="font-display mb-1">'+a.name+'</h6><span class="badge text-bg-warning">Pending review</span></div><div class="small text-muted mb-2">'+a.city+' · '+a.phone+' · '+a.cat+' · applied '+a.since+'</div><div class="mb-3">'+a.docs.map(d=>'<div class="doc-row small"><span class="'+(d[1]?'text-success':'text-warning')+'">'+(d[1]?'✓':'…')+'</span>'+d[0]+'</div>').join("")+'</div><button class="btn btn-sm btn-primary me-2" data-app-ok="'+i+'">Approve</button><button class="btn btn-sm btn-outline-danger" data-app-no="'+i+'">Decline</button></div></div></div>').join(""));
+let modal, curStore=null;
+$(document).on("click","[data-view]",function(){const s=DEMO.stores.find(x=>x.id===$(this).data("view"));curStore=s;
+ $("#mName").text(s.name);
+ $("#mProfile").html(s.chain+"<br>"+s.address+"<br>"+s.phone+"<br>Plan: <strong>"+PLANS[s.id]+"</strong>");
+ $("#mDocs").html([["Business license",1],["Liability insurance",1],["Health permit",s.id==="aurelia"?0:1]].map(d=>'<div class="doc-row small"><span class="'+(d[1]?'text-success':'text-warning')+'">'+(d[1]?'✓':'…')+'</span>'+d[0]+'</div>').join(""));
+ $("#mMarket").html("Categories: "+s.categories.join(", ")+"<br>From $"+s.priceFrom+" · ★ "+s.rating+" ("+s.reviews+" reviews)<br>Google: ★ "+(s.rating-0.1).toFixed(1)+" ("+s.googleReviews+" reviews)");
+ $("#mStats").html(MTD[s.id]+" bookings MTD<br>Est. GMV $"+(MTD[s.id]*81).toLocaleString());
+ modal=modal||new bootstrap.Modal("#storeModal");modal.show();});
+$("#mApproveBtn").click(()=>{toast(curStore.name+" approved.");modal.hide();});
+$("#mSuspendBtn").click(()=>{if(confirm("Suspend "+curStore.name+"? It will disappear from the map immediately.")){toast(curStore.name+" suspended.");modal.hide();}});
+$("#mMapBtn").click(()=>toast("Map view lives in the client demo."));
+$(document).on("click","[data-app-ok]",function(){const a=APPS[$(this).data("app-ok")];$(this).closest(".col-md-6").fadeOut(()=>{toast(a.name+" approved — welcome email sent.");});});
+$(document).on("click","[data-app-no]",function(){const a=APPS[$(this).data("app-no")];if(confirm("Decline "+a.name+"?")){$(this).closest(".col-md-6").fadeOut(()=>toast(a.name+" declined."));}});
+</script>
+</body>
+</html>

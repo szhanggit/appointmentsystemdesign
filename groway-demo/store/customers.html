@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customers — Selah Head Spa · Groway Business</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+  .sidebar { width: 232px; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
+  .sidebar .nav-link { color: rgba(255,255,255,.72); border-radius: .5rem; padding: .55rem .8rem; font-size: .92rem; }
+  .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,.14); font-weight: 600; }
+  .offcanvas { --bs-offcanvas-width: 400px; }
+  tbody tr { cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="demo-bar text-center py-1">Groway demo — Store back office · Selah Head Spa · <span class="text-muted">static prototype, no backend</span></div>
+<div class="d-flex">
+  <aside class="sidebar bg-teal-dark text-white d-flex flex-column flex-shrink-0">
+    <div class="p-3 border-bottom border-light border-opacity-10">
+      <div class="font-display fs-5 fw-bold">SELAH HEAD SPA</div>
+      <div class="text-white-50 small">Groway Business</div>
+    </div>
+    <nav class="nav flex-column p-2 gap-1">
+      <a class="nav-link" href="dashboard.html">&#128197; Appointments</a>
+      <a class="nav-link active" href="customers.html">&#128100; Customers</a>
+      <a class="nav-link" href="staff.html">&#128101; Staff</a>
+      <a class="nav-link" href="services.html">&#128134; Services</a>
+      <a class="nav-link" href="reports.html">&#128202; Reports</a>
+      <a class="nav-link" href="settings.html">&#9881; Settings</a>
+    </nav>
+    <div class="mt-auto p-3 small text-white-50 border-top border-light border-opacity-10">
+      <div>Mei Lin · Store admin</div>
+      <a href="../index.html" class="text-gold text-decoration-none">← Back to Groway</a>
+    </div>
+  </aside>
+
+  <main class="flex-grow-1 p-4" style="min-width:0">
+    <div class="d-flex align-items-center mb-3 gap-3">
+      <h4 class="font-display fw-bold mb-0">Customers</h4>
+      <span class="badge bg-primary rounded-pill" id="custCount"></span>
+      <div class="ms-auto input-group" style="width:280px">
+        <input class="form-control" id="searchBox" placeholder="Search name / phone">
+      </div>
+    </div>
+    <div class="bg-white border rounded">
+      <table class="table table-hover mb-0">
+        <thead class="table-light"><tr>
+          <th>Name</th><th>Phone</th><th>Visits</th><th>Last visit</th><th>Total spent</th><th></th>
+        </tr></thead>
+        <tbody id="custRows"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="custPanel">
+  <div class="offcanvas-header border-bottom">
+    <h6 class="offcanvas-title font-display fw-bold" id="custTitle"></h6>
+    <button class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body" id="custBody"></div>
+  <div class="offcanvas-footer border-top p-3">
+    <button class="btn btn-sm btn-outline-primary w-100 mb-2" id="linkGuest">Link guest booking</button>
+    <label class="detail-label">Notes</label>
+    <textarea class="form-control form-control-sm mb-2" id="custNotes" rows="3" placeholder="Allergies, preferences…"></textarea>
+    <button class="btn btn-sm btn-primary w-100" id="saveNotes">Save notes</button>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+function toast(msg){ const t=$(`<div class="toast align-items-center"><div class="d-flex"><div class="toast-body">${msg}</div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
+  $("#toasts").append(t); new bootstrap.Toast(t[0],{delay:2600}).show(); }
+
+const EXTRA = [
+  { customer:"Hannah Park", phone:"(416) 555-0140", visits:14, last:"Sep 28, 2026", spent:1180 },
+  { customer:"Ivy Zhao", phone:"(647) 555-0133", visits:9, last:"Sep 25, 2026", spent:720 },
+  { customer:"Rachel Kim", phone:"(416) 555-0161", visits:6, last:"Sep 20, 2026", spent:410 }
+];
+function customers(){
+  const m = {};
+  DEMO.appointments.forEach(a=>{
+    if(a.customer==="Walk-In") return;
+    m[a.customer] = m[a.customer]||{customer:a.customer,phone:a.phone,visits:0,last:"Oct 2, 2026",spent:0};
+    m[a.customer].visits++; m[a.customer].spent += a.price;
+  });
+  return Object.values(m).concat(EXTRA).sort((a,b)=>b.spent-a.spent);
+}
+let current = null;
+function render(){
+  const q = $("#searchBox").val().toLowerCase();
+  const list = customers().filter(c=>(c.customer+c.phone).toLowerCase().includes(q));
+  $("#custCount").text(list.length+" customers");
+  $("#custRows").html(list.map((c,i)=>`<tr data-i="${customers().indexOf(c)}">
+    <td class="fw-bold">${c.customer}</td><td class="text-muted">${c.phone}</td>
+    <td><span class="badge bg-light text-dark border">${c.visits}</span></td>
+    <td class="small">${c.last}</td><td class="fw-bold">$${c.spent}.00</td>
+    <td class="text-end"><span class="text-primary small">View →</span></td></tr>`).join(""));
+}
+$(document).on("click","#custRows tr",function(){
+  current = customers()[+$(this).data("i")];
+  const hist = DEMO.appointments.filter(a=>a.customer===current.customer);
+  $("#custTitle").text(current.customer);
+  $("#custBody").html(`
+    <div class="detail-label mb-1">Contact</div>
+    <div class="small mb-3">${current.phone}</div>
+    <div class="row text-center mb-3">
+      <div class="col-4"><div class="stat-num">${current.visits}</div><div class="detail-label">Visits</div></div>
+      <div class="col-4"><div class="stat-num">$${current.spent}</div><div class="detail-label">Spent</div></div>
+      <div class="col-4"><div class="stat-num">${current.last.split(",")[0]}</div><div class="detail-label">Last visit</div></div>
+    </div>
+    <div class="detail-label mb-2">Booking history</div>
+    ${hist.length? hist.map(a=>`<div class="border rounded p-2 mb-2 small">
+      <div class="d-flex justify-content-between"><strong>${a.service}</strong><span class="badge bg-${STATUS_COLORS[a.status]}">${a.status}</span></div>
+      <div class="text-muted">Oct 2, 2026 · ${a.start} — with ${a.staff.join(", ")} · $${a.price}.00</div></div>`).join("")
+      : `<div class="text-muted small">No bookings on the demo day — history lives in the full product.</div>`}`);
+  $("#custNotes").val("");
+  new bootstrap.Offcanvas($("#custPanel")[0]).show();
+});
+$("#searchBox").on("input", render);
+$("#linkGuest").click(()=>toast(`Guest booking linked to ${current?current.customer:"customer"}`));
+$("#saveNotes").click(()=>toast("Notes saved"));
+render();
+</script>
+</body>
+</html>

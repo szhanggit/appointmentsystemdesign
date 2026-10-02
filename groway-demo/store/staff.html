@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staff — Selah Head Spa · Groway Business</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+  .sidebar { width: 232px; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
+  .sidebar .nav-link { color: rgba(255,255,255,.72); border-radius: .5rem; padding: .55rem .8rem; font-size: .92rem; }
+  .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,.14); font-weight: 600; }
+  .staff-card { cursor: pointer; }
+  .lang-chip { border:1px solid #d8d2c4; border-radius:999px; padding:.3rem .8rem; font-size:.82rem; cursor:pointer; background:#fff; }
+  .lang-chip.on { background:#14655a; color:#fff; border-color:#14655a; }
+</style>
+</head>
+<body>
+<div class="demo-bar text-center py-1">Groway demo — Store back office · Selah Head Spa · <span class="text-muted">static prototype, no backend</span></div>
+<div class="d-flex">
+  <aside class="sidebar bg-teal-dark text-white d-flex flex-column flex-shrink-0">
+    <div class="p-3 border-bottom border-light border-opacity-10">
+      <div class="font-display fs-5 fw-bold">SELAH HEAD SPA</div>
+      <div class="text-white-50 small">Groway Business</div>
+    </div>
+    <nav class="nav flex-column p-2 gap-1">
+      <a class="nav-link" href="dashboard.html">&#128197; Appointments</a>
+      <a class="nav-link" href="customers.html">&#128100; Customers</a>
+      <a class="nav-link active" href="staff.html">&#128101; Staff</a>
+      <a class="nav-link" href="services.html">&#128134; Services</a>
+      <a class="nav-link" href="reports.html">&#128202; Reports</a>
+      <a class="nav-link" href="settings.html">&#9881; Settings</a>
+    </nav>
+    <div class="mt-auto p-3 small text-white-50 border-top border-light border-opacity-10">
+      <div>Mei Lin · Store admin</div>
+      <a href="../index.html" class="text-gold text-decoration-none">← Back to Groway</a>
+    </div>
+  </aside>
+
+  <main class="flex-grow-1 p-4" style="min-width:0">
+    <div class="d-flex align-items-center mb-3">
+      <h4 class="font-display fw-bold mb-0">Staff</h4>
+      <span class="badge bg-primary rounded-pill ms-2" id="staffCount"></span>
+      <button class="btn btn-primary btn-sm ms-auto" id="inviteBtn">+ Invite staff</button>
+    </div>
+    <div class="row g-3" id="roster"></div>
+  </main>
+</div>
+
+<!-- editor modal -->
+<div class="modal fade" id="staffModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title font-display fw-bold" id="editorTitle">Edit staff profile</h6>
+        <button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-4 text-center">
+            <img id="edPhoto" class="avatar-lg mb-2" src="" alt="">
+            <div><button class="btn btn-sm btn-outline-secondary" id="changePhoto">Change photo</button></div>
+            <div class="detail-label mt-3 mb-1 text-start">Portfolio</div>
+            <div class="d-flex flex-wrap gap-2" id="edPortfolio"></div>
+          </div>
+          <div class="col-8">
+            <label class="detail-label">Name</label>
+            <input class="form-control form-control-sm mb-2" id="edName">
+            <label class="detail-label">Title <span class="text-muted">(admin only)</span></label>
+            <input class="form-control form-control-sm mb-2" id="edTitle">
+            <label class="detail-label">Languages spoken</label>
+            <div class="d-flex flex-wrap gap-2 mb-3" id="edLangs"></div>
+            <label class="detail-label">Bio (English)</label>
+            <textarea class="form-control form-control-sm mb-2" id="edBio" rows="4"></textarea>
+            <div class="small text-muted">Edits by staff go to <em>pending</em> — a store admin publishes them.</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-sm btn-primary" id="saveStaff">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- invite modal -->
+<div class="modal fade" id="inviteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content p-3">
+      <h6 class="font-display fw-bold mb-3">Invite staff</h6>
+      <label class="detail-label">Name</label><input class="form-control form-control-sm mb-2" placeholder="Full name">
+      <label class="detail-label">Phone</label><input class="form-control form-control-sm mb-2" placeholder="(416) 555-0100">
+      <label class="detail-label">Role</label>
+      <select class="form-select form-select-sm mb-3"><option>Therapist</option><option>Receptionist</option><option>Manager</option></select>
+      <button class="btn btn-primary btn-sm w-100" id="sendInvite">Send invitation</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+function toast(msg){ const t=$(`<div class="toast align-items-center"><div class="d-flex"><div class="toast-body">${msg}</div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
+  $("#toasts").append(t); new bootstrap.Toast(t[0],{delay:2600}).show(); }
+
+const LANGS = ["English","Mandarin","Cantonese","French","Korean","Spanish"];
+function todayCount(name){ return DEMO.appointments.filter(a=>a.staff.includes(name)).length; }
+
+function render(){
+  $("#staffCount").text(DEMO.staff.length+" team members");
+  $("#roster").html(DEMO.staff.map(s=>`
+    <div class="col-md-4 col-lg-3">
+      <div class="card staff-card card-hover h-100" data-id="${s.id}">
+        <div class="card-body text-center">
+          <img src="../assets/img/${s.avatar}" class="rounded-circle mb-2" width="64" height="64" style="object-fit:cover" alt="${s.name}">
+          <div class="fw-bold">${s.name}</div>
+          <div class="small text-muted mb-2">${s.title}</div>
+          <div class="d-flex justify-content-center gap-3 mb-2">
+            <div><div class="fw-bold">${todayCount(s.name)}</div><div class="detail-label">Today</div></div>
+            <div><div class="fw-bold">${s.completed.toLocaleString()}</div><div class="detail-label">Completed</div></div>
+          </div>
+          <div>${s.langs.map(l=>`<span class="badge bg-light text-dark border me-1">${l}</span>`).join("")}</div>
+        </div>
+      </div>
+    </div>`).join(""));
+}
+let cur = null;
+$(document).on("click",".staff-card",function(){
+  cur = DEMO.staff.find(s=>s.id===$(this).data("id"));
+  $("#editorTitle").text(`Edit profile — ${cur.name}`);
+  $("#edPhoto").attr("src","../assets/img/"+cur.avatar);
+  $("#edName").val(cur.name); $("#edTitle").val(cur.title); $("#edBio").val(cur.bio);
+  $("#edLangs").html(LANGS.map(l=>`<span class="lang-chip ${cur.langs.includes(l)?"on":""}">${l}</span>`).join(""));
+  $("#edPortfolio").html(cur.portfolio.length
+    ? cur.portfolio.map(p=>`<img src="../assets/img/${p}" width="72" height="72" class="rounded" style="object-fit:cover">`).join("")
+    : `<span class="small text-muted">No portfolio photos yet</span>`);
+  new bootstrap.Modal($("#staffModal")[0]).show();
+});
+$(document).on("click",".lang-chip",function(){ $(this).toggleClass("on"); });
+$("#changePhoto").click(()=>toast("Photo upload — presigned S3 URL in the full product"));
+$("#saveStaff").click(()=>{ bootstrap.Modal.getInstance($("#staffModal")[0]).hide(); toast(`Profile saved — bio pending admin review`); });
+$("#inviteBtn").click(()=>new bootstrap.Modal($("#inviteModal")[0]).show());
+$("#sendInvite").click(()=>{ bootstrap.Modal.getInstance($("#inviteModal")[0]).hide(); toast("Invitation sent by SMS"); });
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team member — Groway</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container">
+    <a class="navbar-brand font-display fs-4" href="../index.html">Groway</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link active" href="map.html">Discover</a></li>
+        <li class="nav-item"><a class="nav-link" href="bookings.html">My bookings</a></li>
+        <li class="nav-item"><a class="nav-link" href="../login-client.html">Sign in</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4" style="max-width:760px">
+  <nav aria-label="breadcrumb"><ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="map.html">Discover</a></li>
+    <li class="breadcrumb-item"><a href="store.html?id=selah">Selah Head Spa</a></li>
+    <li class="breadcrumb-item active" id="crumb"></li>
+  </ol></nav>
+
+  <div class="card shadow-sm mb-4"><div class="card-body p-4">
+    <div class="d-flex gap-4 align-items-center flex-wrap">
+      <img id="avatar" class="rounded-circle" style="width:120px;height:120px;object-fit:cover" alt="">
+      <div>
+        <h1 class="font-display mb-0" id="name"></h1>
+        <div class="text-muted" id="title"></div>
+        <div class="mt-2" id="langs"></div>
+      </div>
+    </div>
+    <div class="gold-rule my-3"></div>
+    <p id="bio" class="mb-0"></p>
+  </div></div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6"><div class="card text-center py-3"><div class="stat-num" id="stCompleted"></div><div class="text-muted small">appointments completed</div></div></div>
+    <div class="col-6"><div class="card text-center py-3"><div class="stat-num" id="stCustomers"></div><div class="text-muted small">customers served</div></div></div>
+  </div>
+
+  <h4 class="font-display mb-3">Portfolio</h4>
+  <div class="row g-2 mb-4" id="portfolio"></div>
+
+  <div class="d-grid"><a href="#" id="bookBtn" class="btn btn-primary btn-lg">Book with <span id="bookName"></span></a></div>
+</div>
+
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+const id = new URLSearchParams(location.search).get("id") || "amy";
+const t = DEMO.staff.find(x => x.id === id) || DEMO.staff[0];
+$(function () {
+  document.title = t.name + " — Groway";
+  $("#avatar").attr("src", "../assets/img/" + t.avatar);
+  $("#crumb").text(t.name); $("#name").text(t.name); $("#title").text(t.title);
+  $("#bookName").text(t.name);
+  $("#bookBtn").attr("href", "book-2-staff.html?staff=" + t.id);
+  $("#langs").html(t.langs.map(l => `<span class="chip me-1" style="cursor:default">${l}</span>`).join(""));
+  $("#bio").text(t.bio || "Bio coming soon.");
+  $("#stCompleted").text(t.completed.toLocaleString());
+  $("#stCustomers").text(t.customers.toLocaleString());
+  const pf = $("#portfolio");
+  if (t.portfolio.length) t.portfolio.forEach(p => pf.append(`<div class="col-6"><img src="../assets/img/${p}" class="img-fluid rounded" alt="Portfolio"></div>`));
+  else pf.append(`<div class="col-12"><div class="alert alert-light">Portfolio photos coming soon.</div></div>`);
+});
+</script>
+</body>
+</html>

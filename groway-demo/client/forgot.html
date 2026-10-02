@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forgot password — Groway</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container"><a class="navbar-brand font-display fs-4" href="../index.html">Groway</a></div>
+</nav>
+<div class="container py-5" style="max-width:440px">
+  <div class="card shadow-sm"><div class="card-body p-4">
+    <h2 class="font-display mb-1">Forgot password</h2>
+    <p class="text-muted small mb-4">Enter your account email and we'll send a reset link.</p>
+    <div id="form1">
+      <div class="mb-4"><label class="form-label">Email</label><input type="email" id="email" class="form-control" placeholder="you@example.com"></div>
+      <div class="d-grid"><button class="btn btn-primary btn-lg" id="send">Send reset link</button></div>
+    </div>
+    <div id="form2" class="d-none text-center">
+      <div class="mb-3"><span class="step-dot done" style="width:56px;height:56px;font-size:1.5rem">✓</span></div>
+      <p class="mb-3">Reset link sent to <strong id="em"></strong>.<br><span class="text-muted small">(Demo: continue below.)</span></p>
+      <div class="d-grid"><a href="reset.html" class="btn btn-primary">Continue to reset</a></div>
+    </div>
+    <p class="text-center small mt-3 mb-0"><a href="../login-client.html">Back to sign in</a></p>
+  </div></div>
+</div>
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script>
+$("#send").on("click",()=>{const e=$("#email").val().trim()||"you@example.com";$("#em").text(e);$("#form1").addClass("d-none");$("#form2").removeClass("d-none");});
+</script>
+</body>
+</html>

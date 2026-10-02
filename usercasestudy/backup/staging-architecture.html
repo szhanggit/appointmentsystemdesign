@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Groway V1 — Staging 环境整体架构图</title>
+<style>
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; margin: 24px; color: #1f2a37; background: #fff; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #5b6b7f; font-size: 13px; margin-bottom: 16px; }
+  svg { max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
+  .notes { margin-top: 18px; font-size: 14px; line-height: 1.8; max-width: 1000px; }
+  .notes li { margin-bottom: 6px; }
+  .tag { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; margin-right:6px; }
+</style>
+</head>
+<body>
+<h1>Groway V1 — Staging 环境整体架构图</h1>
+<div class="sub">region: ca-central-1（多伦多）· 全部 Terraform 管理 · GitHub Actions CI/CD · 与 <code>groway-v1-architecture.md</code> 一致（EKS + KEDA，不是 ECS）</div>
+
+<svg viewBox="0 0 1280 900" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#5b6b7f"/>
+    </marker>
+    <marker id="arrD" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#8fa3bf"/>
+    </marker>
+  </defs>
+
+  <!-- ===== top lane ===== -->
+  <rect x="20" y="80" width="190" height="76" rx="8" fill="#eef7ee" stroke="#57a773" stroke-width="1.5"/>
+  <text x="115" y="106" text-anchor="middle" font-size="13" font-weight="600">客户端</text>
+  <text x="115" y="126" text-anchor="middle" font-size="12">浏览器 · Angular 19 SPA</text>
+  <text x="115" y="143" text-anchor="middle" font-size="11" fill="#5b6b7f">移动优先 · 中英双语</text>
+
+  <rect x="240" y="80" width="190" height="76" rx="8" fill="#e8f1fb" stroke="#4a90d9" stroke-width="1.5"/>
+  <text x="335" y="106" text-anchor="middle" font-size="13" font-weight="600">CloudFront + S3</text>
+  <text x="335" y="126" text-anchor="middle" font-size="12">SPA 静态托管</text>
+  <text x="335" y="143" text-anchor="middle" font-size="11" fill="#5b6b7f">Route 53 域名 + ACM 证书</text>
+
+  <rect x="1050" y="80" width="210" height="76" rx="8" fill="#fdeeee" stroke="#d97a7a" stroke-width="1.5"/>
+  <text x="1155" y="106" text-anchor="middle" font-size="13" font-weight="600">外部 · Mapbox API</text>
+  <text x="1155" y="126" text-anchor="middle" font-size="12">tiles / Search Box / Geocoding</text>
+  <text x="1155" y="143" text-anchor="middle" font-size="11" fill="#5b6b7f">账号 growaydev</text>
+
+  <!-- ===== VPC ===== -->
+  <rect x="20" y="190" width="820" height="480" rx="10" fill="#f6f8fc" stroke="#8fa3bf" stroke-width="1.5"/>
+  <text x="36" y="214" font-size="13" font-weight="700" fill="#3d4c63">VPC · staging</text>
+
+  <!-- public subnets -->
+  <rect x="40" y="228" width="220" height="422" rx="8" fill="#ffffff" stroke="#b9c6da"/>
+  <text x="150" y="250" text-anchor="middle" font-size="12" font-weight="600" fill="#3d4c63">公网子网</text>
+  <rect x="58" y="264" width="184" height="72" rx="6" fill="#e8f1fb" stroke="#4a90d9"/>
+  <text x="150" y="288" text-anchor="middle" font-size="12" font-weight="600">ALB</text>
+  <text x="150" y="306" text-anchor="middle" font-size="11" fill="#5b6b7f">API 唯一入口</text>
+  <text x="150" y="321" text-anchor="middle" font-size="11" fill="#5b6b7f">→ EKS Ingress</text>
+  <rect x="58" y="352" width="184" height="72" rx="6" fill="#ffffff" stroke="#b9c6da"/>
+  <text x="150" y="376" text-anchor="middle" font-size="12" font-weight="600">NAT Gateway</text>
+  <text x="150" y="394" text-anchor="middle" font-size="11" fill="#5b6b7f">私网子网出站</text>
+  <text x="150" y="409" text-anchor="middle" font-size="11" fill="#5b6b7f">拉镜像 / 调外部 API</text>
+  <text x="150" y="470" text-anchor="middle" font-size="11" fill="#8fa3bf">staging: 单 NAT 省成本</text>
+  <text x="150" y="600" text-anchor="middle" font-size="11" fill="#8fa3bf">(prod 再加多 AZ / WAF)</text>
+
+  <!-- EKS -->
+  <rect x="280" y="228" width="300" height="422" rx="8" fill="#eef4ff" stroke="#5b8def" stroke-width="1.5"/>
+  <text x="430" y="250" text-anchor="middle" font-size="12" font-weight="700" fill="#2c4f9e">EKS · staging 小节点组</text>
+  <rect x="298" y="264" width="264" height="150" rx="6" fill="#ffffff" stroke="#5b8def"/>
+  <text x="430" y="288" text-anchor="middle" font-size="12" font-weight="600">Gateway Deployment</text>
+  <text x="430" y="306" text-anchor="middle" font-size="11" fill="#5b6b7f">modular monolith · .NET 8</text>
+  <text x="430" y="322" text-anchor="middle" font-size="11" fill="#5b6b7f">一个进程，模块编译隔离</text>
+  <rect x="308" y="332" width="80" height="30" rx="4" fill="#eef4ff" stroke="#5b8def"/><text x="348" y="351" text-anchor="middle" font-size="11">Customer</text>
+  <rect x="392" y="332" width="80" height="30" rx="4" fill="#eef4ff" stroke="#5b8def"/><text x="432" y="351" text-anchor="middle" font-size="11">Store</text>
+  <rect x="476" y="332" width="76" height="30" rx="4" fill="#eef4ff" stroke="#5b8def"/><text x="514" y="351" text-anchor="middle" font-size="11">Admin</text>
+  <text x="430" y="382" text-anchor="middle" font-size="11" fill="#5b6b7f">路由分组 fail-closed</text>
+  <text x="430" y="398" text-anchor="middle" font-size="11" fill="#5b6b7f">不透明 session token → Redis</text>
+  <rect x="298" y="428" width="264" height="120" rx="6" fill="#ffffff" stroke="#5b8def"/>
+  <text x="430" y="452" text-anchor="middle" font-size="12" font-weight="600">activity-log 消费者 ×3</text>
+  <text x="430" y="470" text-anchor="middle" font-size="11" fill="#5b6b7f">KEDA 按队列深度 0..N 扩缩</text>
+  <text x="430" y="486" text-anchor="middle" font-size="11" fill="#5b6b7f">批量收 → 批量写 RDS</text>
+  <text x="430" y="502" text-anchor="middle" font-size="11" fill="#5b6b7f">customer / store / admin 各一队</text>
+  <text x="430" y="528" text-anchor="middle" font-size="11" fill="#8fa3bf">+ KEDA operator</text>
+  <text x="430" y="580" text-anchor="middle" font-size="11" fill="#8fa3bf">IRSA 授权访问 AWS 服务</text>
+  <text x="430" y="620" text-anchor="middle" font-size="11" fill="#8fa3bf">Secrets Manager 读连接串</text>
+
+  <!-- data -->
+  <rect x="600" y="228" width="220" height="422" rx="8" fill="#fffdf4" stroke="#d9a441" stroke-width="1.5"/>
+  <text x="710" y="250" text-anchor="middle" font-size="12" font-weight="700" fill="#8a5f14">数据 · 私网子网</text>
+  <rect x="618" y="264" width="184" height="120" rx="6" fill="#ffffff" stroke="#d9a441"/>
+  <text x="710" y="288" text-anchor="middle" font-size="12" font-weight="600">RDS PostgreSQL</text>
+  <text x="710" y="306" text-anchor="middle" font-size="11" fill="#5b6b7f">+ PostGIS</text>
+  <text x="710" y="324" text-anchor="middle" font-size="11" fill="#5b6b7f">1 实例 · 3 schemas</text>
+  <text x="710" y="340" text-anchor="middle" font-size="11" fill="#5b6b7f">customer / store / admin</text>
+  <text x="710" y="358" text-anchor="middle" font-size="11" fill="#5b6b7f">无跨 schema 外键</text>
+  <rect x="618" y="400" width="184" height="104" rx="6" fill="#ffffff" stroke="#d9a441"/>
+  <text x="710" y="424" text-anchor="middle" font-size="12" font-weight="600">ElastiCache Redis</text>
+  <text x="710" y="442" text-anchor="middle" font-size="11" fill="#5b6b7f">会话（按人群打 tag）</text>
+  <text x="710" y="458" text-anchor="middle" font-size="11" fill="#5b6b7f">Cognito token 服务端缓存</text>
+  <text x="710" y="476" text-anchor="middle" font-size="11" fill="#5b6b7f">slot 并发辅助</text>
+  <text x="710" y="560" text-anchor="middle" font-size="11" fill="#8fa3bf">staging: 单 AZ（省成本）</text>
+  <text x="710" y="600" text-anchor="middle" font-size="11" fill="#8fa3bf">prod: Multi-AZ + 备份</text>
+
+  <!-- ===== AWS managed lane ===== -->
+  <rect x="860" y="190" width="400" height="480" rx="10" fill="#f7f4fd" stroke="#8e6cc9" stroke-width="1.5"/>
+  <text x="876" y="214" font-size="13" font-weight="700" fill="#4a3573">AWS 托管服务</text>
+
+  <rect x="880" y="228" width="360" height="150" rx="6" fill="#ffffff" stroke="#8e6cc9"/>
+  <text x="1060" y="252" text-anchor="middle" font-size="12" font-weight="600">Cognito User Pools ×3</text>
+  <text x="1060" y="270" text-anchor="middle" font-size="11" fill="#5b6b7f">customer / store / admin（互相隔离）</text>
+  <text x="1060" y="288" text-anchor="middle" font-size="11" fill="#5b6b7f">customer 池：手机 OTP 自定义认证</text>
+  <text x="1060" y="306" text-anchor="middle" font-size="11" fill="#5b6b7f">↳ Lambda triggers（平台直调）</text>
+  <text x="1060" y="328" text-anchor="middle" font-size="11" fill="#5b6b7f">客户端只拿 Gateway 发的不透明 token</text>
+  <text x="1060" y="348" text-anchor="middle" font-size="11" fill="#5b6b7f">store / admin：邀请制 + 强制改密码</text>
+
+  <rect x="880" y="394" width="360" height="110" rx="6" fill="#ffffff" stroke="#8e6cc9"/>
+  <text x="1060" y="418" text-anchor="middle" font-size="12" font-weight="600">SQS ×3 + DLQ</text>
+  <text x="1060" y="436" text-anchor="middle" font-size="11" fill="#5b6b7f">customer / store / admin-activity-log</text>
+  <text x="1060" y="454" text-anchor="middle" font-size="11" fill="#5b6b7f">Gateway 只管发（fire-and-forget）</text>
+  <text x="1060" y="472" text-anchor="middle" font-size="11" fill="#5b6b7f">消费端批量写 activity-log 表</text>
+
+  <rect x="880" y="520" width="172" height="120" rx="6" fill="#ffffff" stroke="#8e6cc9"/>
+  <text x="966" y="544" text-anchor="middle" font-size="12" font-weight="600">SNS / SES</text>
+  <text x="966" y="562" text-anchor="middle" font-size="11" fill="#5b6b7f">短信 OTP（SNS）</text>
+  <text x="966" y="578" text-anchor="middle" font-size="11" fill="#5b6b7f">邮件（SES）</text>
+  <text x="966" y="596" text-anchor="middle" font-size="11" fill="#5b6b7f">经 Cognito 触发</text>
+
+  <rect x="1068" y="520" width="172" height="120" rx="6" fill="#ffffff" stroke="#8e6cc9"/>
+  <text x="1154" y="544" text-anchor="middle" font-size="12" font-weight="600">Secrets Manager</text>
+  <text x="1154" y="562" text-anchor="middle" font-size="11" fill="#5b6b7f">DB 连接串 / 密钥</text>
+  <text x="1154" y="578" text-anchor="middle" font-size="11" fill="#5b6b7f">EKS 经 IRSA 读取</text>
+  <text x="1154" y="596" text-anchor="middle" font-size="11" fill="#5b6b7f">不进镜像不进代码</text>
+
+  <!-- ===== CI/CD strip ===== -->
+  <rect x="20" y="690" width="1240" height="150" rx="10" fill="#f2f9f9" stroke="#4aa8a8" stroke-width="1.5"/>
+  <text x="36" y="714" font-size="13" font-weight="700" fill="#236767">CI/CD · Terraform（4 天搭建工作）</text>
+  <rect x="40" y="728" width="130" height="80" rx="6" fill="#ffffff" stroke="#4aa8a8"/>
+  <text x="105" y="758" text-anchor="middle" font-size="12" font-weight="600">GitHub</text>
+  <text x="105" y="778" text-anchor="middle" font-size="11" fill="#5b6b7f">代码 + Terraform</text>
+  <rect x="190" y="728" width="180" height="80" rx="6" fill="#ffffff" stroke="#4aa8a8"/>
+  <text x="280" y="758" text-anchor="middle" font-size="12" font-weight="600">GitHub Actions</text>
+  <text x="280" y="778" text-anchor="middle" font-size="11" fill="#5b6b7f">构建 · 测试 · 推镜像</text>
+  <rect x="390" y="728" width="150" height="80" rx="6" fill="#ffffff" stroke="#4aa8a8"/>
+  <text x="465" y="758" text-anchor="middle" font-size="12" font-weight="600">ECR</text>
+  <text x="465" y="778" text-anchor="middle" font-size="11" fill="#5b6b7f">.NET 镜像仓库</text>
+  <rect x="560" y="728" width="200" height="80" rx="6" fill="#ffffff" stroke="#4aa8a8"/>
+  <text x="660" y="758" text-anchor="middle" font-size="12" font-weight="600">Terraform apply</text>
+  <text x="660" y="778" text-anchor="middle" font-size="11" fill="#5b6b7f">VPC / EKS / RDS / Redis</text>
+  <text x="660" y="794" text-anchor="middle" font-size="11" fill="#5b6b7f">Cognito / SQS / IAM</text>
+  <rect x="780" y="728" width="460" height="80" rx="6" fill="#ffffff" stroke="#b9c6da"/>
+  <text x="1010" y="754" text-anchor="middle" font-size="12" font-weight="600">staging 说明</text>
+  <text x="1010" y="772" text-anchor="middle" font-size="11" fill="#5b6b7f">单 AZ RDS · 单 NAT · 小节点组 · 无 WAF —— 都是省成本取舍</text>
+  <text x="1010" y="788" text-anchor="middle" font-size="11" fill="#5b6b7f">prod 另加 10–15 天：Multi-AZ、WAF、备份、监控告警</text>
+
+  <!-- ===== arrows ===== -->
+  <!-- client -> cloudfront -->
+  <line x1="210" y1="118" x2="238" y2="118" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- client -> ALB -->
+  <path d="M115,156 V178 H150 V264" fill="none" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="120" y="196" font-size="10" fill="#5b6b7f">HTTPS /api</text>
+  <!-- ALB -> gateway -->
+  <line x1="260" y1="300" x2="296" y2="300" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="262" y="292" font-size="10" fill="#5b6b7f">Ingress</text>
+  <!-- gateway -> RDS -->
+  <line x1="580" y1="320" x2="616" y2="320" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="582" y="312" font-size="10" fill="#5b6b7f">SQL</text>
+  <!-- gateway -> redis -->
+  <line x1="580" y1="440" x2="616" y2="440" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- gateway -> SQS -->
+  <line x1="580" y1="380" x2="878" y2="430" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="700" y="392" font-size="10" fill="#5b6b7f">fire-and-forget</text>
+  <!-- SQS -> consumers -->
+  <path d="M880,486 H600 V484" fill="none" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="700" y="478" font-size="10" fill="#5b6b7f">KEDA 按深度拉起 / 轮询</text>
+  <!-- gateway -> cognito -->
+  <line x1="580" y1="290" x2="878" y2="290" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="700" y="282" font-size="10" fill="#5b6b7f">登录 / 鉴权</text>
+  <!-- cognito -> sns/ses -->
+  <line x1="1000" y1="378" x2="1000" y2="518" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="1006" y="450" font-size="10" fill="#5b6b7f">OTP/邮件</text>
+  <!-- browser -> mapbox -->
+  <line x1="210" y1="100" x2="1048" y2="100" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="620" y="92" font-size="10" fill="#5b6b7f">tiles / 地址联想（Search Box）</text>
+  <!-- gateway -> mapbox geocode -->
+  <path d="M700,228 V170 H1150 V158" fill="none" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="800" y="162" font-size="10" fill="#5b6b7f">Geocoding retrieve（经 NAT 出站）</text>
+  <!-- github -> actions -> ecr -->
+  <line x1="170" y1="768" x2="188" y2="768" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="370" y1="768" x2="388" y2="768" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- actions -> EKS deploy -->
+  <path d="M280,728 V690" fill="none" stroke="#8fa3bf" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrD)"/>
+  <text x="286" y="710" font-size="10" fill="#8fa3bf">部署到 EKS</text>
+  <!-- ECR -> EKS pull -->
+  <path d="M465,728 V690" fill="none" stroke="#8fa3bf" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrD)"/>
+  <text x="471" y="710" font-size="10" fill="#8fa3bf">节点拉镜像</text>
+  <!-- terraform -> vpc/managed -->
+  <path d="M660,728 V690" fill="none" stroke="#8fa3bf" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrD)"/>
+  <text x="560" y="684" font-size="10" fill="#8fa3bf">Terraform 建全部资源（虚线）</text>
+
+  <!-- legend -->
+  <text x="20" y="872" font-size="11" fill="#5b6b7f">图例：</text>
+  <line x1="70" y1="868" x2="110" y2="868" stroke="#5b6b7f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="118" y="872" font-size="11" fill="#5b6b7f">运行时调用</text>
+  <line x1="200" y1="868" x2="240" y2="868" stroke="#8fa3bf" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrD)"/>
+  <text x="248" y="872" font-size="11" fill="#5b6b7f">部署 / 配置</text>
+</svg>
+
+<div class="notes">
+<strong>跟估算的对应关系（4 天搭建）：</strong>
+<ul>
+<li>第 1 天：Terraform — VPC（公网/私网子网、NAT）、EKS 集群 + 节点组、IAM/IRSA。</li>
+<li>第 2 天：RDS PostgreSQL + PostGIS、ElastiCache Redis、SQS ×3 + DLQ、Secrets Manager。</li>
+<li>第 3 天：Cognito ×3（含 customer 池 Lambda triggers）、SNS/SES、CloudFront + S3、Route 53 + ACM 证书、ALB + Ingress。</li>
+<li>第 4 天：GitHub Actions（build → ECR → 部署 EKS）、冒烟测试、staging 域名联调。</li>
+</ul>
+<strong>Staging vs Production（差异就是那 10–15 天）：</strong>
+<ul>
+<li>Staging：单 AZ RDS、无 WAF、单 NAT、小节点组、日志保留短。只求"跑通"，不求"扛住"。</li>
+<li>Production 另加：RDS Multi-AZ + 自动备份、WAF + Shield、CloudWatch 告警、SLO/值班、压测。</li>
+</ul>
+<strong>一个纠正：</strong>之前估算里我写了 ECS，以架构文档为准是 <strong>EKS</strong>（KEDA 需要 Kubernetes；应用本身仍是单个 Gateway 进程的 modular monolith，不拆微服务）。
+</div>
+</body>
+</html>

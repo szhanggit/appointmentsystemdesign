@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booking detail — Groway</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container">
+    <a class="navbar-brand font-display fs-4" href="../index.html">Groway</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="map.html">Discover</a></li>
+        <li class="nav-item"><a class="nav-link active" href="bookings.html">My bookings</a></li>
+        <li class="nav-item"><a class="nav-link" href="../login-client.html">Sign in</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container py-4" style="max-width:640px">
+  <nav aria-label="breadcrumb"><ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="bookings.html">My bookings</a></li>
+    <li class="breadcrumb-item active" id="crumbRef"></li>
+  </ol></nav>
+  <div id="toast" class="alert alert-success d-none">Rescheduled — your new time is confirmed below.</div>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="font-display mb-0" id="dSvc"></h1>
+    <span id="dStatus"></span>
+  </div>
+  <div class="card mb-3"><div class="card-body">
+    <div class="detail-label mb-2" id="dStore"></div>
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">Reference</span><strong id="dRef"></strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">Therapist</span><strong id="dStaff"></strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">When</span><strong id="dWhen"></strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">Price</span><strong id="dPrice"></strong></div>
+  </div></div>
+  <div class="card mb-4"><div class="card-body">
+    <div class="detail-label mb-2">Store</div>
+    <div class="fw-semibold">Selah Head Spa</div>
+    <div class="small text-muted">8120 Bayview Ave, Richmond Hill<br><a href="tel:+19055550134">(905) 555-0134</a></div>
+  </div></div>
+  <div id="actions" class="d-grid gap-2">
+    <a href="#" id="resched" class="btn btn-outline-primary">Reschedule</a>
+    <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">Cancel booking</button>
+  </div>
+  <div id="cancelledNote" class="alert alert-secondary d-none">This booking was cancelled. <a href="book-1-service.html">Book again</a></div>
+</div>
+
+<div class="modal fade" id="cancelModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title font-display">Cancel this booking?</h5>
+      <button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><p class="mb-0">Free cancellation up to 4 hours before your appointment. This can't be undone.</p></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-bs-dismiss="modal">Keep it</button>
+      <button class="btn btn-danger" id="doCancel">Yes, cancel</button>
+    </div>
+  </div></div>
+</div>
+
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+const ref=new URLSearchParams(location.search).get("ref")||"GW-8X2K4N";
+const b=DEMO.myBookings.find(x=>x.ref===ref)||DEMO.myBookings[0];
+$(function(){
+  if(new URLSearchParams(location.search).get("rescheduled"))$("#toast").removeClass("d-none");
+  $("#crumbRef").text(b.ref);$("#dSvc").text(b.service);
+  $("#dStore").text(b.store+" · 8120 Bayview Ave, Richmond Hill");
+  $("#dRef").text(b.ref);$("#dStaff").text(b.staff);
+  $("#dWhen").text(b.date+" · "+b.time);$("#dPrice").text("$"+b.price+".00");
+  $("#dStatus").html(`<span class="badge bg-success fs-6">${b.status}</span>`);
+  $("#resched").attr("href","reschedule.html?ref="+b.ref);
+  $("#doCancel").on("click",()=>{
+    bootstrap.Modal.getInstance($("#cancelModal")[0]).hide();
+    $("#dStatus").html(`<span class="badge bg-danger fs-6">Cancelled</span>`);
+    $("#actions").addClass("d-none");$("#cancelledNote").removeClass("d-none");
+  });
+});
+</script>
+</body>
+</html>

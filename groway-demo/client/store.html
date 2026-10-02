@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Store — Groway</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>.gallery-scroll{overflow-x:auto;scrollbar-width:thin}.gallery-scroll img{height:150px;object-fit:cover;flex:none}</style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container">
+    <a class="navbar-brand font-display fs-4" href="../index.html">Groway</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link active" href="map.html">Discover</a></li>
+        <li class="nav-item"><a class="nav-link" href="bookings.html">My bookings</a></li>
+        <li class="nav-item"><a class="nav-link" href="../login-client.html">Sign in</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<img id="banner" class="w-100" style="height:300px;object-fit:cover" alt="Store banner">
+<div class="container py-4" style="max-width:900px">
+  <nav aria-label="breadcrumb"><ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="map.html">Discover</a></li>
+    <li class="breadcrumb-item active" id="crumb"></li>
+  </ol></nav>
+
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+      <h1 class="font-display mb-1" id="name"></h1>
+      <div class="text-muted small mb-2" id="chain"></div>
+      <div class="mb-2" id="ratings"></div>
+      <div class="small" id="contact"></div>
+    </div>
+    <div id="openBadge"></div>
+  </div>
+  <div class="gold-rule my-3"></div>
+
+  <h4 class="font-display">About</h4>
+  <p id="about" style="white-space:pre-line"></p>
+
+  <h4 class="font-display mt-4">Gallery</h4>
+  <div class="d-flex gap-2 gallery-scroll py-1" id="gallery"></div>
+
+  <h4 class="font-display mt-4">Services</h4>
+  <div id="services"></div>
+
+  <h4 class="font-display mt-4">Team</h4>
+  <div class="row g-3" id="team"></div>
+  <div style="height:90px"></div>
+</div>
+
+<div class="fixed-bottom bg-white border-top p-3">
+  <div class="container d-flex justify-content-between align-items-center" style="max-width:900px">
+    <div><span class="text-muted small">Starting from</span><br><strong class="fs-5" id="fromPrice"></strong></div>
+    <a href="book-1-service.html" id="bookNow" class="btn btn-primary btn-lg px-5">Book now</a>
+  </div>
+</div>
+
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+const id = new URLSearchParams(location.search).get("id") || "selah";
+const s = DEMO.stores.find(x => x.id === id) || DEMO.stores[0];
+const staffByName = n => DEMO.staff.find(t => t.name.toLowerCase() === n.toLowerCase());
+$(function () {
+  document.title = s.name + " — Groway";
+  $("#banner").attr("src", "../assets/img/" + s.photos[0]);
+  $("#crumb").text(s.name); $("#name").text(s.name); $("#chain").text(s.chain);
+  $("#ratings").html(`<span class="text-gold">★</span> <strong>${s.rating}</strong> <span class="text-muted">(${s.reviews} reviews)</span>
+    <span class="text-muted mx-1">·</span><span class="text-muted">via Google ${s.rating} (${s.googleReviews})</span>`);
+  $("#contact").html(`${s.address}<br><a href="tel:${s.phone}">${s.phone}</a> · <span class="text-muted">${s.hours}</span>`);
+  $("#openBadge").html(s.openNow ? `<span class="badge bg-success fs-6">Open now</span>` : `<span class="badge bg-secondary fs-6">Closed</span>`);
+  $("#about").text(s.about);
+  $("#fromPrice").text("$" + s.priceFrom + "+");
+  $("#bookNow").attr("href", "book-1-service.html");
+  s.photos.forEach(p => $("#gallery").append(`<img src="../assets/img/${p}" class="rounded" alt="Gallery photo">`));
+  const cats = [...new Set(DEMO.services.map(x => x.cat))];
+  cats.forEach(c => {
+    const rows = DEMO.services.filter(x => x.cat === c);
+    $("#services").append(`<h6 class="mt-3 text-uppercase detail-label">${c}</h6>`);
+    rows.forEach(sv => {
+      $("#services").append(`<div class="card mb-2"><div class="card-body d-flex justify-content-between align-items-center py-2">
+        <div><div class="fw-semibold">${sv.name}</div>
+        <div class="small text-muted">${sv.mins} mins · with ${sv.staff.join(", ")}</div></div>
+        <div class="text-end"><div class="fw-bold">$${sv.price}</div>
+        <a href="book-1-service.html?service=${sv.id}" class="btn btn-outline-primary btn-sm mt-1">Book</a></div>
+      </div></div>`);
+    });
+  });
+  const team = [...new Set(DEMO.services.flatMap(x => x.staff))].map(staffByName).filter(Boolean);
+  team.forEach(t => {
+    $("#team").append(`<div class="col-6 col-md-3"><a href="staff.html?id=${t.id}" class="card card-hover text-decoration-none text-dark h-100">
+      <div class="card-body text-center">
+        <img src="../assets/img/${t.avatar}" class="avatar-lg mb-2" alt="${t.name}">
+        <div class="fw-semibold">${t.name}</div><div class="small text-muted">${t.title}</div>
+        <div class="small text-gold">★ ${t.completed.toLocaleString()} served</div>
+      </div></a></div>`);
+  });
+});
+</script>
+</body>
+</html>

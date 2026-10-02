@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reports — Selah Head Spa · Groway Business</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+  .sidebar { width: 232px; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
+  .sidebar .nav-link { color: rgba(255,255,255,.72); border-radius: .5rem; padding: .55rem .8rem; font-size: .92rem; }
+  .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,.14); font-weight: 600; }
+  .bar-col { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; }
+  .bar { width:44px; border-radius:6px 6px 0 0; background:linear-gradient(#1a7a6d,#14655a); }
+  .bar.hl { background:linear-gradient(#d3a83f,#b98a2f); }
+  .ubar { height:8px; border-radius:4px; background:#e9e2d2; overflow:hidden; }
+  .ubar > div { height:100%; background:#14655a; border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="demo-bar text-center py-1">Groway demo — Store back office · Selah Head Spa · <span class="text-muted">static prototype, no backend</span></div>
+<div class="d-flex">
+  <aside class="sidebar bg-teal-dark text-white d-flex flex-column flex-shrink-0">
+    <div class="p-3 border-bottom border-light border-opacity-10">
+      <div class="font-display fs-5 fw-bold">SELAH HEAD SPA</div>
+      <div class="text-white-50 small">Groway Business</div>
+    </div>
+    <nav class="nav flex-column p-2 gap-1">
+      <a class="nav-link" href="dashboard.html">&#128197; Appointments</a>
+      <a class="nav-link" href="customers.html">&#128100; Customers</a>
+      <a class="nav-link" href="staff.html">&#128101; Staff</a>
+      <a class="nav-link" href="services.html">&#128134; Services</a>
+      <a class="nav-link active" href="reports.html">&#128202; Reports</a>
+      <a class="nav-link" href="settings.html">&#9881; Settings</a>
+    </nav>
+    <div class="mt-auto p-3 small text-white-50 border-top border-light border-opacity-10">
+      <div>Mei Lin · Store admin</div>
+      <a href="../index.html" class="text-gold text-decoration-none">← Back to Groway</a>
+    </div>
+  </aside>
+
+  <main class="flex-grow-1 p-4" style="min-width:0">
+    <div class="d-flex align-items-center mb-3">
+      <h4 class="font-display fw-bold mb-0">Reports</h4>
+      <select class="form-select form-select-sm ms-3" style="width:170px">
+        <option>This week</option><option>Today</option><option>This month</option>
+      </select>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="detail-label">Today's revenue</div><div class="stat-num">$1,247</div>
+        <div class="small text-success">▲ 12% vs last Friday</div></div></div></div>
+      <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="detail-label">Bookings</div><div class="stat-num">12</div>
+        <div class="small text-muted">9 confirmed · 1 walk-in</div></div></div></div>
+      <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="detail-label">Avg ticket</div><div class="stat-num">$86</div>
+        <div class="small text-muted">$79 last week</div></div></div></div>
+      <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="detail-label">No-show rate</div><div class="stat-num">8%</div>
+        <div class="small text-danger">1 no-show today</div></div></div></div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-7">
+        <div class="card"><div class="card-body">
+          <h6 class="font-display fw-bold mb-3">Revenue — this week</h6>
+          <div class="d-flex align-items-end" style="height:190px">
+            <div class="bar-col"><div class="bar" style="height:96px"></div><div class="small text-muted">Mon</div><div class="small fw-bold">$842</div></div>
+            <div class="bar-col"><div class="bar" style="height:104px"></div><div class="small text-muted">Tue</div><div class="small fw-bold">$913</div></div>
+            <div class="bar-col"><div class="bar" style="height:88px"></div><div class="small text-muted">Wed</div><div class="small fw-bold">$764</div></div>
+            <div class="bar-col"><div class="bar" style="height:118px"></div><div class="small text-muted">Thu</div><div class="small fw-bold">$1,024</div></div>
+            <div class="bar-col"><div class="bar hl" style="height:142px"></div><div class="small fw-bold">Fri</div><div class="small fw-bold">$1,247</div></div>
+            <div class="bar-col"><div class="bar" style="height:190px"></div><div class="small text-muted">Sat</div><div class="small fw-bold">$1,680</div></div>
+            <div class="bar-col"><div class="bar" style="height:112px"></div><div class="small text-muted">Sun</div><div class="small fw-bold">$990</div></div>
+          </div>
+        </div></div>
+      </div>
+      <div class="col-lg-5">
+        <div class="card mb-3"><div class="card-body">
+          <h6 class="font-display fw-bold mb-3">Top services</h6>
+          <div id="topSvc"></div>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <h6 class="font-display fw-bold mb-3">Staff utilization — today</h6>
+          <div id="util"></div>
+        </div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+// top services from demo appointments
+const counts = {};
+DEMO.appointments.forEach(a=>{ counts[a.service]=(counts[a.service]||0)+1; });
+const top = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+const maxC = top[0][1];
+$("#topSvc").html(top.map(([n,c])=>`
+  <div class="mb-2"><div class="d-flex justify-content-between small"><span>${n}</span><strong>${c} bookings</strong></div>
+  <div class="ubar"><div style="width:${c/maxC*100}%"></div></div></div>`).join(""));
+// staff utilization: today's bookings per staff member
+const staffNames = ["Amy","ELLA","Luna","Eva","Connie","Nina","Lucy","Emily","Cindy"];
+const u = staffNames.map(n=>({n, c: DEMO.appointments.filter(a=>a.staff.includes(n)).length}));
+const maxU = Math.max(...u.map(x=>x.c),1);
+$("#util").html(u.map(x=>`
+  <div class="mb-2"><div class="d-flex justify-content-between small"><span>${x.n}</span><strong>${x.c} appts</strong></div>
+  <div class="ubar"><div style="width:${x.c/maxU*100}%"></div></div></div>`).join(""));
+</script>
+</body>
+</html>

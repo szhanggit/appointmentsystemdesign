@@ -1,0 +1,51 @@
+/* Groway demo theme — thin layer over Bootstrap 5. Hand & Stone inspired:
+   deep teal + gold + cream, serif display headings. */
+:root {
+  --bs-primary: #14655a;
+  --bs-primary-rgb: 20, 101, 90;
+  --bs-secondary: #b98a2f;
+  --bs-secondary-rgb: 185, 138, 47;
+  --bs-body-bg: #faf8f2;
+  --bs-body-color: #2e2a24;
+  --bs-link-color: #14655a;
+  --gold: #b98a2f;
+  --teal-dark: #0d3f39;
+  --cream: #faf8f2;
+  --ink: #2e2a24;
+}
+.font-display { font-family: Georgia, 'Times New Roman', serif; }
+.bg-teal-dark { background-color: var(--teal-dark) !important; }
+.text-gold { color: var(--gold) !important; }
+.bg-gold { background-color: var(--gold) !important; }
+.btn-gold { --bs-btn-bg: var(--gold); --bs-btn-border-color: var(--gold); --bs-btn-color: #fff;
+  --bs-btn-hover-bg: #a37928; --bs-btn-hover-border-color: #a37928; --bs-btn-hover-color: #fff; }
+.gold-rule { width: 64px; height: 3px; background: var(--gold); border-radius: 2px; }
+.hero-overlay { background: linear-gradient(rgba(13,63,57,.72), rgba(13,63,57,.55)); }
+.card-hover { transition: transform .18s ease, box-shadow .18s ease; }
+.card-hover:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(13,63,57,.14); }
+.price-badge { background: var(--teal-dark); color: #fff; font-weight: 600;
+  border-radius: 999px; padding: .2rem .7rem; font-size: .85rem; white-space: nowrap; }
+.chip { border: 1px solid #d8d2c4; border-radius: 999px; padding: .35rem .9rem;
+  background: #fff; font-size: .85rem; cursor: pointer; white-space: nowrap; }
+.chip.active { background: var(--teal-dark); color: #fff; border-color: var(--teal-dark); }
+.step-dot { width: 34px; height: 34px; border-radius: 50%; display: inline-flex;
+  align-items: center; justify-content: center; font-weight: 600; font-size: .9rem;
+  background: #e9e2d2; color: #6b6252; flex: none; }
+.step-dot.done { background: var(--bs-primary); color: #fff; }
+.step-dot.now { background: var(--gold); color: #fff; }
+.map-pin { cursor: pointer; }
+.map-pin circle.halo { fill: rgba(185,138,47,.25); }
+.map-pin:hover circle.halo { fill: rgba(185,138,47,.45); }
+.slot { border: 1px solid #d8d2c4; border-radius: .5rem; padding: .5rem .25rem;
+  text-align: center; cursor: pointer; background: #fff; font-size: .85rem; }
+.slot:hover { border-color: var(--bs-primary); }
+.slot.sel { background: var(--bs-primary); color: #fff; border-color: var(--bs-primary); }
+.slot.off { background: #f1ede3; color: #b3ab99; cursor: not-allowed; }
+.appt-block { border-radius: .4rem; padding: .3rem .5rem; font-size: .75rem; line-height: 1.25;
+  overflow: hidden; cursor: pointer; border-left: 4px solid; color: #fff; }
+.timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--bs-primary); flex: none; }
+.detail-label { font-size: .72rem; letter-spacing: .08em; color: #8a8172; text-transform: uppercase; }
+.stat-num { font-size: 1.9rem; font-weight: 700; color: var(--teal-dark); }
+.kbd-hint { font-size: .75rem; color: #8a8172; }
+.avatar-lg { width: 88px; height: 88px; object-fit: cover; border-radius: 50%; }
+.demo-bar { background: #fff8e6; border-bottom: 1px solid #f0dfae; font-size: .8rem; }

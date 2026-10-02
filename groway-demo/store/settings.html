@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings — Selah Head Spa · Groway Business</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+  .sidebar { width: 232px; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
+  .sidebar .nav-link { color: rgba(255,255,255,.72); border-radius: .5rem; padding: .55rem .8rem; font-size: .92rem; }
+  .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,.14); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="demo-bar text-center py-1">Groway demo — Store back office · Selah Head Spa · <span class="text-muted">static prototype, no backend</span></div>
+<div class="d-flex">
+  <aside class="sidebar bg-teal-dark text-white d-flex flex-column flex-shrink-0">
+    <div class="p-3 border-bottom border-light border-opacity-10">
+      <div class="font-display fs-5 fw-bold">SELAH HEAD SPA</div>
+      <div class="text-white-50 small">Groway Business</div>
+    </div>
+    <nav class="nav flex-column p-2 gap-1">
+      <a class="nav-link" href="dashboard.html">&#128197; Appointments</a>
+      <a class="nav-link" href="customers.html">&#128100; Customers</a>
+      <a class="nav-link" href="staff.html">&#128101; Staff</a>
+      <a class="nav-link" href="services.html">&#128134; Services</a>
+      <a class="nav-link" href="reports.html">&#128202; Reports</a>
+      <a class="nav-link active" href="settings.html">&#9881; Settings</a>
+    </nav>
+    <div class="mt-auto p-3 small text-white-50 border-top border-light border-opacity-10">
+      <div>Mei Lin · Store admin</div>
+      <a href="../index.html" class="text-gold text-decoration-none">← Back to Groway</a>
+    </div>
+  </aside>
+
+  <main class="flex-grow-1 p-4" style="min-width:0;max-width:960px">
+    <h4 class="font-display fw-bold mb-3">Settings</h4>
+    <ul class="nav nav-tabs mb-3" id="setTabs">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#t-profile">Store profile</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-booking">Booking</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-cats">Categories</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-hours">Hours</button></li>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="t-profile">
+        <div class="bg-white border rounded p-4">
+          <label class="detail-label">Store name</label>
+          <input class="form-control mb-3" value="Selah Head Spa">
+          <label class="detail-label">About (English)</label>
+          <textarea class="form-control mb-1" rows="4" id="aboutEn"></textarea>
+          <div class="small text-muted mb-3"><span id="aboutCount"></span> / 2000 characters · plain text</div>
+          <div class="row g-3">
+            <div class="col-md-6"><label class="detail-label">Phone</label><input class="form-control" value="(905) 555-0134"></div>
+            <div class="col-md-6"><label class="detail-label">Address</label><input class="form-control" value="8120 Bayview Ave, Richmond Hill"></div>
+          </div>
+          <button class="btn btn-primary mt-4 saveBtn">Save profile</button>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="t-booking">
+        <div class="bg-white border rounded p-4">
+          <div class="row g-3 align-items-center mb-3">
+            <div class="col-md-6"><label class="detail-label">Max concurrent customers (capacity)</label>
+              <input type="number" class="form-control" value="12" min="1"></div>
+            <div class="col-md-6"><label class="detail-label">Cancellation window</label>
+              <select class="form-select"><option>24 hours</option><option>12 hours</option><option>48 hours</option></select></div>
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" checked id="autoConfirm">
+            <label class="form-check-label" for="autoConfirm">Auto-confirm online bookings</label>
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="depositReq">
+            <label class="form-check-label" for="depositReq">Require deposit at booking (Stripe)</label>
+          </div>
+          <div class="form-check form-switch mb-4">
+            <input class="form-check-input" type="checkbox" checked id="isTest">
+            <label class="form-check-label" for="isTest">Test store <span class="text-muted">— hidden from the public map, bookings don't consume quota</span></label>
+          </div>
+          <button class="btn btn-primary saveBtn">Save booking settings</button>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="t-cats">
+        <div class="alert alert-warning d-flex gap-2 align-items-start">
+          <span>&#9888;</span>
+          <div class="small"><strong>2 categories aren't mapped</strong> to Groway's discovery taxonomy —
+          they won't appear in map category filters until mapped. Pick a match below (one click each).</div>
+        </div>
+        <div class="bg-white border rounded p-3" id="catMap"></div>
+        <button class="btn btn-primary mt-3 saveBtn">Save mappings</button>
+      </div>
+
+      <div class="tab-pane fade" id="t-hours">
+        <div class="bg-white border rounded p-4">
+          <table class="table mb-0">
+            <thead class="table-light"><tr><th>Day</th><th>Open</th><th>Close</th><th>Closed</th></tr></thead>
+            <tbody id="hoursRows"></tbody>
+          </table>
+          <button class="btn btn-primary mt-3 saveBtn">Save hours</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+function toast(msg){ const t=$(`<div class="toast align-items-center"><div class="d-flex"><div class="toast-body">${msg}</div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
+  $("#toasts").append(t); new bootstrap.Toast(t[0],{delay:2600}).show(); }
+$(".saveBtn").click(()=>toast("Settings saved"));
+
+const about = DEMO.stores[0].about;
+$("#aboutEn").val(about);
+function updCount(){ $("#aboutCount").text($("#aboutEn").val().length); }
+$("#aboutEn").on("input", updCount); updCount();
+
+// taxonomy mapping demo
+const STORE_CATS = [
+  { name:"Signature Head Spa", mapped:"head-spa" },
+  { name:"Facial Care", mapped:"facial" },
+  { name:"Body Care", mapped:"massage" },
+  { name:"Foot Massage", mapped:null },
+  { name:"Registered Massage Therapist", mapped:null }
+];
+function renderCats(){
+  $("#catMap").html(STORE_CATS.map((c,i)=>`
+    <div class="d-flex align-items-center gap-3 py-2 border-bottom">
+      <div class="fw-bold" style="width:260px">${c.name}</div>
+      <select class="form-select form-select-sm mapSel" data-i="${i}" style="max-width:260px">
+        <option value="">Not mapped — invisible in map filters</option>
+        ${DEMO.taxonomy.map(([slug,label])=>`<option value="${slug}"${c.mapped===slug?" selected":""}>${label}</option>`).join("")}
+      </select>
+      ${c.mapped?`<span class="badge bg-success">Mapped</span>`:`<span class="badge bg-warning text-dark">Unmapped</span>`}
+    </div>`).join(""));
+}
+$(document).on("change",".mapSel",function(){
+  const i = +$(this).data("i"); STORE_CATS[i].mapped = $(this).val()||null; renderCats();
+});
+renderCats();
+
+// hours
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const H = { Monday:["10:00 AM","8:00 PM"], Tuesday:["10:00 AM","8:00 PM"], Wednesday:["10:00 AM","8:00 PM"],
+  Thursday:["10:00 AM","8:00 PM"], Friday:["10:00 AM","8:00 PM"], Saturday:["9:00 AM","6:00 PM"], Sunday:["11:00 AM","5:00 PM"] };
+$("#hoursRows").html(DAYS.map(d=>`<tr><td class="fw-bold">${d}</td>
+  <td><input class="form-control form-control-sm" value="${H[d][0]}"></td>
+  <td><input class="form-control form-control-sm" value="${H[d][1]}"></td>
+  <td><input type="checkbox" class="form-check-input"></td></tr>`).join(""));
+</script>
+</body>
+</html>

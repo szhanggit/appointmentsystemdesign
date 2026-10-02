@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your details — Groway</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container">
+    <a class="navbar-brand font-display fs-4" href="../index.html">Groway</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link active" href="map.html">Discover</a></li>
+        <li class="nav-item"><a class="nav-link" href="bookings.html">My bookings</a></li>
+        <li class="nav-item"><a class="nav-link" href="../login-client.html">Sign in</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container py-4" style="max-width:560px">
+  <div class="d-flex align-items-center gap-2 mb-1 flex-wrap" id="steps"></div>
+  <h2 class="font-display mb-1">Your details</h2>
+  <p class="text-muted mb-4">No account needed — just a name and phone number so the store can reach you.</p>
+  <div id="err" class="alert alert-danger d-none"></div>
+  <div class="mb-3"><label class="form-label">Full name *</label><input id="name" class="form-control" placeholder="e.g. Olivia Zhang"></div>
+  <div class="mb-3"><label class="form-label">Phone *</label><input id="phone" class="form-control" placeholder="(416) 555-0100" inputmode="tel"></div>
+  <div class="mb-3"><label class="form-label">Email <span class="text-muted">(optional — for receipt)</span></label><input id="email" type="email" class="form-control" placeholder="you@example.com"></div>
+  <div class="mb-3"><label class="form-label">Notes for the store <span class="text-muted">(optional)</span></label><textarea id="notes" class="form-control" rows="2" placeholder="Allergies, preferences, running late…"></textarea></div>
+  <div class="form-check mb-4"><input class="form-check-input" type="checkbox" id="sms" checked>
+    <label class="form-check-label small" for="sms">Send booking confirmation and reminders to this number.</label></div>
+  <div class="d-flex justify-content-between">
+    <a href="book-3-time.html" class="btn btn-link">← Back</a>
+    <button class="btn btn-primary px-5" id="next">Review booking</button>
+  </div>
+</div>
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+const BK={get(){try{return JSON.parse(sessionStorage.getItem('groway_booking')||'{}')}catch(e){return{}}},set(p){const b=Object.assign(this.get(),p);sessionStorage.setItem('groway_booking',JSON.stringify(b));return b}};
+function renderSteps(n){const L=["Service","Staff","Time","Details","Confirm"];$("#steps").html(L.map((l,i)=>`${i?'<span class="text-muted">—</span>':''}<span class="d-flex align-items-center gap-1"><span class="step-dot ${i<n?'done':i===n?'now':''}">${i<n?'✓':i+1}</span><span class="small ${i===n?'fw-bold':''}">${l}</span></span>`).join(""))}
+$(function(){
+  if(!BK.get().time)location.href="book-3-time.html";
+  renderSteps(3);
+  $("#next").on("click",()=>{
+    const name=$("#name").val().trim(),phone=$("#phone").val().trim();
+    if(!name||!phone){$("#err").removeClass("d-none").text("Please enter your name and phone number.");return;}
+    BK.set({contactName:name,contactPhone:phone,contactEmail:$("#email").val().trim(),notes:$("#notes").val().trim()});
+    location.href="book-5-review.html";
+  });
+});
+</script>
+</body>
+</html>
