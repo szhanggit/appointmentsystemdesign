@@ -105,8 +105,10 @@ version. Expect this section to be rewritten once V1 pilot data exists.
 
 - **[V2] Structured cancellation reasons** — AI gap-filling triggers on
   `appointment.cancelled` and needs the why: `customer_cancelled`, `no_show`,
-  `staff_cancelled`, `rescheduled_away`. V1: emit the event with an extendable reason
-  code (VARCHAR, not a closed enum). V2: the gap-fill consumer.
+  `staff_cancelled`, `rescheduled_away`. V1: the event carries `cancelled_by`
+  (customer/staff/system) only — no reason-code column (2026-10-02 ruling: a
+  VARCHAR no V1 UI populates stays NULL forever; the taxonomy is a V2 addition
+  with its own capture UI). V2: the gap-fill consumer.
 - **[V2] Waitlist, shaped for AI** — not a dumb notification list. Each entry needs:
   desired service(s), acceptable time windows, staff preference (or any), contact
   channel, expiry. Build it in V2 as "a list of phone numbers" and V3 AI gap-filling
