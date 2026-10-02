@@ -131,6 +131,13 @@ version. Expect this section to be rewritten once V1 pilot data exists.
   analytics, phone OTP step-up, keyword search, NEW badge, price bands, server-side
   clustering, admin console + impersonation UI, photo-moderation queue UI, chain-wide
   aggregate stats** — already listed under their headings. No new thought.
+- **[V2] Staff self-service portal (Fresha parity)** — each staff member gets their
+  own login: sees their own schedule/shifts, their performance, and their
+  commission/earnings summary. 2026-10-02 research: Fresha has this (own login +
+  workspace, per-sale commission calc, pay-period summaries); byChronos has commission
+  calc but no staff-facing login found; COSReady has none. Retention play: staff care
+  most about "what do I take home" — transparency keeps them. Needs: staff auth
+  (exists in V1), per-store stats (V1.1 ruling), a commission model (V2).
 - No action: phone number as identity anchor — V1 already normalizes E.164 and counts
   per phone; the AI front desk's caller-ID → customer lookup rides on this for free.
 
