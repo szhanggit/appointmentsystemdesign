@@ -1,100 +1,70 @@
-# V1 Backlog
 
-Items deliberately cut from V1. V1 = core booking + beauty map, to staging.
-Everything below is **not** in V1 scope. When an item is promoted, move its
-design into the relevant `usercasestudy/` doc and delete the line here.
+## V2/V3 vision (direction, not design — revisit after the V1 pilot)
 
-## Platform & accounts (Groway admin)
+Destinations, not specs. This section exists so V1 decisions can be checked against
+a direction ("does this close off the AI future?"). Anything here that needs schema
+gets a reservation line in the section above; behavior stays undesigned until its
+version. Expect this section to be rewritten once V1 pilot data exists.
 
-- Groway admin console (invite-only + MFA + audit) — V1 seeds stores manually, no UI.
-- "Login as" impersonation UI for support (audited, ticket-ref, post-hoc owner notice).
-- `platform.category_taxonomy` admin UI (V1 seeds via migration; growing the list is manual SQL).
-- `platform.spoken_languages` admin UI (same pattern as taxonomy).
-- `platform.abuse_config` editor (per-phone cap default 5, adjustable).
+### V2 — monetization & retention (the business grows up)
 
-## Booking, payments & trust
+- **[V1 proposed] `appointments.channel`** — every booking records how it was created:
+  `public_web`, `staff_manual`, later `ai_agent`, `ai_recall`, `ai_gapfill`. One column,
+  V1 cost near zero. Without it the exit line's "measured" is impossible — you cannot
+  prove AI filled incremental slots if AI bookings are indistinguishable from organic
+  ones. The single most time-sensitive item in this section. (Needs Steven's call to
+  enter V1 scope.)
+- **[V1 proposed] Marketing/AI-outreach consent at booking** — V3 AI recall sends
+  automated SMS to quiet customers (CASL). The legal basis must be captured in the
+  V1/V2 booking flow ("booking confirmations + occasional win-back messages");
+  retroactive consent is practically unobtainable. Pair with the legal review already
+  flagged for reminders. (Needs Steven's call to enter V1 scope.)
+- **[V1 proposed] `stores.policies_text TEXT NULL`** — free-text policies/FAQ per store
+  ("what's your cancellation policy?"). V1 has structured settings (threshold hours);
+  the AI front desk needs the unstructured rest. One nullable column now, consumed in V3.
+- **[V2] Structured cancellation reasons** — AI gap-filling triggers on
+  `appointment.cancelled` and needs the why: `customer_cancelled`, `no_show`,
+  `staff_cancelled`, `rescheduled_away`. V1: emit the event with an extendable reason
+  code (VARCHAR, not a closed enum). V2: the gap-fill consumer.
+- **[V2] Waitlist, shaped for AI** — not a dumb notification list. Each entry needs:
+  desired service(s), acceptable time windows, staff preference (or any), contact
+  channel, expiry. Build it in V2 as "a list of phone numbers" and V3 AI gap-filling
+  remodels it. (Already listed under Store operations — this is the shape constraint.)
+- **[V2] Customer identity resolution** — AI recall lives or dies on "quiet 60+ days per
+  real human." Guest bookings fragment identity (same phone, several guest rows). V2
+  needs: hardened claim flow + a staff dedup/merge tool. The `customer_linked` event
+  (reserved above) is the seam.
+- **[V2] Full review system** — already listed under Customers. Feeds the AI front desk
+  ("what do people say about…") and social proof. No new thought.
+- **[V2] Member accounts, packages/memberships/gift cards, coupons, tips, reports &
+  analytics, phone OTP step-up, keyword search, NEW badge, price bands, server-side
+  clustering, admin console + impersonation UI, photo-moderation queue UI, chain-wide
+  aggregate stats** — already listed under their headings. No new thought.
+- No action: phone number as identity anchor — V1 already normalizes E.164 and counts
+  per phone; the AI front desk's caller-ID → customer lookup rides on this for free.
 
-- **Customer deposit payment** (`payment-deposit-preauth-design.md` is the design;
-  Stripe integration + booking Step 6 are not built in V1).
-- Tips / gratuity (distinct from deposits).
-- Pre-auth hold (deferred to v2; v1 uses direct capture to avoid the 7-day expiry problem).
-- Phone OTP step-up for booking abuse (v2 hardening; v1 relies on rate limiting + per-phone cap + blocklist).
-- Simultaneous/parallel services (e.g. head wash + foot wash at the same time, two technicians). DECIDED 2026-10-02: follow Fresha — online books sequential multi-service only; simultaneous must be requested in-store and is done staff-manual (two overlapping appointments, different staff — no system block; burns 2 quota units, counts 2 against capacity). No self-service parallel booking, no DB change needed.
-- Per-room / per-bed assignment (V1 uses a store-level capacity number; granular assignment waits for the med-aesthetics store).
+### V3 — the AI layer (the exit-line bet)
 
-## Customers
+V3 is the three exit-line criteria — AI 前台 + AI 填空位 + AI 召回 — built + deployed
++ **measured**, by 2027-03-28. Direction only; the design gets written after V1 pilot
+data exists.
 
-- Full review system: review-writing UI, moderation, scoring, staff-tagged display
-  (`store.reviews.staff_id` is already reserved in the schema).
-- Surfacing `min_rating` in the map UI (the API param already exists and is inert in V1).
-- Member accounts: login, "My bookings" link from the confirmation screen, saved payment methods.
-- Favorites / recently viewed stores.
-- Full customer profiles + visit history (beyond guest snapshots + claim; the record the AI recall layer will eventually read).
-
-## Beauty map (discovery)
-
-- Keyword / name search ("head spa near me") — V1 is map-browse only.
-- "NEW" badge for stores in their first 30 days (backlog per 2026-10-02 decision; cold-start traffic vs gaming risk, revisit in V1.1).
-- "Venues nearby" recommendations on the store detail page.
-- Two-sided price range / price bands ($/$$/$$$); amenity flags ("accepts walk-ins", "parking"); saved filter presets.
-- Server-side clustering (V1 clusters client-side in Mapbox GL JS).
-- Per-store map marker branding; in-app turn-by-turn navigation (V1 hands off to the external maps app).
-
-## Store operations
-
-- Reports & analytics: revenue, utilization, no-show rate (the daily numbers owners actually live by).
-- Marketing: coupons, campaigns, email allowance overage.
-- Waitlist (the appointments page reserves the nav slot; no design yet).
-- Treatment packages, memberships, gift cards (needed by the med-aesthetics clinical module).
-- Store photo uploads + moderation queue UI (schema + manual process designed; the queue UI is V1.1).
-- Chain-wide aggregate stats view (per-store stats on staff profiles are the permanent V1 semantic).
-
-## Med-aesthetics clinical module (~20% delta on the shared booking engine)
-
-- Treatment charting, consent forms, before/after photos, practitioner credential checks,
-  stricter deposits, treatment packages. V1 ships for spa first; the module activates
-  when the med spa opens. **Legal review required before storing any health data (PHIPA).**
-
-## AI layer (the exit-line bet: built + deployed + measured, all three)
-
-- AI front desk (answers calls/messages 24/7, books into the calendar).
-- AI gap-filling (detects cancellations, offers the slot to waitlisted customers).
-- AI recall (win back customers quiet 60+ days).
-- Zero design docs exist for any of the three as of 2026-10-02 — this is the largest
-  blank area in the repo relative to its strategic weight.
-
-## V1 architectural reservations (seams V1 must not close)
-
-Not features — these are the extension points V1 schema/code must leave open so
-V2/V3 don't need breaking migrations. Rule: **reserve the seam, don't build the
-room.** When a reservation is consumed (the feature gets built), delete the line.
-(Three more reservations already live under their feature headings: `reviews.staff_id`
-under Customers, the inert `min_rating` param under Customers, the waitlist nav slot
-under Store operations.)
-
-- `appointments.payment_intent_id TEXT` + `payment_status`
-  (`none|awaiting|succeeded|failed|refunded|partially_refunded`) — columns exist from
-  day one so deposits/pre-auth (V2+) need no backfill; the state machine already names
-  the future states (`create-appointment-transaction-design.md` §14,
-  `payment-deposit-preauth-design.md` §7).
-- `store.messages` uses the `system_subtype` pattern — a new system-generated message
-  kind never widens `message_type`'s enum (`groway-store-notifications-workflow.md` §1).
-- `platform.spoken_languages` (BCP 47) stays permanently independent from the customer
-  notification language — never "unify" the two taxonomies (staff-profile-design.md §4).
-- No cross-schema foreign keys, ever — cross-module references are application-level IDs,
-  so a schema can later move to its own database without breaking
-  (`groway-v1-architecture.md` §5).
-- `appointment.customer_linked` domain event is emitted with no V1 consumers — reserved
-  for future consumers (`customer-records-design.md` §4.4).
-- `stores.geo_place_id` is kept on every address write — the one input a future
-  geocoding-provider migration needs (`growayshop-registration-workflow.md` §2.2).
-- Impersonation `ticket_ref` rule is forward-looking — suspend/refund aren't built, but
-  the ticket-required enforcement applies automatically the day they are
-  (`groway-admin-impersonation-design.md` §4).
-- One person, multiple chains = separate logins; no cross-chain session, no "switch
-  account" (`growayshop-registration-workflow.md` §6.0).
-- "Merchant" terminology is retired and reserved for a different future use — do not
-  reuse it for chain/store (`store-onboarding-v1-design.md` §1).
-- Med-aesthetics clinical module ships later as a default-off module on the shared booking
-  engine; health-data tables must be isolatable (encryption, audit logs, hard permissions).
-  **Legal review required before storing any health data (PHIPA).**
+- **[V3] AI front desk** — answers calls/messages 24/7, books into the calendar through
+  the same agent-callable APIs (idempotency keys are already V1). Needs: the V2
+  knowledge base (`policies_text` + catalog), conversation memory, a human-escalation
+  path, and **per-chain AI cost metering** — the partner bears AI API costs under the
+  funding agreement, so usage must be attributable per chain for the bill.
+- **[V3] AI gap-filling** — cancellation detected → best-fit waitlisted customer offered
+  the slot → booking attributed `ai_gapfill`. Needs: the V2 AI-shaped waitlist, V2
+  cancellation reasons, the V1 `channel` column.
+- **[V3] AI recall** — quiet 60+ days → personalized win-back ("Anna has an opening
+  Thursday — she did your last shellac"). Needs: V2 identity resolution, V2 consent,
+  the V1 `channel` column. Staff affinity derives from `appointments.staff_id` —
+  explicitly no new V1 column needed.
+- **[V3] Measurement is the feature** — "front-desk time saved" needs a pre-AI baseline
+  measured operationally during the pilot (not software). "Filled slots" and "recovered
+  customers" come from the `channel` column. If it can't be measured, it doesn't count
+  toward the exit line.
+- **[V3] Conversation logs & model lineage** — every AI touchpoint logs model version,
+  prompt version, I/O summary, cost. Needed for debugging, cost control, and (for voice)
+  potential compliance. V3 infra; V1/V2 just don't prohibit it.
