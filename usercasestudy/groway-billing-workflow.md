@@ -104,6 +104,7 @@ sequenceDiagram
             SM->>DB: INSERT INTO store.billing_appointment_usage (billing_account_id, period_month, appointment_count)<br/>VALUES (ba.id, date_trunc('month', now()), 1)<br/>ON CONFLICT (billing_account_id, period_month)<br/>DO UPDATE SET appointment_count = billing_appointment_usage.appointment_count + 1<br/>WHERE billing_appointment_usage.appointment_count < 100<br/>RETURNING appointment_count
             alt a row came back (the increment was applied)
                 Note over SM: allowed - proceeds into the fixed appointment-creation logic
+                SM->>SM: Check usage-warning thresholds (§4.4) - 75/90/100%,<br/>idempotent per billing period, message-board only, never blocks the request
             else no row came back (conflict existed and appointment_count was already 100)
                 SM->>DB: INSERT INTO store.blocked_booking_daily_counts (billing_account_id, day, blocked_count)<br/>VALUES (ba.id, CURRENT_DATE, 1)<br/>ON CONFLICT (billing_account_id, day) DO UPDATE SET blocked_count = blocked_count + 1
                 SM-->>C: 409 Conflict "This business has reached its monthly booking limit. Please contact them directly to book."
@@ -120,6 +121,15 @@ sequenceDiagram
 
 - **The customer** gets an explicit, honest message (above) — never a silent failure or a generic error.
 - **The `chain_admin`** sees only an aggregate count ("12 potential bookings were turned away today") via `groway-store-notifications-workflow.md` — never which customer, never any booking detail, and never the individual `store_admin` at the affected store (§6). `store.blocked_booking_daily_counts` is deliberately shaped to make this the only thing it *can* expose: it has no customer-identifying column at all.
+
+### 4.4 Proactive usage warnings — 75% / 90% / 100%, before the block ever happens
+
+§4.3 is reactive (a daily digest of bookings already turned away). This is the before-the-fact counterpart, specifically to avoid the block itself being a surprise — matching COSReady's own three-tier pattern (background in `beauty-map-*`-adjacent competitive notes, not reproduced here). Runs only in the `plan='free'` branch above, right after a successful quota consume (`plan='paid'` has no cap, so there's nothing to warn about).
+
+- Idempotency guard: three columns on `billing_accounts` — `quota_warn_75_sent_at`, `quota_warn_90_sent_at`, `quota_warn_100_sent_at`. A threshold fires once per billing period: `sent_at IS NULL OR sent_at < period_month` (reusing `billing_appointment_usage.period_month`, the first of the current month — no separate "cycle start" column, and deliberately no reset job to clear these at month-end; a reset job that silently fails is a worse failure mode than a comparison that doesn't need resetting at all).
+- `appointment_count` just incremented past `75`/`90`/`100` (of the 100-unit cap) → post the corresponding `quota_warning_75`/`_90`/`_100` message (`groway-store-notifications-workflow.md` §3a), addressed to `chain_admin`, in-app + email.
+- The `100%` message's CTA goes directly to the billing self-service page (`start-trial`/`cancel`/`status`, §8) — the same page `chain_admin` already has access to.
+- Never blocks the request that triggered it — this is a side effect of a successful consume, not a gate.
 
 ---
 
@@ -240,6 +250,11 @@ CREATE TABLE store.billing_accounts (
     payment_processor_customer_id  VARCHAR(255),
     default_payment_method_ref     VARCHAR(255),
     payment_reminder_sent_at       TIMESTAMPTZ,             -- idempotency guard for §6.1, reset on every confirm-payment/trial-start
+    -- Proactive usage-warning guards (§4.4) - compared against billing_appointment_usage.period_month,
+    -- no reset job needed. Only ever set while plan='free'; irrelevant once Paid (no cap to warn about).
+    quota_warn_75_sent_at          TIMESTAMPTZ,
+    quota_warn_90_sent_at          TIMESTAMPTZ,
+    quota_warn_100_sent_at         TIMESTAMPTZ,
     cancelled_at                   TIMESTAMPTZ,
     cancelled_by_store_user_id     UUID REFERENCES store.store_users(id),
     created_at                     TIMESTAMPTZ NOT NULL DEFAULT now(),

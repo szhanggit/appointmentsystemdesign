@@ -8,6 +8,7 @@
 - `growayshop-staff-invite-workflow.md`: covers the *ongoing* "invite a staff member" flow — this document covers chain creation (§6.1) and a chain_admin's own ongoing "add a store" flow (§6.2).
 - `groway-billing-workflow.md`: reads `store.chains`/`store.stores` created here; billing is anchored to `chain_id` (created here, §6.1), never to any individual store or store_admin.
 - `store-onboarding-v1-design.md`: owns `store.stores`' address columns (§4 there); this document owns how those columns get populated — Mapbox address resolution (§2.2) — since that's an identity/data-entry concern, not a booking-domain one.
+- `groway-admin-impersonation-design.md`: a Groway admin's "Login as" never calls this module's `/api/store/*` routes any more directly than §3's chain-creation flow does — same in-process pattern, different caller context.
 
 **Terminology (2026-09-28, unifying prior inconsistent usage):** **Chain** = the business as a whole, one or more stores, one billing account. **Store** = one physical location or one independent practitioner. "Merchant" is retired.
 
@@ -27,8 +28,8 @@
 | Can manage time off (`staff_time_offs`) | Yes — any staff in the chain (`staff-schedule-entry-workflow.md` §1) | Yes — any staff at their store | Yes — **own only**, self-service preferred (§3.4 there) |
 | Can manage staff schedules (`staff_schedules`) | Yes — any staff in the chain | Yes — any staff at their store | Yes — **own only**, at each store they work (same authorization shape as time off — `staff-schedule-entry-workflow.md` §1) |
 | Can invite `staff` | Yes, any store in the chain | Yes, own store only | No |
-| Can create a new `store_admin` | Yes — **only** when adding a new store (§6.2); no ongoing management power over it afterward | No | No |
-| Can add a new store to the chain | Yes, self-service (§6.2) | No | No |
+| Can create a new `store_admin` | Yes — **optionally**, when adding a new store (§6.2, revised) or any time afterward for an existing store with none; no ongoing management power over the account once created | No | No |
+| Can add a new store to the chain | Yes, self-service (§6.2) — now the primary expansion path (§6.0), not a secondary one | No | No |
 | Billing self-service (start-trial / cancel / status) | **Yes — the only role that can** (`groway-billing-workflow.md`) | No — a store has no billing concept of its own | No |
 | Change the chain's `allowed_countries` (§6.7) | **Yes — the only role that can** | No (read-only, §6.7) | No |
 | Edit a store's address (§6.8) | Yes, any store in the chain | Yes, own store only | No |
@@ -37,7 +38,7 @@
 | Password reset | Self-service, like a customer | Self-service, like a customer | Self-service, like a customer |
 | How many per chain | **Exactly one, ever** | One per store | Any number |
 
-Each `store.store_users` row has exactly one `app_role` — a person needing two roles needs two accounts, though in practice this is rarely necessary since `chain_admin` already has every `store_admin` capability (just applied across the whole chain instead of one store).
+Each `store.store_users` row has exactly one `app_role` — a person needing two roles needs two accounts, though in practice this is rarely necessary since `chain_admin` already has every `store_admin` capability (just applied across the whole chain instead of one store). Self-service registration (§6.0) leans on exactly this fact: the first store's `store_admin_id` points at the same row as the chain's `chain_admin_id` rather than minting a second account for the same person.
 
 ---
 
@@ -51,7 +52,7 @@ store.chains (1) ──chain_admin_id (UNIQUE)──> store.store_users (exactly
                 └── store.store_user_store_access (many-to-many: which store_users can act on which store)
 ```
 
-**One store, one operational admin** — enforced at the database level (`store.stores.store_admin_id UNIQUE`, §5). **One chain, one chain_admin** — also DB-enforced (`store.chains.chain_admin_id UNIQUE NOT NULL`, §5), a genuinely separate account, not a store_admin wearing a second hat. A `chain_admin` gets one `store_user_store_access` row per store in their chain (one marked `is_primary = TRUE` as their default store, per §6.1); a `store_admin` gets exactly one such row, for their own store. `staff` accounts are unaffected — still many-to-many, since one person can work shifts at more than one store of the same chain (never across unrelated chains).
+**One store, at most one operational admin** — enforced at the database level (`store.stores.store_admin_id UNIQUE`, §5; nullable — a store with no dedicated `store_admin` is a valid, permanent state, §6.2 revised). **One chain, one chain_admin** — also DB-enforced (`store.chains.chain_admin_id UNIQUE NOT NULL`, §5), a genuinely separate account, not a store_admin wearing a second hat — except the deliberate exception at a chain's very first store (§6.0), where the chain_admin *is* that store's `store_admin` by pointing `store_admin_id` at the same row, not a second account. A `chain_admin` gets one `store_user_store_access` row per store in their chain (one marked `is_primary = TRUE` as their default store, per §6.1); a `store_admin` gets exactly one such row, for their own store. `staff` accounts are unaffected — still many-to-many, since one person can work shifts at more than one store of the same chain (never across unrelated chains).
 
 The session tracks **one active store at a time** (§4); switching (§6.6) updates context within the existing session, it never re-authenticates. For a `store_admin` there is only one store to be active on, so switching is a no-op for them; `chain_admin` and multi-store `staff` are the ones who actually switch.
 
@@ -168,19 +169,30 @@ CREATE TABLE store.store_users (
     -- No staff_id here - which roster row this account corresponds to is a
     -- per-store fact (see store_user_store_access below).
     status              VARCHAR(20)  NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'deactivated')),
-    -- Exactly one of the next two is set: who created this account. A Groway
+    -- At most one of the next two is set: who created this account. A Groway
     -- admin (admin.admins.id, cross-schema - no enforced FK per architecture
     -- doc §5) or another store_users row (a chain_admin adding a store's
     -- store_admin, §6.2, or a store_admin/chain_admin inviting staff).
+    -- BOTH NULL means self-registered (§6.0) - a third, legitimate case this
+    -- constraint widened to allow once self-service registration existed;
+    -- it was originally exactly-one-of-two because no self-serve path did.
     created_by_admin_id      UUID,
     created_by_store_user_id UUID REFERENCES store.store_users(id),
+    -- Self-service registration only (§6.0) - NULL for every account created
+    -- via §6.1/§6.2, which set this to now() at creation: a Groway admin or an
+    -- already-verified chain_admin creating the account already IS the
+    -- verification, there's no anonymous signup step to gate.
+    email_verified_at            TIMESTAMPTZ,
+    email_verification_token     TEXT,
+    email_verification_expires_at TIMESTAMPTZ,  -- also the purge deadline for the owning chain, §6.0
     created_at          TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ  NOT NULL DEFAULT now(),
     last_login_at       TIMESTAMPTZ,
-    CONSTRAINT chk_exactly_one_creator CHECK (
-        (created_by_admin_id IS NOT NULL) <> (created_by_store_user_id IS NOT NULL)
+    CONSTRAINT chk_at_most_one_creator CHECK (
+        NOT (created_by_admin_id IS NOT NULL AND created_by_store_user_id IS NOT NULL)
     )
 );
+CREATE UNIQUE INDEX uq_store_users_verification_token ON store.store_users(email_verification_token) WHERE email_verification_token IS NOT NULL;
 
 -- The chain itself - a real, first-class entity (2026-09-28 decision), not an
 -- implicit grouping. Exactly one chain_admin, ever, DB-enforced.
@@ -246,9 +258,135 @@ Activity log delivery: dedicated `store-activity-log` SQS queue + its own KEDA-s
 
 ## 6. Sequence diagrams
 
-### 6.1 Chain creation (Groway admin, continuing from §3)
+### 6.0 Self-service registration (new — now the primary path onto Groway)
 
-One request creates the chain, its one `chain_admin`, and one store + one `store_admin` per store the intake email listed:
+Public, no login, no Groway admin involved — the one place in this whole document a chain comes into existence without a human on Groway's side touching it. One request creates the chain, its `chain_admin`, the first store, and that store's `booking_settings`, leaving the store invisible (`status='pending'`, the same value and the same "not visible" rule §6.1/§6.2 already produce) until the email is verified.
+
+**Anti-abuse**: CAPTCHA on the registration page, plus IP + email rate limiting. One person registering multiple chains is allowed and expected (`name+label@...` for each) — each is a fully independent `chain_admin` login and billing account; there is no cross-chain session, no "switch account" beyond logging out and back in with the other email, and no attempt to link them (write-only "related chain" notes don't get filled in reliably, and a real cross-chain fraud signal would come from automation — same IP/device/payout account — not a self-reported field).
+
+```mermaid
+sequenceDiagram
+    actor U as New registrant (public, no session)
+    participant GW as Gateway
+    participant SM as Store Module
+    participant SCOG as Amazon Cognito (Store User Pool)
+    participant DB as PostgreSQL (store schema)
+    participant SES as Amazon SES
+
+    U->>GW: POST /api/store/public/register<br/>{ email, password, chainName, storeName, geoPlaceId?, manualAddress?, captchaToken }
+    GW->>SM: (no session - public, rate-limited by IP + email)
+    SM-->>SM: Verify captchaToken; reject (400) if invalid
+    SM->>DB: SELECT id, email_verified_at, created_at FROM store.store_users WHERE email = :email
+    alt a row exists AND is_signup_abandoned(row)
+        Note over SM: is_signup_abandoned(row) := email_verified_at IS NULL<br/>AND created_at < now() - interval '7 days' - a named, unit-tested<br/>predicate (destructive gate; get this wrong once and a real,<br/>still-pending signup gets deleted instead of a dead one)
+        SM->>SM: PurgeAbandonedSignup(existing row's chain_id) - §6.0.1, same transaction as the INSERTs below
+        Note over SM: lazy reap, inline, synchronous - rare path (an abandoned<br/>email being reused), few rows, atomic with the new signup
+    else a row exists AND NOT abandoned (still verified-and-live, or still within its 7-day window)
+        SM-->>U: 409 Conflict "An account with this email already exists.<br/>Check your inbox to verify, or [resend the verification email]."
+    end
+
+    Note over SM,SCOG: Cognito-first (see §6.0's note below) - the account must exist in<br/>Cognito before any row referencing its sub is written.
+    SM->>SCOG: AdminCreateUser(Username=email, MessageAction=SUPPRESS)<br/>+ AdminSetUserPassword(Password=password, Permanent=true)
+    SCOG-->>SM: 200 OK { sub }
+
+    SM->>SM: Generate email_verification_token (single-use), email_verification_expires_at = now() + 7 days
+    SM->>DB: INSERT INTO store.store_users<br/>(cognito_sub, email, app_role='chain_admin', status='active',<br/>email_verified_at=NULL, email_verification_token, email_verification_expires_at)<br/>RETURNING id
+    Note over SM,DB: created_by_admin_id AND created_by_store_user_id both NULL here -<br/>self-registered, the third case §5's constraint was widened for
+    SM->>DB: INSERT INTO store.chains (name=chainName, chain_admin_id=<new id>) RETURNING id
+    SM->>DB: INSERT INTO store.billing_accounts (chain_id, plan='free')
+    SM->>SM: Resolve store address (§2.2 - same retrieve/manual logic as §6.1/§6.2, no stricter rule for this path)
+    SM->>DB: INSERT INTO store.stores (chain_id, name=storeName, ..., status='pending') RETURNING id
+    SM->>DB: INSERT INTO store.booking_settings (store_id)
+    SM->>DB: UPDATE store.stores SET store_admin_id = <chain_admin's own id> WHERE id = <new store id>
+    Note over SM,DB: same row as chain_admin_id, not a second account (§1, §2 - R2's reasoning)
+    SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, is_primary)<br/>VALUES (<chain_admin id>, <new store id>, TRUE)
+    SM->>SES: Send verification email: "Verify your email to activate {chainName}" + link carrying the token
+    SM-->>U: 201 Created { chainId, storeId, message: "Check your email to verify and activate your store." }
+```
+
+**Cognito-first is not optional discipline here, it's the one rule that matters most on this path.** `growayshop-staff-invite-workflow.md` already paid for this exact bug once (DB row inserted before the Cognito call, then a `cognito_sub NOT NULL` constraint violation on a step that should have come first) — fixed there to Cognito-first, and this flow follows the same order from the start rather than relying on habit. The one accepted edge case carries over unchanged: if Cognito succeeds but the subsequent `INSERT` fails, the result is an orphaned Cognito user with no `store_users` row — inert (it can authenticate into nothing, since nothing references its `sub`), free (Cognito's tier doesn't charge for an unused, never-active user), and cleaned up manually via the AWS console if it's ever even noticed, not by a scheduled reconciliation job. The failure mode that *would* justify automation — a flood of these from bot traffic — is exactly what CAPTCHA and the IP/email rate limit above already cap; building a nightly `ListUsers`-paginated anti-join job to fix a fixed-small-probability-per-request gap is a new moving part for a problem that isn't actually growing.
+
+**Logging in before verifying is allowed** — email verification only ever gates the *store's* `pending → active` transition (§6.0's verification endpoint below), never login itself, the same way billing state never affects login (§6.4). A newly-registered `chain_admin` can log in immediately and see their store sitting in `pending` with a "verify your email to go live" banner.
+
+**Verification endpoint — three states, prefetch-safe:**
+
+```
+GET  /api/store/public/verify-email?token=...   (public)
+POST /api/store/public/verify-email              { token }   (public)
+```
+
+- `GET` only **renders** a confirmation page ("Click to verify {email}") — it never mutates anything. Email clients routinely prefetch/scan links for safety scanning; a `GET` that silently verified would get consumed by a scanner before the real human ever clicked.
+- `POST` (triggered by the page's own button) does the actual work: looks up `store_users` by `email_verification_token`.
+  - Token not found, **or** `email_verification_expires_at < now()` → the same response either way: "This registration link has expired. Please sign up again." **No resend option on this page** — whether the underlying row still physically exists (it does, for up to ~24h, until the nightly purge in §6.0.1 gets to it) is an implementation detail; from the registrant's side, expired is expired, and the only path back is a fresh signup, which will transparently reap the old row (the `alt` branch above) rather than erroring.
+  - Token found, `email_verified_at` already set → idempotent success: "You're all set — this email is already verified." (handles a double-click, or clicking an older reminder email after already verifying from an earlier one.)
+  - Token found, not yet verified, not expired → `UPDATE store.store_users SET email_verified_at = now() WHERE id = ... ` and, same transaction, `UPDATE store.stores SET status = 'active' WHERE chain_id = <this chain> AND status = 'pending'` (activates the one store created at signup; a store added later via §6.2 is unaffected by this one-time gate — its own activation, if it needs one, follows whatever the ordinary `pending → active` business decision already requires per `store-onboarding-v1-design.md` §2). Token is single-use: this same `UPDATE ... SET email_verified_at = now()` is what makes the second branch above fire on any later hit.
+- Reminder emails at T+3 and T+6 days resend the identical, still-live link (no new token minted) — the 7-day expiry is the one and only deadline; a reminder doesn't extend it, it just repeats the same chance before it arrives.
+
+#### 6.0.1 Cleanup: nightly purge and lazy reap share one routine
+
+A registration that never gets verified has to go somewhere, but this project is deliberately cautious about unattended hard deletes elsewhere (soft-delete-by-default, a separate scary `/purge` endpoint for the rare true hard-delete). The blast radius here is small enough to make an exception — an abandoned signup has no customer data, no money, nothing beyond one chain/billing_account/store_user/store/booking_settings row and maybe a few `pending` photos — but "small blast radius" doesn't excuse a silent delete with no warning:
+
+```sql
+-- One named routine, called from exactly two trigger points: the nightly job below,
+-- and §6.0's lazy-reap branch. Never hand-written twice - "purge works, reap misses
+-- a table" is the standard way two copies of the same delete drift apart.
+-- Deletes strictly in FK order.
+PROCEDURE store.PurgeAbandonedSignup(p_chain_id UUID) AS $$
+BEGIN
+  DELETE FROM store.store_photos
+    WHERE store_id IN (SELECT id FROM store.stores WHERE chain_id = p_chain_id);
+  DELETE FROM store.booking_settings
+    WHERE store_id IN (SELECT id FROM store.stores WHERE chain_id = p_chain_id);
+  DELETE FROM store.store_user_store_access
+    WHERE store_id IN (SELECT id FROM store.stores WHERE chain_id = p_chain_id);
+  DELETE FROM store.stores WHERE chain_id = p_chain_id;
+  DELETE FROM store.billing_appointment_usage
+    WHERE billing_account_id IN (SELECT id FROM store.billing_accounts WHERE chain_id = p_chain_id);
+  DELETE FROM store.billing_accounts WHERE chain_id = p_chain_id;
+  -- chains references store_users.chain_admin_id - must go before the store_users row below
+  DELETE FROM store.chains WHERE id = p_chain_id RETURNING chain_admin_id INTO v_chain_admin_id;
+  DELETE FROM store.store_users WHERE id = v_chain_admin_id;
+  -- Cognito AdminDeleteUser(v_chain_admin_id's cognito_sub) happens right after this
+  -- commits, outside the DB transaction, same "best-effort, not a saga" posture as
+  -- the orphan-cleanup edge case above.
+END;
+$$
+```
+
+```mermaid
+sequenceDiagram
+    participant CRON as Nightly CronJob (Store Module)
+    participant DB as PostgreSQL (store schema)
+    participant SES as Amazon SES
+
+    CRON->>DB: SELECT su.id, su.email, c.id AS chain_id, su.email_verification_expires_at<br/>FROM store.store_users su JOIN store.chains c ON c.chain_admin_id = su.id<br/>WHERE su.email_verified_at IS NULL
+    loop for each unverified registration
+        alt email_verification_expires_at BETWEEN now() AND now() + interval '4 days' (i.e. T+3 due)
+            CRON->>SES: Send "verify by {expires_at} or your registration will be removed" (first reminder)
+        else email_verification_expires_at BETWEEN now() AND now() + interval '1 day' (i.e. T+6 due)
+            CRON->>SES: Send the same reminder, final notice framing
+        else email_verification_expires_at < now() (past the deadline)
+            CRON->>DB: CALL store.PurgeAbandonedSignup(chain_id)
+            Note over CRON,DB: every deletion writes to the ordinary audit log (store.store_user_activity_log<br/>doesn't apply here since the row is gone - a simple structured log line is enough)
+        end
+    end
+```
+
+Both reminder emails resend the original, still-live verification link (§6.0) — there is no separate "extend by 7 more days" action anywhere; the deadline printed in the email is the real one.
+
+**Test cases:**
+1. Register, verify within 7 days → store flips to `active`, visible on the map (`beauty-map-nearby-search-design.md` §1) on the next query.
+2. Register, never verify, wait past day 7, attempt a fresh registration with the *same* email → the old row is reaped inline, the new registration succeeds, no `409` or `unique_violation` surfaces to the user.
+3. Register, open two tabs, submit both within the 7-day window (duplicate submit, not an abandoned row) → the second hits the `409` branch ("check your inbox"), **not** the reap branch — `is_signup_abandoned` correctly treats a live, in-window row as untouchable.
+4. Click the verification link twice (or an email client prefetches it) → first `POST` activates the store; the second (or the prefetch's own, since it only hit `GET`) shows "already verified," never an error.
+5. Click the link after day 7 → "this link has expired," no resend button, even though the row may still physically exist until tonight's job runs.
+6. T+3 and T+6 reminder emails both link to the exact same URL as the original.
+
+---
+
+### 6.1 Chain creation (Groway admin, continuing from §3) — now the exception/large-customer path
+
+Self-service registration (§6.0) is now the primary way a new chain comes onto Groway; this flow remains for the cases that still need a human — a large customer onboarding several stores at once, a white-glove request, or anyone who'd rather email than fill out a form. One request creates the chain, its one `chain_admin`, and one store + one `store_admin` per store the intake email listed:
 
 ```mermaid
 sequenceDiagram
@@ -262,7 +400,8 @@ sequenceDiagram
     Note over SM,SCOG: 1. Create the chain_admin account first - the chain row needs its id.
     SM->>SCOG: AdminCreateUser(Username=chainAdminEmail, ...)
     SCOG-->>SM: 200 OK { sub }
-    SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='chain_admin', created_by_admin_id, status='active') RETURNING id
+    SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='chain_admin', created_by_admin_id, status='active', email_verified_at=now()) RETURNING id
+    Note over SM,DB: email_verified_at is set immediately here - a Groway admin creating<br/>the account from a real intake email already IS the verification (§6.0's<br/>gate only applies to the self-serve path, which has no human in the loop)
 
     SM->>DB: INSERT INTO store.chains (name, chain_admin_id) VALUES (chainName, <chain_admin id>) RETURNING id
 
@@ -276,7 +415,7 @@ sequenceDiagram
         Note over SM,DB: booking_settings.store_id is a bare PK, no default row appears on its own -<br/>every column here has a table-level DEFAULT (store-onboarding-v1-design.md §4), so this is enough
         SM->>SCOG: AdminCreateUser(Username=store.storeAdminEmail, ...)
         SCOG-->>SM: 200 OK { sub }
-        SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='store_admin', created_by_admin_id, status='active') RETURNING id
+        SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='store_admin', created_by_admin_id, status='active', email_verified_at=now()) RETURNING id
         SM->>DB: UPDATE store.stores SET store_admin_id = <new store_admin id> WHERE id = <store id>
         SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, is_primary)<br/>VALUES (<store_admin id>, <store id>, TRUE)
         SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, is_primary)<br/>VALUES (<chain_admin id>, <store id>, <TRUE for the first store, FALSE thereafter>)
@@ -288,7 +427,7 @@ sequenceDiagram
 
 The `chain_admin`'s default store (`is_primary = TRUE`) is the first store in the request list unless the caller says otherwise — a UI convenience, not a meaningful business choice, since `chain_admin` can see and switch to any of them regardless.
 
-### 6.2 Self-service: `chain_admin` adds a store
+### 6.2 Self-service: `chain_admin` adds a store (revised — `storeAdminEmail` is now optional)
 
 ```mermaid
 sequenceDiagram
@@ -299,23 +438,29 @@ sequenceDiagram
     participant DB as PostgreSQL (store schema)
     participant SQSQ as SQS (store-activity-log)
 
-    CA->>GW: POST /api/store/chains/stores<br/>{ name, geoPlaceId?, manualAddress?, storeAdminEmail }
+    CA->>GW: POST /api/store/chains/stores<br/>{ name, geoPlaceId?, manualAddress?, storeAdminEmail? }
     GW->>SM: (in-process, StoreSession, caller.appRole must be 'chain_admin')
     SM->>SM: Resolve caller's chain (§2.1)
     SM->>SM: Resolve store address (§2.2) - Mapbox retrieve or manual, validated against the chain's allowed_countries
     SM->>DB: INSERT INTO store.stores<br/>(chain_id, name, address_line1, address_line2, city, region, postal_code, country_code,<br/>formatted_address, latitude, longitude, geo_provider, geo_place_id, status='pending') RETURNING id
     SM->>DB: INSERT INTO store.booking_settings (store_id) VALUES (<new store id>)
-    SM->>SCOG: AdminCreateUser(Username=storeAdminEmail, ...)
-    SCOG-->>SM: 200 OK { sub }
-    SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='store_admin', created_by_store_user_id=CA.id, status='active') RETURNING id
-    SM->>DB: UPDATE store.stores SET store_admin_id = <new store_admin id> WHERE id = <new store id>
-    SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, is_primary, granted_by_store_user_id)<br/>VALUES (<new store_admin id>, <new store id>, TRUE, CA.id)
+    alt storeAdminEmail provided
+        SM->>SCOG: AdminCreateUser(Username=storeAdminEmail, ...)
+        SCOG-->>SM: 200 OK { sub }
+        SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='store_admin', created_by_store_user_id=CA.id, status='active') RETURNING id
+        SM->>DB: UPDATE store.stores SET store_admin_id = <new store_admin id> WHERE id = <new store id>
+        SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, is_primary, granted_by_store_user_id)<br/>VALUES (<new store_admin id>, <new store id>, TRUE, CA.id)
+    else storeAdminEmail omitted
+        Note over SM,DB: store_admin_id stays NULL - a nullable UNIQUE column (§2, §5),<br/>meaning "no dedicated store lead yet, chain_admin runs it directly."<br/>Not a degraded state: chain_admin's AuthorizedStoreIds already covers<br/>this store fully, so nothing here depends on store_admin_id being set.
+    end
     SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, is_primary, granted_by_store_user_id)<br/>VALUES (CA.id, <new store id>, FALSE, CA.id)
     SM->>SQSQ: SendMessage { event_type:'STORE_ADDED' }
-    SM-->>CA: 201 Created { storeId, storeAdminStoreUserId }
+    SM-->>CA: 201 Created { storeId, storeAdminStoreUserId: <id or null> }
 ```
 
 **`chain_admin` can create this `store_admin`, but gains no ongoing authority over it** (§1) — `created_by_store_user_id` records who set the account up, purely for audit; deactivating or resetting it afterward is Groway-admin-only, same as any other `store_admin` (`growayadmin-registration-workflow.md`). This is a deliberate asymmetry: creation is a narrow, one-time act bundled into "adding a store," not a general management capability.
+
+**Why `storeAdminEmail` became optional:** the old rule — a new store always gets a freshly-created `store_admin` at the moment it's added — was a holdover from when a Groway admin handled every store addition by hand and already had a real person's email in front of them (from the intake email). Self-service "add a store" is now the primary expansion path (§6.0, §1), usually run by a solo owner who doesn't have a second person to name yet. Forcing the field would either block the flow on a hiring decision or produce a throwaway email just to satisfy the form — worse than an honest `NULL`. A `chain_admin` can designate a `store_admin` for an existing store at any later point through the same creation call shape (not a separate endpoint — implementation detail, not designed further here), whenever a real person is actually ready to take it on.
 
 Right after this call, `store-onboarding-v1-design.md` §8 offers an optional next step: copying the whole service catalog (categories/services/options) from another store in the same chain, instead of re-entering it by hand.
 

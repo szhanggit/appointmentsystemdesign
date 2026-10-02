@@ -70,6 +70,14 @@
   </div>
 </div>
 
+<div class="modal fade" id="claimModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h6 class="modal-title font-display fw-bold">Link guest booking</h6>
+      <button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body" id="claimBody"></div>
+  </div></div>
+</div>
+
 <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
 
 <script src="../assets/vendor/jquery.min.js"></script>
@@ -82,16 +90,23 @@ function toast(msg){ const t=$(`<div class="toast align-items-center"><div class
 const EXTRA = [
   { customer:"Hannah Park", phone:"(416) 555-0140", visits:14, last:"Sep 28, 2026", spent:1180 },
   { customer:"Ivy Zhao", phone:"(647) 555-0133", visits:9, last:"Sep 25, 2026", spent:720 },
-  { customer:"Rachel Kim", phone:"(416) 555-0161", visits:6, last:"Sep 20, 2026", spent:410 }
+  { customer:"Rachel Kim", phone:"(416) 555-0161", visits:6, last:"Sep 20, 2026", spent:410 },
+  { customer:"Kevin Liu", phone:"(647) 555-0149", visits:0, last:"—", spent:0, isNew:true }
 ];
 function customers(){
   const m = {};
   DEMO.appointments.forEach(a=>{
     if(a.customer==="Walk-In") return;
-    m[a.customer] = m[a.customer]||{customer:a.customer,phone:a.phone,visits:0,last:"Oct 2, 2026",spent:0};
-    m[a.customer].visits++; m[a.customer].spent += a.price;
+    if(a.guest && !a.linkedTo) return;   // guest booking w/o record: not a customer yet
+    const k = a.phone;
+    m[k] = m[k]||{customer:a.customer,phone:a.phone,visits:0,last:"Oct 2, 2026",spent:0};
+    m[k].visits++; m[k].spent += a.price;
   });
-  return Object.values(m).concat(EXTRA).sort((a,b)=>b.spent-a.spent);
+  EXTRA.forEach(e=>{ const k=e.phone;
+    if(m[k]){ m[k].visits+=e.visits; m[k].spent+=e.spent; if(e.isNew) m[k].isNew=true; }
+    else m[k]=Object.assign({},e);
+  });
+  return Object.values(m).sort((a,b)=>b.spent-a.spent);
 }
 let current = null;
 function render(){
@@ -106,7 +121,7 @@ function render(){
 }
 $(document).on("click","#custRows tr",function(){
   current = customers()[+$(this).data("i")];
-  const hist = DEMO.appointments.filter(a=>a.customer===current.customer);
+  const hist = DEMO.appointments.filter(a=>a.customer===current.customer && (!a.guest || a.linkedTo===current.customer));
   $("#custTitle").text(current.customer);
   $("#custBody").html(`
     <div class="detail-label mb-1">Contact</div>
@@ -125,7 +140,30 @@ $(document).on("click","#custRows tr",function(){
   new bootstrap.Offcanvas($("#custPanel")[0]).show();
 });
 $("#searchBox").on("input", render);
-$("#linkGuest").click(()=>toast(`Guest booking linked to ${current?current.customer:"customer"}`));
+/* Claim flow — mirrors POST /api/store/customers/{id}/claim {appointment_id}:
+   only unlinked guest bookings (customer_id IS NULL); already-linked → 409. */
+function linkable(){ return DEMO.appointments.filter(a=>a.guest && !a.linkedTo && a.phone===current.phone); }
+$("#linkGuest").click(()=>{
+  if(!current) return;
+  const list = linkable();
+  $("#claimBody").html(list.length ? list.map(a=>`
+    <div class="border rounded p-3 mb-2" id="claim-${a.id}">
+      <div class="d-flex justify-content-between align-items-center">
+        <div><strong>${a.service}</strong>
+          <div class="small text-muted">${a.start} · ${a.phone} · <span class="badge bg-info">Guest — no record</span></div></div>
+        <button class="btn btn-sm btn-primary" onclick="doClaim('${a.id}')">Link to ${current.customer}</button>
+      </div></div>`).join("")
+    : `<p class="text-muted small mb-0">No unlinked guest bookings for this phone number.</p>`);
+  new bootstrap.Modal($("#claimModal")[0]).show();
+});
+function doClaim(id){
+  const a = DEMO.appointments.find(x=>x.id===id);
+  if(!a || a.linkedTo){ toast("Already linked (409)"); return; }  // idempotency: never double-link
+  a.linkedTo = current.customer;   // appointments.customer_id = id ; guest_* snapshot untouched
+  $(`#claim-${id}`).html(`<div class="text-success small">✓ Booking ${id} linked to ${current.customer}. The guest snapshot is kept for audit.</div>`);
+  toast(`Booking ${id} linked to ${current.customer}`);
+  render();
+}
 $("#saveNotes").click(()=>toast("Notes saved"));
 render();
 </script>

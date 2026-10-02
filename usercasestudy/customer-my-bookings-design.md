@@ -54,7 +54,7 @@ Two identities, two lookup paths:
 `PATCH /api/customer/bookings/{id}/reschedule` — same auth as §3.3.
 
 - Body: `{ new_staff_id?, new_start }` (`new_start` in store-local time).
-- Runs the full re-validation + in-place `UPDATE` (`create-appointment-transaction-design.md` §10); a conflict returns `409 SLOT_TAKEN` (staff busy) or `409 CAPACITY_FULL` (store-wide capacity full, independent of staff availability) — either way the original booking is left untouched.
+- Runs the full re-validation + in-place `UPDATE` (`create-appointment-transaction-design.md` §10); a conflict returns `409 SLOT_TAKEN` (staff busy) or `409 CAPACITY_FULL` (store-wide capacity full, independent of staff availability) — either way the original booking is left untouched. The chain-wide phone cap never applies to a reschedule (no new row, count unchanged); the per-store blocklist still does, with no override available on this self-serve channel (`create-appointment-transaction-design.md` §1 decisions 10–11).
 - Also bound by `cancel_threshold_hours` (logically a cancel-and-rebook).
 - Success → event → reschedule confirmation SMS; the reminders scheduler resets the sent-at flags per `customer-booking-confirmation-reminders-design.md` §3 (new time gets its own reminders).
 

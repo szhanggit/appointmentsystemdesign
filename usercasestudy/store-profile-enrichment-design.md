@@ -75,7 +75,7 @@ CREATE TABLE store.reviews (
 
 - Back office: a "Pending photos" list — thumbnail, store/staff name, upload time, [Approve] / [Reject + reason]. Batch-approve supported.
 - No AI-assisted moderation and no appeals flow in v1.1.
-- A rejection notifies the store through whichever notification channel is already live (in-app once it exists, email until then) — no new channel is built for this.
+- A rejection notifies the chain's `chain_admin` via the message board (`groway-store-notifications-workflow.md` §1's general rule: resolve any store-level notice to `chain_admin`, never literally "whoever `store_admin_id` points to," since that column can be `NULL`) — no new channel is built for this.
 - No moderation SLA is committed; pilot-scale volume keeps the manual queue small.
 
 ## 5. Detail page changes (extends `beauty-map-ui-design.md` page 4)

@@ -271,10 +271,10 @@ function renderDay(){
       const c = CAT_COLORS[a.cat]||"#14655a";
       const grp = a.group?`<span class="group-tag">${a.group} · group</span> `:"";
       const multi = a.staff.length>1?`<div class="opacity-75">${a.staff.join(" + ")}</div>`:"";
-      html += `<div class="appt-block ${a.group?"group":""}" data-id="${a.id}" title="${a.customer} — ${a.service}"
+      html += `<div class="appt-block ${a.group?"group":""}" data-id="${a.id}" title="${apptCustomer(a)} — ${a.service}"
         style="top:${topFor(a.start)}px;height:${Math.max(hFor(a.start,a.end)-3,30)}px;background:${c};border-left-color:${c}">
         <div class="fw-bold">${a.start} – ${a.end}</div>
-        <div>${a.customer}</div><div class="opacity-75">${a.service}</div>${grp}${multi}</div>`;
+        <div>${apptCustomer(a)}</div><div class="opacity-75">${a.service}</div>${grp}${multi}</div>`;
     });
     timeOffs.filter(t=>t.staff===name).forEach(t=>{
       html += `<div class="off-block" style="top:0;height:100%">${t.reason}<br><span class="small">Time off</span></div>`;
@@ -292,7 +292,7 @@ function renderWeek(){
     html += `<div class="week-cell flex-fill"><div class="small fw-bold mb-1 ${di===0?"text-primary":""}">${d}</div>`;
     const list = di===0 ? DEMO.appointments.slice(0,6) : null;
     if(list){
-      list.forEach(a=>{ html += `<div class="week-mini" data-id="${a.id}" style="background:${CAT_COLORS[a.cat]}">${a.start} ${a.customer}</div>`; });
+      list.forEach(a=>{ html += `<div class="week-mini" data-id="${a.id}" style="background:${CAT_COLORS[a.cat]}">${a.start} ${apptCustomer(a)}</div>`; });
     } else {
       for(let i=0;i<4;i++){
         const s = DEMO.services[(i*3+di)%DEMO.services.length];
@@ -316,7 +316,7 @@ function renderList(){
       <div class="small text-muted" style="width:150px">${a.start} - ${a.end}</div>
       <span class="rounded-circle d-inline-block" style="width:12px;height:12px;background:${CAT_COLORS[a.cat]}"></span>
       <div class="small text-muted" style="width:90px">#${a.id.replace("A-","")}</div>
-      <div style="width:230px"><div class="fw-bold small">${a.customer}</div><div class="small text-muted">${a.phone}</div></div>
+      <div style="width:230px"><div class="fw-bold small">${apptCustomer(a)}</div><div class="small text-muted">${a.phone}</div></div>
       <div class="flex-grow-1 small">${a.service} <span class="text-muted">(${a.mins}mins)</span>
         ${a.group?`<span class="badge bg-warning text-dark ms-1">${a.group}</span>`:""}</div>
       <div class="small text-muted">Staff: ${a.staff.join(", ")}</div>
@@ -354,7 +354,7 @@ function openDetail(id){
     </div>
     <div class="d-flex justify-content-between small fw-bold border-top pt-2"><span>Total</span><span>${a.mins}mins · $${a.price}.00</span></div>
     <div class="detail-label mt-3 mb-1">Contact info</div>
-    <div class="small">${a.customer}<br><span class="text-muted">${a.phone}${a.email?" · "+a.email:""}</span></div>
+    <div class="small">${apptCustomer(a)}<br><span class="text-muted">${a.phone}${a.email?" · "+a.email:""}</span></div>
     <div class="detail-label mt-3 mb-2">Activities</div>
     <div class="tl">${tl.map(t=>`<div class="tl-item"><span class="timeline-dot"></span>
       <div class="small fw-bold">${t[0]}</div><div class="small text-muted">${t[1]} — ${t[2]}</div></div>`).join("")}</div>`);

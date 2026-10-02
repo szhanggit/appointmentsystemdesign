@@ -13,6 +13,7 @@ Baseline: step order is service → staff → time → contact info → confirm.
 5. **`409 CAPACITY_FULL` gets an explicit message, not a silent refresh** — unlike `SLOT_TAKEN`, a full store is store-wide state, and at peak times neighboring slots are often full too; silently refreshing would make the customer repeatedly hit the same wall with no explanation.
 6. **One flow, three entry URLs.** The map/profile pages (`beauty-map-ui-design.md`, `staff-profile-design.md`) all deep-link into this same flow with an optional preselection — a store-detail page, a staff profile's "Book them" CTA, and a service row's "Book" button all land on `/book/{store_id}` with a different optional query param (§4). There's exactly one booking flow to maintain, never a parallel "quick book" path.
 7. **A deposit, when required, is its own step** — not folded into Step 5's review. `payment_required=true` stores insert a Payment step between Review and Confirmation (§3), so the customer sees "review" and "pay" as two distinct, clearly-labeled moments rather than one combined screen.
+8. **The phone-cap heads-up lives on the confirmation screen, after a successful booking — never as a pre-submit lookup.** A separate "check how many bookings this phone has" call, triggered as the customer types their number in Step 4, would be a standalone oracle: anyone could probe an arbitrary phone number's booking activity with no booking attempt required. Instead, the create endpoint's own response already carries `phone_upcoming_count` (`create-appointment-transaction-design.md` §3.1) — zero new queries, zero new endpoints, and the count is only ever disclosed to whoever just successfully booked with that number. The cost is timing: the customer learns they're near the cap one booking later than ideal (after their 5th succeeds, not while typing their 6th attempt) — acceptable, since "surprise" means learning only at the wall, and this always shows the heads-up at least once before that.
 
 ## 2. Flow
 
@@ -38,7 +39,7 @@ A step indicator at the top allows back-navigation (prior selections are kept). 
 
 **Step 6 — Payment** (only when `booking_settings.payment_required=true`). Submitting Step 5 creates the appointment (`pending`, `payment_status='awaiting'`) and immediately presents the Stripe Payment Element (`payment-deposit-preauth-design.md` §6) for the deposit — this is a distinct, clearly-labeled screen, not merged into Step 5's review. Confirmation only follows the `payment_intent.succeeded` webhook, same as that document's flow; a `payment_required=false` store never sees this step.
 
-**Confirmation screen.** Large `reference_code`, booking details, "Confirmation sent to {phone}." Buttons: [Download calendar (.ics)] [Book another]. Copy: "To reschedule or cancel, call {store_phone}" (self-serve management is `customer-my-bookings-design.md`, not linked from here in v1). A `pending` result (`auto_confirm=false` stores, or payment still awaiting) shows "Received — awaiting confirmation," matching the pending SMS template.
+**Confirmation screen.** Large `reference_code`, booking details, "Confirmation sent to {phone}." Buttons: [Download calendar (.ics)] [Book another]. Copy: "To reschedule or cancel, call {store_phone}" (self-serve management is `customer-my-bookings-design.md`, not linked from here in v1). A `pending` result (`auto_confirm=false` stores, or payment still awaiting) shows "Received — awaiting confirmation," matching the pending SMS template. When the `201` response's `phone_upcoming_count` is at or above the cap minus one (default cap 5, so `count >= 4`), also show a non-blocking line: "Heads up: you now have {count} upcoming appointments with {store} — that's the limit for online booking, please call us for more." (§1 decision 8).
 
 ## 4. Submit request (Step 5 → Step 6 or Confirmation)
 
@@ -53,6 +54,8 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 - `409 SLOT_TAKEN` → no error page: toast "That time was just taken," silently re-query that day's slots, restore Step 3 state with the refreshed list.
 - `409 CAPACITY_FULL` → **does not** silently refresh like `SLOT_TAKEN`: show an explicit message, "This time is fully booked — try another time," then re-query that day's slots (still auto-refreshed, just with a visible, distinct message rather than a quiet swap).
 - `409 QUOTA_EXHAUSTED` → full-page message (billing §4.3 copy): "This store's monthly booking limit is reached — please call {store_phone}."
+- `409 PHONE_LIMIT` → full-page message with the escape door spelled out (`create-appointment-transaction-design.md` §15 copy): "You've reached the limit of 5 upcoming bookings for this phone number — please call {store_phone} and we'll book you in right away." Not a silent retry — this phone number is capped chain-wide, re-querying slots won't help.
+- `403 PHONE_BLOCKED` → full-page message, no override option on this channel (overriding is staff-only, `staff-manual-booking-calendar-design.md` §6): "We're unable to complete this booking online — please call {store_phone}."
 - `409 STAFF_NOT_AVAILABLE` / `400`-series → return to the relevant step, highlighted.
 - Network failure/timeout: **no automatic retry** — the user taps "Retry," which resends with the **same** `Idempotency-Key` (server-side dedup guarantees only one booking, test case §8.3).
 
@@ -84,7 +87,7 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 | 1 | `GET /api/store/services` | `store-onboarding-v1-design.md` §7 |
 | 2 | `GET /api/store/staff` | deferred, §9 |
 | 3 | `GET /api/store/public/slots` | `availability-slot-engine.md` §7 |
-| 5 | `POST /api/store/public/appointments` | `create-appointment-transaction-design.md` §3.1 |
+| 5 | `POST /api/store/public/appointments` (response carries `phone_upcoming_count`, no separate lookup) | `create-appointment-transaction-design.md` §3.1, §6.3 |
 | 6 | Stripe Payment Element / webhook | `payment-deposit-preauth-design.md` §6 |
 | Confirmation | `.ics` generated client-side | §1 decision 2 |
 | SMS / Email | outbox → relay | `customer-booking-confirmation-reminders-design.md` |
@@ -103,6 +106,8 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 10. `/book/{store_id}?staff_id=<unknown>` and `?service_id=<unknown>` → the param is ignored, flow starts at its normal default, no `400`.
 11. `/book/{store_id}?staff_id=xxx` from a staff profile → Step 2 opens preselected to that staff member, still changeable.
 12. `payment_required=true` store → Step 6 appears after Review; `payment_required=false` → Step 5 goes straight to Confirmation.
+13. A phone's 5th successful booking → confirmation screen shows the heads-up line; its 6th attempt → full-page `PHONE_LIMIT` message with the escape-door copy, not a silent re-query.
+14. A blocklisted phone → full-page `PHONE_BLOCKED` message, no retry/override control anywhere on this flow.
 
 ## 9. Deferred
 

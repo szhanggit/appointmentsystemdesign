@@ -115,7 +115,8 @@ const DEMO = {
       start: "10:00 AM", end: "11:30 AM", status: "No-Show", source: "Online", cat: "facial" },
     { id: "A-1808142", customer: "Kevin Liu", phone: "(647) 555-0149",
       service: "Deluxe Royal Head Spa", mins: 90, price: 185, staff: ["Amy"],
-      start: "6:00 PM", end: "7:30 PM", status: "New", source: "Online", cat: "headspa" }
+      start: "6:00 PM", end: "7:30 PM", status: "New", source: "Online", cat: "headspa",
+      guest: true },   // booked online as guest: customer_id IS NULL, guest_* snapshot only
   ],
   myBookings: [
     { ref: "GW-8X2K4N", store: "Selah Head Spa", service: "Signature Soothing Head Spa",
@@ -126,5 +127,8 @@ const DEMO = {
 };
 const STATUS_COLORS = { "New": "info", "Confirmed": "success", "Arrived": "primary",
   "Serving": "warning", "Completed": "secondary", "Cancelled": "danger", "No-Show": "dark" };
+/* Display name for an appointment's customer: unlinked guest bookings show as "Guest"
+   (customer_id IS NULL — the claim flow links them via POST /customers/{id}/claim). */
+function apptCustomer(a){ return (a.guest && !a.linkedTo) ? "Guest" : a.customer; }
 const CAT_COLORS = { headspa: "#14655a", facial: "#b0578d", massage: "#6a5acd",
   nails: "#b98a2f", foot: "#2f6f9f", "lashes-brows": "#8a6d3b", "med-aesthetics": "#4a7c59" };

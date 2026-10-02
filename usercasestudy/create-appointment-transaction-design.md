@@ -22,6 +22,8 @@ Baseline facts (established elsewhere, referenced here, not re-argued):
 7. **`confirmed` past `ends_at` is auto-marked `completed`** by a sweeper — staff forget to do this manually, and downstream reporting needs it reliable.
 8. **`payment_required=true` creates a `pending` row hooked to payment**; the payment provider integration itself is `payment-deposit-preauth-design.md`.
 9. **Store-level concurrent capacity (beds/chairs) is a second, independent dimension** on top of per-staff availability — a store can have fewer beds than staff (e.g. 3 staff, 2 beds). It's enforced with a different mechanism than per-staff double-booking because the invariant has a different shape: staff conflicts are **pairwise** ("no two overlapping rows for the same staff"), capacity is **counting** ("at most N concurrent rows store-wide") — see §6.2.
+10. **A chain-wide phone cap is a third, independent dimension**, defending against anonymous scraping/abuse rather than monetization — the same normalized phone number can't hold more than `platform.abuse_config.max_upcoming_per_phone_per_chain` (default 5) unresolved upcoming bookings across the whole chain. It's counting-shaped like capacity, so it gets the same tool (an advisory lock, §6.3) — but it's **public-channel only** (§3.1), never the staff path (§3.2): staff manual entry already has human judgment and an audit trail behind it, and blocking a front-desk booking with no escalation path makes no sense.
+11. **A per-store phone blocklist is a fourth, independent dimension**, store-scoped rather than chain-scoped (a person one store bans may be another store's regular, so chain-wide would over-reach) — unlike the phone cap, this check runs on **every** channel, because the whole point is "this specific store doesn't want this number," not an anonymity-abuse defense. Staff (not the public endpoint) can override it for a single booking, with a mandatory reason, logged — see §9 step 1.5 and §15.
 
 ## 2. State machine
 
@@ -80,12 +82,14 @@ Headers: `Idempotency-Key` (optional, §8).
       "duration_minutes": 60, "price_cents": 8800, "starts_at": "...", "ends_at": "..." }
   ],
   "total_price_cents": 8800,
-  "expires_at": "2026-10-05T09:15:00 | null"
+  "expires_at": "2026-10-05T09:15:00 | null",
+  "phone_upcoming_count": 3
 }
 ```
 
 - `expires_at` is set only when `status='pending'`.
 - `reference_code`: 8-character uppercase alphanumeric, globally unique, the customer-facing booking number.
+- `phone_upcoming_count`: the count §6.3's phone-cap check just computed for this booking's phone number, chain-wide, **including this new booking**. Returned only on this public endpoint (§3.1) — the staff endpoint (§3.2) never runs that check, so the field is always `null` there. This exists purely so the client can show a heads-up when the count reaches the cap without a separate, abusable lookup endpoint (`public-booking-end-to-end-design.md` §3).
 
 ### 3.2 Staff create (phone / walk-in / back-office entry)
 
@@ -94,9 +98,11 @@ Headers: `Idempotency-Key` (optional, §8).
 Same body as §3.1, plus:
 - `is_test: bool` (default `false`) — the manual-booking test checkbox. The public endpoint always forces `false`.
 - `contact.customer_id` optional — resolved from the store's customer records; record lookup/dedup rules live elsewhere.
+- `override_phone_block_reason: string | null` — only meaningful if the submitted phone is on this store's blocklist (§9 step 1.5); required to proceed past a hit, logged to the activity timeline. The UI presents this as a confirmation dialog ("this number is blocklisted — allow this one booking anyway?"), not a bare form field.
 
 Differences from §3.1:
 - `is_test=true` is allowed here only.
+- The phone cap (§6.3) never runs here — only §3.1 (decision 10). A blocklist hit (§9 step 1.5) can be overridden here; it cannot on the public endpoint.
 - `min_lead_minutes` is skipped — a staff member booking a walk-in shouldn't be blocked by a lead-time rule meant for self-serve customers. Business hours, schedule, and double-booking checks still apply unconditionally.
 - Runs through the exact same transaction (§7) — no second code path. Any manual-entry route that bypasses quota or double-booking checks is a bug, not a feature.
 
@@ -159,6 +165,43 @@ Taken as step 0 of the creation and reschedule transactions (§7). This is **not
 
 Cost: one store's creates/reschedules serialize against each other; different stores don't interact. At v1 scale (single store, low concurrency) lock hold time is one transaction (milliseconds) — negligible.
 
+### 6.3 Phone cap (anti-abuse): a second advisory lock, fixed acquisition order
+
+Same counting shape as capacity (§6.2), same mechanism, different key — and public-channel only (decision 10). An off-by-one here is not a tolerable rounding error: the race it would let through (two concurrent requests both reading "4 upcoming" and both proceeding to 6) happens exactly when an attacker is hammering the endpoint concurrently, which is the one moment the cap actually matters.
+
+```sql
+SELECT pg_advisory_xact_lock(hashtext('phone_cap:' || chain_id::text || ':' || normalized_phone));
+```
+
+**Lock acquisition order is fixed and must never be reversed**: the capacity lock (§6.2, store-scoped) is always acquired first, at transaction step 0; this lock is acquired second, at step 4.5 (§9), only on the public channel. PostgreSQL advisory locks don't prevent deadlocks between different keys on their own — that's purely an application discipline. With only two lock types in the system, pinning the order here (rather than leaving it to convention) is cheap insurance against a future third lock being added in the wrong relative order by a different code path.
+
+**Count query** — chain-wide, joining both ways a phone number can appear on an appointment, `DISTINCT` to avoid double-counting a claimed booking that matches on both sides:
+
+```sql
+SELECT COUNT(DISTINCT a.id)
+FROM store.appointments a
+JOIN store.stores s ON s.id = a.store_id
+LEFT JOIN customer.customers c ON c.id = a.customer_id
+WHERE s.chain_id = :chain_id
+  AND a.status IN ('pending', 'confirmed')
+  AND (normalize_phone(a.guest_phone) = :normalized_phone
+       OR normalize_phone(c.phone) = :normalized_phone);
+```
+
+Without the `DISTINCT`, a guest appointment that gets claimed onto a customer record afterward (`customer-records-design.md` §4.4) would match both the `guest_phone` and the `customer_id → customers.phone` branches and count twice — letting someone book 5 as a guest, get claimed, then book 5 more. Phone normalization reuses the existing E.164 convention (`customer-records-design.md` §2). A count `>= platform.abuse_config.max_upcoming_per_phone_per_chain` (default 5) fails the request with `409 PHONE_LIMIT` (§15); the count **including the new booking**, when it succeeds, is returned to the client as `phone_upcoming_count` (§3.1) rather than queried separately.
+
+```sql
+CREATE SCHEMA IF NOT EXISTS platform;
+
+CREATE TABLE platform.abuse_config (
+  key        TEXT PRIMARY KEY,
+  value_int  INT NOT NULL
+);
+INSERT INTO platform.abuse_config (key, value_int) VALUES
+  ('max_upcoming_per_phone_per_chain', 5);
+-- one global value, Groway-admin editable; no per-store/per-chain override UI in v1
+```
+
 ## 7. Multi-service sequencing
 
 ```
@@ -206,10 +249,23 @@ BEGIN
      (unconditional — negligible overhead for a capacity=NULL store, no branch needed)
   1. Validate input: store/service/option/staff existence (cross-store → 404),
      items non-empty, 'from' requires option_id, start is well-formed.
+  1.5. Blocklist check (both channels — §1 decision 11): SELECT 1 FROM
+     store.phone_blocklist WHERE store_id = :store_id AND phone =
+     normalize_phone(:contact_phone). Hit → 403 PHONE_BLOCKED, unless the
+     staff endpoint (§3.2) passed override_phone_block_reason (non-empty) —
+     then proceed, and write the override to the activity timeline (not the
+     blocklist row itself, which stays untouched; the next booking from this
+     number is blocked again).
   2. Resolve staff: use staff_id if given; otherwise §5.
   3. Compute duration/buffers/sequencing (§7) → starts_at/ends_at.
   4. Slot re-validation (§4, including capacity): fails → 409 SLOT_TAKEN or
      409 CAPACITY_FULL (rollback, no side effects).
+  4.5. Public channel only (§3.1; skipped entirely for §3.2 staff create and
+     for reschedule, §10): SELECT pg_advisory_xact_lock('phone_cap:...') (§6.3,
+     always after the step-0 capacity lock) → COUNT → >= cap → 409 PHONE_LIMIT
+     (rollback, no side effects, no quota touched). This runs before quota for
+     the same reason step 4 does: don't charge quota for a request that was
+     going to fail anyway.
   5. Quota: is_test=false → BillingQuotaService.TryConsumeAsync(storeId), same
      transaction; failure → 409 QUOTA_EXHAUSTED (rollback). is_test=true → skip.
   6. Generate reference_code (8 chars; unique-violation → retry).
@@ -239,6 +295,7 @@ Order matters: lock first, re-validate before consuming quota — don't charge q
 - No new row, so no additional quota charge.
 - Customer self-reschedule is bound by `cancel_threshold_hours` too (it's logically a cancel-and-rebook); staff can reschedule any time.
 - The exclusion constraint is sufficient concurrency protection for v1; a stronger optimistic lock (version column) is deferred (§18).
+- Reschedule never runs the phone-cap check (§6.3/§9 step 4.5): it doesn't create a new row, so the phone's upcoming count is unchanged by it. It **does** still run the blocklist check (step 1.5) — a store that doesn't want this number shouldn't have it rescheduled into a new slot either.
 
 **Terminal transitions:**
 - `no_show`: staff-marked only.
@@ -320,6 +377,8 @@ CREATE TABLE store.outbox (
 | 409 | `STAFF_NOT_AVAILABLE` | Requested staff exists but has no availability that day |
 | 409 | `QUOTA_EXHAUSTED` | Free-plan monthly quota exhausted (`groway-billing-workflow.md` §4.3 copy) |
 | 409 | `CANCEL_TOO_LATE` | Customer cancel/reschedule inside `cancel_threshold_hours` |
+| 409 | `PHONE_LIMIT` | This phone already has `max_upcoming_per_phone_per_chain` upcoming bookings chain-wide (§6.3). Public channel only. Copy: "You've reached the limit of 5 upcoming bookings for this phone number — please call {store_phone} and we'll book you in right away." (the escape door matters — staff entry isn't subject to this cap, §1 decision 10) |
+| 403 | `PHONE_BLOCKED` | This phone is on this store's blocklist (§9 step 1.5). Staff can override with a reason (§3.2); the public endpoint cannot |
 | 422 | `IDEMPOTENCY_KEY_REUSED` | Same key, different request body |
 
 ## 16. Schema increment (ALTER on top of `store-onboarding-v1-design.md`)
@@ -361,9 +420,19 @@ CREATE INDEX idx_appointments_confirm_completion
 
 ALTER TABLE store.booking_settings
   ADD COLUMN pending_hold_minutes INT NOT NULL DEFAULT 15 CHECK (pending_hold_minutes > 0);
+
+-- Store-scoped blocklist (§1 decision 11, §9 step 1.5)
+CREATE TABLE store.phone_blocklist (
+  store_id    UUID NOT NULL REFERENCES store.stores(id),
+  phone       TEXT NOT NULL,      -- normalized, same E.164 convention as customer-records-design.md §2
+  reason      TEXT NOT NULL,
+  created_by  UUID NOT NULL REFERENCES store.store_users(id),  -- store_admin+ only, see growayshop-registration-workflow.md §1
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (store_id, phone)
+);
 ```
 
-`reference_code` generation: `upper(substr(md5(gen_random_uuid()::text), 1, 8))`, retry on collision. `store.idempotency_keys` (§8), `store.outbox` (§12), and `store.capacity_breaches` (§11) are new tables, defined in their own sections above.
+`reference_code` generation: `upper(substr(md5(gen_random_uuid()::text), 1, 8))`, retry on collision. `store.idempotency_keys` (§8), `store.outbox` (§12), `store.capacity_breaches` (§11), `store.phone_blocklist` (above), and `platform.abuse_config` (§6.3) are new tables, defined where introduced above.
 
 ## 17. Test cases
 
@@ -383,6 +452,10 @@ Concurrency (must pass under real parallel load, not just sequential simulation)
 12. `capacity=NULL` store: Step 5b and the capacity re-check are both skipped; behavior matches pre-capacity baseline (regression).
 13. Reschedule into a capacity-full window → `409 CAPACITY_FULL`, original appointment untouched.
 14. Cancelling one appointment in a full window makes that window's slots reappear.
+15. Public channel, same chain, phone already has 5 upcoming bookings → a 6th → `409 PHONE_LIMIT`, no new row; the staff endpoint (§3.2) for the same phone, same chain → `201` (channel-exempt, §1 decision 10).
+16. Concurrent: two public requests for the same phone in the same millisecond, both reading "4 upcoming" → one `201` (returning `phone_upcoming_count: 5`), one `409 PHONE_LIMIT`; never both succeed.
+17. Guest books 5 (public channel), gets claimed onto a customer record (`customer-records-design.md` §4.4), then tries to book a 6th → `409 PHONE_LIMIT` (the `DISTINCT` in §6.3's count query prevents the claimed booking from being counted twice and under-reporting).
+18. A blocklisted phone on the public endpoint → `403 PHONE_BLOCKED`, no override option offered. The same phone via staff entry with `override_phone_block_reason` set → `201`; without it → `403 PHONE_BLOCKED`. Either way, the blocklist row itself is untouched — the next booking attempt from that number is blocked again.
 
 ## 18. Deferred
 
@@ -391,3 +464,5 @@ Concurrency (must pass under real parallel load, not just sequential simulation)
 3. Waitlist.
 4. Repeated submissions under different `Idempotency-Key`s from the same abusive client — covered by IP/store rate limiting, no extra defense in v1.
 5. Per-bed/room assignment, room types, equipment-based capacity — explicitly out of scope; staff can see which physical bed is free, no system assignment needed. Variable capacity by time-of-day, capacity pre-holds, and waitlist integration with capacity are also out of scope.
+6. Same-phone/same-IP rate-based abuse detection (e.g. "N bookings in an hour") and OTP step-up for suspicious patterns — v1.1 and v2 respectively; the phone cap (§6.3) and blocklist (§9 step 1.5) are the only anti-abuse mechanisms in v1.
+7. Per-store/per-chain override of `platform.abuse_config.max_upcoming_per_phone_per_chain` — v1 is one global value, Groway-admin editable only.
