@@ -8,20 +8,10 @@ version. Expect this section to be rewritten once V1 pilot data exists.
 
 ### V2 — monetization & retention (the business grows up)
 
-- **[V1 proposed] `appointments.channel`** — every booking records how it was created:
-  `public_web`, `staff_manual`, later `ai_agent`, `ai_recall`, `ai_gapfill`. One column,
-  V1 cost near zero. Without it the exit line's "measured" is impossible — you cannot
-  prove AI filled incremental slots if AI bookings are indistinguishable from organic
-  ones. The single most time-sensitive item in this section. (Needs Steven's call to
-  enter V1 scope.)
-- **[V1 proposed] Marketing/AI-outreach consent at booking** — V3 AI recall sends
-  automated SMS to quiet customers (CASL). The legal basis must be captured in the
-  V1/V2 booking flow ("booking confirmations + occasional win-back messages");
-  retroactive consent is practically unobtainable. Pair with the legal review already
-  flagged for reminders. (Needs Steven's call to enter V1 scope.)
-- **[V1 proposed] `stores.policies_text TEXT NULL`** — free-text policies/FAQ per store
-  ("what's your cancellation policy?"). V1 has structured settings (threshold hours);
-  the AI front desk needs the unstructured rest. One nullable column now, consumed in V3.
+> 2026-10-02: `appointments.channel`, booking-time marketing/AI-outreach consent,
+> and `stores.policies_text` were approved into V1 scope — build checklist lives in
+> the V1 groundwork brief (local file, handed to Claude Code separately).
+
 - **[V2] Structured cancellation reasons** — AI gap-filling triggers on
   `appointment.cancelled` and needs the why: `customer_cancelled`, `no_show`,
   `staff_cancelled`, `rescheduled_away`. V1: emit the event with an extendable reason
