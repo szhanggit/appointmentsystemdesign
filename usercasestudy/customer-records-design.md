@@ -80,8 +80,8 @@ CREATE INDEX idx_customers_name_prefix ON customer.customers (name text_pattern_
 
 `POST /api/store/customers/{id}/claim` `{ "appointment_id": "uuid" }` — `StoreSession`.
 
-- Validates: the appointment belongs to this store, and `customer_id IS NULL` (already-linked → `409 ALREADY_LINKED`).
-- Success: `appointments.customer_id = id` (`guest_*` is left untouched — it stays the audit source).
+- Validates: the appointment belongs to this store, `customer_id IS NULL` (already-linked → `409 ALREADY_LINKED`), **and `{id}`'s customer record has a booking history in this chain** (2026-10-02 fix — the first two checks alone don't stop a cross-chain `customer_id` from being passed in, which would link a booking onto another chain's customer record, breaking chain-level data isolation; same chain-scoping as §4.1's search). Fails → `404`, the same "don't let the status code confirm existence outside your scope" convention used everywhere else in this project, not a `409` — this isn't a real conflict, it's an out-of-scope reference.
+- Success: `appointments.customer_id = id` **and `appointments.normalized_contact_phone = ` that customer's normalized phone** (2026-10-02 fix — `create-appointment-transaction-design.md` §6.3 already documented this as this endpoint's responsibility; it just wasn't written here yet. Without it, the phone-cap count keeps tallying the claimed booking against the old guest-typed number instead of the customer record's number, which is exactly the drift the snapshot column was built to avoid). `guest_*` is left untouched — it stays the audit source.
 - Emits `appointment.customer_linked` (reserved for future consumers; none in v1).
 
 ## 5. Permission matrix
@@ -123,6 +123,8 @@ The CASL basis for a future AI win-back SMS is captured per-booking (`create-app
 8. Guest books with `sms_marketing_consent=true`, is later claimed onto a customer record → that record's `sms_marketing_consent` becomes `true`.
 9. A customer with `sms_marketing_consent=true` already on record books again with the checkbox left unchecked → the customer record's value stays `true` (unchanged), even though this new booking's own row has `false`.
 10. A staff-entered booking for an existing customer, with the consent box checked → the same `UPDATE ... OR` path fires at creation time, no claim action needed.
+11. After a claim, `appointments.normalized_contact_phone` matches the customer record's phone, not the originally-typed `guest_phone` — a subsequent phone-cap count correctly tallies this booking against the customer's number.
+12. Claiming a booking onto a `customer_id` belonging to a different chain → `404`, the booking's `customer_id` left `NULL`.
 
 ## 9. Deferred
 
