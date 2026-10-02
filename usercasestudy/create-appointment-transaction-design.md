@@ -26,6 +26,7 @@ Baseline facts (established elsewhere, referenced here, not re-argued):
 11. **A per-store phone blocklist is a fourth, independent dimension**, store-scoped rather than chain-scoped (a person one store bans may be another store's regular, so chain-wide would over-reach) — unlike the phone cap, this check runs on **every** channel, because the whole point is "this specific store doesn't want this number," not an anonymity-abuse defense. Staff (not the public endpoint) can override it for a single booking, with a mandatory reason, logged — see §9 step 1.5 and §15.
 12. **`channel` is a purely descriptive record, never a branching input.** It's written once, at the step-7 `INSERT`, recording which code path (§3.1 or §3.2, and eventually an AI-agent path) created the row — not a column anything upstream of that `INSERT` reads to decide behavior. The existing endpoint-based branches (phone-cap §3.1-only, `min_lead_minutes` skip §3.2-only, `is_test` §3.2-only) stay exactly as they are: the row doesn't exist yet when those checks run, so `channel` physically cannot be their source of truth. A future AI-booking path sets its own `channel` value the same way §3.1/§3.2 do today — the caller always knows its own origin; the column just keeps the record.
 13. **Marketing-outreach consent is captured once, at creation, never inferred or assumed.** Both public and staff creation accept two independent opt-in booleans (SMS, email), defaulting to `false`, immutable on the appointment row afterward (same "a booking's origin is a fact" principle as `channel`) — the CASL legal basis this creates lives with that specific booking. Propagating it onto the customer record is `customer-records-design.md`'s concern (§7 there), not this document's.
+14. **`utm_source` is a free-text, unbounded companion to `channel` — captured once, at creation, immutable afterward (same posture as `channel`/consent).** `channel` (decision 12) stays purely code-path-derived and is never widened to carry marketing-attribution information — adding per-platform values to its CHECK constraint doesn't scale (social platforms are unbounded; a closed enum chasing them will always be one platform behind). Instead `utm_source` carries whatever value a public booking link's `?src=` query param held (`public-booking-end-to-end-design.md` §5) — `instagram`, `xiaohongshu`, `wechat`, or anything else a future campaign needs — stored verbatim, uninterpreted, `NULL` when the link carried none. This exists so a store can tell which social/marketing channel is actually converting (2026-10-02 decision) without this document ever branching on the value. Public-channel only in practice today (nothing on the staff or future AI paths has a URL `?src=` to read), but the column itself carries no channel restriction.
 
 ## 2. State machine
 
@@ -65,7 +66,8 @@ Headers: `Idempotency-Key` (optional, §8).
   "sms_marketing_consent": false,
   "email_marketing_consent": false,
   "consent_text_version": "string | null",
-  "consent_at": "2026-10-05T08:59:40 | null"
+  "consent_at": "2026-10-05T08:59:40 | null",
+  "utm_source": "string | null"
 }
 ```
 
@@ -74,6 +76,7 @@ Headers: `Idempotency-Key` (optional, §8).
 - `start` is store-local time and must land exactly on a currently-valid slot start (re-validated per §4).
 - `sms_marketing_consent`/`email_marketing_consent`: **two independent booleans, two independent checkboxes** (2026-10-02 decision — a single checkbox covering both channels was rejected: CASL's burden of proof needs to show exactly what was agreed to per channel). Both default `false` if omitted — never inferred from anything else on the request. `email_marketing_consent` is only ever meaningful when `contact.email` was given; capturing it with no email present is accepted but inert. UI copy/placement is `public-booking-end-to-end-design.md` §3 Step 4's concern (two unchecked-by-default checkboxes, CASL copy pending legal review).
 - `consent_text_version`/`consent_at`: set together whenever either consent boolean is `true` (the client's own record of which copy it displayed and when the box was checked) — a bare boolean is thin evidence for CASL's burden of proof; these two give an audit trail something to point to. `NULL`/`NULL` when neither consent box was checked.
+- `utm_source`: whatever value, if any, the booking link's `?src=` query param carried (`public-booking-end-to-end-design.md` §5) — passed through verbatim, `NULL` when the link carried none (§1 decision 14). Not validated against any fixed list — this is intentionally a free-text passthrough, never an enum.
 
 ```json
 // response 201
@@ -114,6 +117,7 @@ Differences from §3.1:
 - The phone cap (§6.3) never runs here — only §3.1 (decision 10). A blocklist hit (§9 step 1.5) can be overridden here; it cannot on the public endpoint.
 - `channel='staff_manual'` is set unconditionally, regardless of `is_test` — the two columns record different, independent facts (who created it vs. how it was created).
 - `sms_marketing_consent`/`email_marketing_consent` (and `consent_text_version`/`consent_at`) are accepted the same way as §3.1 — two independent booleans, default `false` — staff only check a box after asking the customer verbally; nothing here implies consent on the customer's behalf.
+- `utm_source` is accepted on this endpoint too (same field, same column), but in practice is always `NULL` here — there's no URL `?src=` on a phone call or walk-in for the back office to pass through.
 - `min_lead_minutes` is skipped — a staff member booking a walk-in shouldn't be blocked by a lead-time rule meant for self-serve customers. Business hours, schedule, and double-booking checks still apply unconditionally.
 - Runs through the exact same transaction (§7) — no second code path. Any manual-entry route that bypasses quota or double-booking checks is a bug, not a feature.
 
@@ -327,7 +331,8 @@ BEGIN
      consent_at set together whenever either consent boolean is true, §1
      decision 13; normalized_contact_phone = normalize_phone(contact.phone)
      — always the phone on the request, regardless of whether customer_id
-     also resolved, §6.3)
+     also resolved, §6.3; utm_source = the request's utm_source verbatim,
+     NULL when absent, §1 decision 14 — never branched on, purely recorded)
      + INSERT appointment_items (snapshots)
      + UPDATE idempotency_keys SET response_status=201, response_body=:body
        WHERE store_id=:store_id AND key=:key (if a key was supplied — the row
@@ -490,6 +495,13 @@ ALTER TABLE store.appointments
   -- flags) doesn't collide with the first and get silently ON CONFLICT
   -- DO NOTHING'd away.
   ADD COLUMN reschedule_seq INT NOT NULL DEFAULT 0,
+  -- Free-text marketing attribution (2026-10-02 decision, §1 decision 14) -
+  -- deliberately NOT an enum/CHECK: social platforms are unbounded, and a
+  -- closed list chasing them will always be one platform behind. Carries
+  -- whatever ?src= a public booking link held (public-booking-end-to-end-
+  -- design.md §5); channel itself is untouched and stays purely code-path-
+  -- derived (decision 12) - this column is the only attribution signal.
+  ADD COLUMN utm_source TEXT,
   ALTER COLUMN customer_id DROP NOT NULL;
   -- occupied_range and no_double_booking are defined once, in §6.1 — not restated here.
 
@@ -563,6 +575,8 @@ Concurrency (must pass under real parallel load, not just sequential simulation)
 23. Reschedule an appointment to a new time that overlaps its own current block (e.g. 10:00–11:00 moved to 10:30–11:30) → succeeds; `excludeAppointmentId` (§4) must keep the row from being treated as a conflict with itself.
 24. An `Idempotency-Key`'d request that fails outright (e.g. `409 SLOT_TAKEN` at step 1-4) → the whole transaction, including the step-0 idempotency claim, rolls back; retrying with the same key afterward is a genuinely fresh attempt, not a stuck "in-flight forever" row.
 25. Phone-cap's count query (§6.3) never issues a query against `customer.customers` — verifiable by inspection of the generated SQL, not just by test data.
+26. A public booking submitted with `utm_source: "instagram"` → the created row's `utm_source` is `"instagram"`, `channel` is still `public_web` (unaffected by decision 14). The same request with `utm_source` omitted → `utm_source` is `NULL`, everything else identical.
+27. A staff-created booking (§3.2) → `utm_source` is always `NULL`, regardless of what (if anything) the back-office client sends in that field.
 
 ## 18. Deferred
 

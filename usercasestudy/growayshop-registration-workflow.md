@@ -12,7 +12,7 @@
 
 **Terminology (2026-09-28, unifying prior inconsistent usage):** **Chain** = the business as a whole, one or more stores, one billing account. **Store** = one physical location or one independent practitioner. "Merchant" is retired.
 
-**Scope — deliberately narrow.** How a Groway admin creates a new chain (its `chain_admin` account plus one `store_admin` per store), how a `chain_admin` can self-service add a further store later, and the baseline login/session/password-reset mechanics shared by all three app roles. Out of scope: ongoing staff invitation (`growayshop-staff-invite-workflow.md`); any dashboard/calendar/booking feature API (`store-onboarding-v1-design.md` §6).
+**Scope — deliberately narrow.** How a chain comes onto Groway — self-service registration (§6.0, the primary path a `chain_admin` account and first store come into existence with no Groway admin involved) or a Groway admin creating a new chain by hand (§6.1, now the exception path: a large customer onboarding several stores at once, or a white-glove request) — how a `chain_admin` can self-service add a further store later (§6.2), and the baseline login/session/password-reset mechanics shared by all three app roles. Out of scope: ongoing staff invitation (`growayshop-staff-invite-workflow.md`); any dashboard/calendar/booking feature API (`store-onboarding-v1-design.md` §6).
 
 ---
 
@@ -34,7 +34,7 @@
 | Change the chain's `allowed_countries` (§6.7) | **Yes — the only role that can** | No (read-only, §6.7) | No |
 | Edit a store's address (§6.8) | Yes, any store in the chain | Yes, own store only | No |
 | Can deactivate/reactivate a `chain_admin` or `store_admin` | No — **only a Groway admin can** (`growayadmin-registration-workflow.md`) | No | No |
-| Who creates this account | Groway admin only (§6.1) | Groway admin (§6.1) or `chain_admin` (§6.2) | Groway admin, `chain_admin`, or `store_admin` (`growayshop-staff-invite-workflow.md`) |
+| Who creates this account | Self-registration (§6.0, primary path); Groway admin (§6.1, exception/large-customer path) | Groway admin (§6.1) or `chain_admin` (§6.2) | Groway admin, `chain_admin`, or `store_admin` (`growayshop-staff-invite-workflow.md`) |
 | Password reset | Self-service, like a customer | Self-service, like a customer | Self-service, like a customer |
 | How many per chain | **Exactly one, ever** | One per store | Any number |
 

@@ -15,6 +15,8 @@ Baseline: step order is service (now a 1–5 item basket) → staff → time →
 7. **Deposit/payment is V2 (`payment-deposit-preauth-design.md`'s own status tag) — V1 never shows a payment step, full stop.** An earlier version of this document treated Step 6 (Stripe Payment Element) as real, shipping V1 work; it isn't — payments/deposits were explicitly cut to backlog in the 2026-10-01/02 V1 scope decisions. `booking_settings.payment_required` stays in the schema (`create-appointment-transaction-design.md` §14's minimal hook: a reserved `payment_intent_id` column, nothing else) but V1 has no UI to turn it on and no provider wired up, so the flow is unconditionally Step 5 → Confirmation. When deposits actually ship, this decision — and Step 6 — get written for real against whatever `payment-deposit-preauth-design.md` looks like at that time.
 8. **The phone-cap heads-up lives on the confirmation screen, after a successful booking — never as a pre-submit lookup.** A separate "check how many bookings this phone has" call, triggered as the customer types their number in Step 4, would be a standalone oracle: anyone could probe an arbitrary phone number's booking activity with no booking attempt required. Instead, the create endpoint's own response already carries `phone_upcoming_count` (`create-appointment-transaction-design.md` §3.1) — zero new queries, zero new endpoints, and the count is only ever disclosed to whoever just successfully booked with that number. The cost is timing: the customer learns they're near the cap one booking later than ideal (after their 5th succeeds, not while typing their 6th attempt) — acceptable, since "surprise" means learning only at the wall, and this always shows the heads-up at least once before that.
 9. **A staff deep-link that's real but unqualified for the full basket degrades silently, never errors on load.** This is a deliberate narrowing of decision 6's general "deep links never break the funnel" rule to a case that rule didn't originally anticipate: the person exists (unlike an unknown `staff_id`, already ignored), they just can't do this specific combo. The preselection is dropped, the flow falls back to "Any available," and a non-blocking inline notice explains why ("{name} can't perform all selected services — showing everyone who can"). The hard `409 STAFF_NOT_QUALIFIED` (`create-appointment-transaction-design.md` §7) only exists as a create-time guard against a forced direct `POST` — it never fires from a page load, and this flow never shows it as a page-level error.
+10. **A chain-level landing page is V1 (2026-10-02 decision).** A multi-store chain has nothing to put as a single entry point in an Instagram/Xiaohongshu/WeChat bio — every existing entry point (§5) is store-level. `GET /c/{chain_id}` (§5a) fills that gap: a read-only directory of the chain's stores that hands off to this same `/book/{store_id}` flow, never a second booking surface. A link-management center (copy link, regenerate, per-link click stats) is explicitly **not** part of this — V1.1.
+11. **Attribution (`?src=`) is a free-text passthrough, not a closed list, and lives only on `/book/{store_id}`, never on `/c/{chain_id}`.** A booking link can carry `?src=<source>` (e.g. `instagram`, `xiaohongshu`, `wechat`); the value is recorded verbatim on the created appointment as `utm_source` (`create-appointment-transaction-design.md` §1 decision 14) so a store can tell which channel is actually converting. `appointments.channel` itself is untouched by this — it stays purely code-path-derived (that document's decision 12); a social-attributed booking is still, in every other respect, an ordinary `public_web` booking. The chain page (§5a) is deliberately a plain, unparameterized navigation hop with no attribution of its own — a chain can't yet attribute at the bio-link level in V1, only once a customer has picked a specific store and reached its `/book/{store_id}` link.
 
 ## 2. Flow
 
@@ -53,10 +55,12 @@ Below that, **two independent, unchecked-by-default marketing-consent checkboxes
 ```
 POST /api/store/public/appointments
 Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
-{ store_id, items: [{service_id, option_id}, ...], staff_id, start, contact: {name, phone, email}, notes: null, sms_marketing_consent, email_marketing_consent, consent_text_version, consent_at }
+{ store_id, items: [{service_id, option_id}, ...], staff_id, start, contact: {name, phone, email}, notes: null, sms_marketing_consent, email_marketing_consent, consent_text_version, consent_at, utm_source }
 ```
 
 `items` carries the basket in whatever order the customer built it — the server re-sorts by `sequence_order` before sequencing (`create-appointment-transaction-design.md` §7); the client never needs to pre-sort it.
+
+`utm_source` is whatever value the entry URL's `?src=` query param held (§5), captured once on page load and held for the whole flow the same way the `Idempotency-Key` is — `null` if the URL carried none. Passed straight through to `create-appointment-transaction-design.md` §1 decision 14; this flow never inspects or validates the value itself.
 
 - Button disables on click and stays disabled until the response returns.
 - `201` → confirmation screen (`reference_code`, `status`).
@@ -86,6 +90,21 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 - Unknown or non-`active` `store_id` → `404`, generic copy ("Online booking isn't available for this store"), no existence-leaking detail — this check runs regardless of which variant was used.
 - Confirmation URL carries no sensitive data (`reference_code` is shown once on the page, never in the URL).
 
+**Attribution — `?src=` (§1 decision 11).** Any of the three `/book/{store_id}` variants above also accepts an optional `&src=<source>` (e.g. `&src=instagram`), independent of and combinable with `staff_id`/`service_id` — e.g. `/book/{store_id}?service_id=xxx&src=xiaohongshu` is both a service preselection and an attributed link. The value is carried through as `utm_source` on the create request (§4) and stored verbatim on the appointment; an absent or unrecognized value is simply `null` — there's no fixed list to validate against. `/c/{chain_id}` (§5a) does **not** accept `src=` — attribution only exists once a customer reaches a specific store's booking link.
+
+**Store-owner playbook: promo deep links.** `?service_id=xxx` preselection isn't just a URL convention for a developer to notice — it's the standard social play a store owner should actually use: post a promo on social (a seasonal service, a new offering) with a `?service_id=xxx&src=<platform>` link, and the customer who taps it lands straight in the booking flow with that service already in the basket, one step closer to confirming than if they'd had to find it themselves in Step 1's full list. This is worth a line in the store's own onboarding materials (`growayshop-registration-workflow.md`), not something left for an owner to reverse-engineer from the URL bar.
+
+### 5a. Chain landing page (§1 decision 10)
+
+`GET /c/{chain_id}` — public, no login, read-only. For a chain with more than one store, lists them (nearest-first when the visitor's geolocation is available, otherwise in the chain's own store-creation order), each row showing name, address, distance (when known), and a `[Book]` button linking to that store's `/book/{store_id}`. This page carries no booking or availability logic of its own — it is purely a directory that hands off to the one existing booking flow.
+
+- **Single-store chain → `302` straight to `/book/{store_id}`.** There's nothing for a directory page to list, and forcing an extra click to see a list of one defeats the point of a single bio link.
+- Unknown `chain_id` → `404`, same generic, existence-hiding copy as an unknown `store_id` (§5).
+- A store with `status != 'active'` is omitted from the list entirely (not shown greyed-out) — same "don't advertise what can't be booked" posture as the map/detail pages. If every store in the chain is inactive, the page shows the chain name with a "no stores currently accepting online bookings" message rather than an empty list.
+- No `?src=` support (§1 decision 11) — this page is never itself an attribution target.
+- Not a new booking surface: this page's only interactive element is the `[Book]` link per store; everything past that click is the existing flow (§2–§4), unmodified.
+- Link management (copy the chain link, regenerate it, per-link click stats) is explicitly out of scope here — V1.1.
+
 ## 6. Responsive / UX notes (v1 minimum)
 
 - Mobile-first, single column, large touch targets (≥44px) for time slots.
@@ -102,6 +121,7 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 | 5 | `POST /api/store/public/appointments` (`items[]` 1–5, response carries `phone_upcoming_count`, no separate lookup) | `create-appointment-transaction-design.md` §3.1, §6.3, §7 |
 | Confirmation | `.ics` generated client-side | §1 decision 2 |
 | SMS / Email | outbox → relay | `customer-booking-confirmation-reminders-design.md` |
+| — | `GET /c/{chain_id}` chain landing page | §1 decision 10, §5a |
 
 ## 8. End-to-end test checklist
 
@@ -124,6 +144,10 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 17. A staff member qualified for only one of two basket items → absent from Step 2's list; a stale `?staff_id=` deep link for that person → silently dropped to "Any available" with the inline notice (§1 decision 9), page loads normally, no error.
 18. "Any available" with zero intersection-staff free for the combined block that day → empty `slots`, the ordinary "Fully booked today" copy, not an error page.
 19. A 6-item basket, or attempting to add a duplicate service → blocked client-side before Step 1 even allows "Continue"; a request that somehow reaches the server with either problem → `400`, caught by `create-appointment-transaction-design.md` §7 regardless.
+20. `/book/{store_id}?src=instagram` → the created appointment's `utm_source` is `"instagram"`; `/book/{store_id}` with no `src` → `utm_source` is `null`. Either way `channel` is `public_web`, unaffected (§1 decision 11).
+21. `/book/{store_id}?service_id=xxx&src=xiaohongshu` → both effects apply together: Step 1 opens with that service pre-added, and the resulting booking's `utm_source` is `"xiaohongshu"`.
+22. `/c/{chain_id}` for a two-store chain → a list of both stores, each `[Book]` linking to its own `/book/{store_id}`; the same URL for a single-store chain → `302` straight to that store's `/book/{store_id}`.
+23. `/c/{chain_id}` for an unknown chain → `404`, generic copy; for a chain whose only store is `status != 'active'` → the "no stores currently accepting online bookings" message, not an empty list rendered as if nothing were wrong.
 
 ## 9. Deferred
 
@@ -132,3 +156,4 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 3. Tips (gratuity) — distinct from deposits.
 4. Parallel/simultaneous multi-staff bookings (e.g. two technicians on one customer at once) — stays staff-manual, in-store request only (`V1Backlog.md`); never offered through this public flow.
 5. **Deposit/payment collection (V2) — `payment-deposit-preauth-design.md` is the full design, kept ready, not built.** The whole Payment Element flow, the `payment_intent.succeeded` webhook, and the `payment_required` setting having any real UI consequence all wait for this to actually ship.
+6. **Link management center (V1.1)** — copying a chain or store booking link, regenerating one that's leaked, and per-link click statistics. §5/§5a's links work in V1; managing them as a first-class back-office feature doesn't.

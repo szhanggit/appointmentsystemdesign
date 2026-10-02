@@ -56,7 +56,7 @@ Quota enforcement hooked into appointment creation, pooled-per-chain quota track
 Customer identity, search, guest-to-account claiming, and marketing-consent storage. Depends on `create-appointment-transaction-design.md` for the guest-snapshot columns it reconciles against and `growayshop-registration-workflow.md` for the chain-membership model.
 
 ### [`public-booking-end-to-end-design.md`](public-booking-end-to-end-design.md)
-The full customer-facing booking flow (multi-service basket, consent checkboxes, confirmation), assembling `availability-slot-engine.md`, `create-appointment-transaction-design.md`, and `customer-records-design.md` into one end-to-end experience.
+The full customer-facing booking flow (multi-service basket, consent checkboxes, confirmation), assembling `availability-slot-engine.md`, `create-appointment-transaction-design.md`, and `customer-records-design.md` into one end-to-end experience. Also owns the multi-store chain landing page (`/c/{chain_id}`, a directory that hands off into this same flow) and the `?src=` social-attribution query param.
 
 ### [`staff-manual-booking-calendar-design.md`](staff-manual-booking-calendar-design.md)
 The staff-side back-office calendar and manual booking entry. Reuses the same creation transaction and customer records as the public flow, adding staff-specific permissions and blocklist-override UI.
@@ -97,7 +97,7 @@ The customer-facing map/search UI consuming nearby-search and filtering. Depends
 Store detail-page content: about text, photos, policies text, reviews. Depends on `store-onboarding-v1-design.md` for the base store record and `beauty-map-ui-design.md` as the primary entry point into this page.
 
 ### [`staff-profile-design.md`](staff-profile-design.md)
-Staff public profiles (bio, photos, languages, stats) with staged self-edit columns pending store-admin review. Depends on `store-profile-enrichment-design.md` for the shared photo table and `public-booking-end-to-end-design.md` for the booking CTA deep link.
+Staff public profiles (bio, photos, languages, stats). Scope is split: V1 ships the public page and admin-entered content only; self-service editing and its staged-column review workflow are V1.1, pending a not-yet-designed staff-facing "My Profile" page. Depends on `store-profile-enrichment-design.md` for the shared photo table and `public-booking-end-to-end-design.md` for the booking CTA deep link.
 
 ## 11. Backlog
 
