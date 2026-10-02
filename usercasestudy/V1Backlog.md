@@ -1,5 +1,12 @@
 # V1 Backlog
 
+> **V1 design frozen as of 2026-10-02** (commit `704c6ca` and everything before it
+> is the frozen V1 design). After this point, design changes go through the
+> amendment rule, not silent edits: an implementation-discovered design bug gets
+> a dated amendment note (what changed, why, which commit) — either in the
+> affected doc's own amendment log or here. A doc that no longer matches the
+> running code is worse than no doc.
+
 Everything not in V1 scope lives here. **Rule:** when an item is promoted into
 V1, its design moves into the relevant `usercasestudy/` doc and the line is
 deleted here — a backlog that still lists shipped features is a lie.
