@@ -27,7 +27,6 @@ design into the relevant `usercasestudy/` doc and delete the line here.
 - Full review system: review-writing UI, moderation, scoring, staff-tagged display
   (`store.reviews.staff_id` is already reserved in the schema).
 - Surfacing `min_rating` in the map UI (the API param already exists and is inert in V1).
-- Real notification sending — SMS/email reminders (templates are designed; sending is V1.1).
 - Member accounts: login, "My bookings" link from the confirmation screen, saved payment methods.
 - Favorites / recently viewed stores.
 - Full customer profiles + visit history (beyond guest snapshots + claim; the record the AI recall layer will eventually read).
