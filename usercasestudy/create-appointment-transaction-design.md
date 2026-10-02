@@ -63,20 +63,23 @@ Headers: `Idempotency-Key` (optional, §8).
   "contact": { "name": "string", "phone": "string", "email": "string | null" },
   "notes": "string | null",
   "sms_marketing_consent": false,
-  "email_marketing_consent": false
+  "email_marketing_consent": false,
+  "consent_text_version": "string | null",
+  "consent_at": "2026-10-05T08:59:40 | null"
 }
 ```
 
 - `items` has 1–5 entries (§7's validation enforces the range and rejects duplicates on this channel); a `price_type='from'` service must carry `option_id` (`OPTION_REQUIRED`, same as the slot engine). Multi-item baskets are promoted, public-facing V1 (sequential-only, merchant-ordered — `availability-slot-engine.md` §1/§9 item 3); parallel/simultaneous multi-staff bookings stay staff-manual, in-store only.
 - `staff_id: null` means "any staff" (§5).
 - `start` is store-local time and must land exactly on a currently-valid slot start (re-validated per §4).
-- `sms_marketing_consent`/`email_marketing_consent`: both default `false` if omitted — never inferred from anything else on the request. `email_marketing_consent` is only ever meaningful when `contact.email` was given; capturing it with no email present is accepted but inert. UI copy/placement is `public-booking-end-to-end-design.md` §3 Step 4's concern (one unchecked-by-default checkbox, CASL copy pending legal review).
+- `sms_marketing_consent`/`email_marketing_consent`: **two independent booleans, two independent checkboxes** (2026-10-02 decision — a single checkbox covering both channels was rejected: CASL's burden of proof needs to show exactly what was agreed to per channel). Both default `false` if omitted — never inferred from anything else on the request. `email_marketing_consent` is only ever meaningful when `contact.email` was given; capturing it with no email present is accepted but inert. UI copy/placement is `public-booking-end-to-end-design.md` §3 Step 4's concern (two unchecked-by-default checkboxes, CASL copy pending legal review).
+- `consent_text_version`/`consent_at`: set together whenever either consent boolean is `true` (the client's own record of which copy it displayed and when the box was checked) — a bare boolean is thin evidence for CASL's burden of proof; these two give an audit trail something to point to. `NULL`/`NULL` when neither consent box was checked.
 
 ```json
 // response 201
 {
   "id": "uuid",
-  "reference_code": "F7AE5724",
+  "reference_code": "K7QXM3P2",
   "status": "confirmed | pending",
   "store_id": "uuid",
   "staff_id": "uuid",
@@ -110,7 +113,7 @@ Differences from §3.1:
 - `is_test=true` is allowed here only.
 - The phone cap (§6.3) never runs here — only §3.1 (decision 10). A blocklist hit (§9 step 1.5) can be overridden here; it cannot on the public endpoint.
 - `channel='staff_manual'` is set unconditionally, regardless of `is_test` — the two columns record different, independent facts (who created it vs. how it was created).
-- `sms_marketing_consent`/`email_marketing_consent` are accepted the same way as §3.1, default `false` — staff only check the box after asking the customer verbally; nothing here implies consent on the customer's behalf.
+- `sms_marketing_consent`/`email_marketing_consent` (and `consent_text_version`/`consent_at`) are accepted the same way as §3.1 — two independent booleans, default `false` — staff only check a box after asking the customer verbally; nothing here implies consent on the customer's behalf.
 - `min_lead_minutes` is skipped — a staff member booking a walk-in shouldn't be blocked by a lead-time rule meant for self-serve customers. Business hours, schedule, and double-booking checks still apply unconditionally.
 - Runs through the exact same transaction (§7) — no second code path. Any manual-entry route that bypasses quota or double-booking checks is a bug, not a feature.
 
@@ -126,6 +129,7 @@ Differences from §3.1:
 
 The slots a client saw are **never trusted**. On create, the server re-runs the slot engine's single-staff, single-day computation (`availability-slot-engine.md` §4 Steps 1–7, specified-staff mode) for the requested `(staff_id, start)`; `start` must land in the resulting set or the request fails `409 SLOT_TAKEN`.
 
+- **Takes an optional `excludeAppointmentId` parameter, always supplied on reschedule (§10), never on create** (there's no existing row to exclude yet). Without it, a reschedule whose new time overlaps the appointment's *own current* occupied block would see itself as the conflict and reject a legitimate reschedule with `409 SLOT_TAKEN` — e.g. moving a 10:00–11:00 appointment to 10:30–11:30 overlaps the row being moved, not some other booking. The occupancy query (Step 5, `availability-slot-engine.md` §4) excludes this one `appointment.id` from its "existing occupied blocks" scan when the parameter is present.
 - This computation includes unexpired `pending` occupancy, not just `confirmed` (the slot engine's shared occupancy criteria, `availability-slot-engine.md` §4).
 - `is_test` appointments occupy real staff time like any other, consistent with the engine.
 - **Capacity re-check**: in the same pass, re-run the store-level sweep for `(store_id, start)` (same criteria as Step 5b, store-wide, not per-staff). If the candidate block `[start - Bb, start + D + Ba]` falls inside a "full" interval, the request fails `409 CAPACITY_FULL` instead of `SLOT_TAKEN` — the two codes are kept distinct because the cause is different (a busy staff member vs. a full store) and the client UI reacts to them differently (`public-booking-end-to-end-design.md` §3). Stores with `booking_settings.capacity IS NULL` skip this check entirely.
@@ -144,11 +148,15 @@ Two concurrent "any staff" requests can resolve to the same person — the exclu
 ```sql
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
+-- Buffer-inclusive, not just the service span (2026-10-02 fix — see note below).
 ALTER TABLE store.appointments
   ADD COLUMN occupied_range TSTZRANGE
     GENERATED ALWAYS AS (
       CASE WHEN status IN ('pending', 'confirmed')
-           THEN tstzrange(starts_at, ends_at)
+           THEN tstzrange(
+             starts_at - make_interval(mins => buffer_before_minutes),
+             ends_at   + make_interval(mins => buffer_after_minutes)
+           )
       END
     ) STORED;
 
@@ -157,7 +165,10 @@ ALTER TABLE store.appointments
   EXCLUDE USING gist (staff_id WITH =, occupied_range WITH &&);
 ```
 
+**This is the sole definition of `occupied_range` in this document** — §16's schema increment references it rather than restating it, to avoid exactly the kind of drift that caused the bug this fixes (below).
+
 - Two rows for the same `staff_id` with overlapping occupied ranges cannot both exist — this is the system's actual, final defense against double-booking, independent of any application-layer lock.
+- **`occupied_range` is buffer-inclusive, matching `availability-slot-engine.md` §4's stated occupied interval exactly — it must be, or this constraint silently stops being the "final defense" it claims to be.** An earlier version defined it as the bare service span (`tstzrange(starts_at, ends_at)`, no buffer). Under concurrent requests, two bookings whose *service* times don't overlap but whose *buffer* times do (customer A 10:00–11:00 with a 30-minute `buffer_after`, customer B booked 11:00–12:00, same staff) would both pass the bare-span constraint and both `INSERT` successfully — the staff member ends up double-booked from 11:00–11:30 even though the constraint "passed." Buffers come from the header's own snapshot (`buffer_before_minutes`/`buffer_after_minutes`, already present on this table, `store-onboarding-v1-design.md` §4) — this generated column now reads those same two columns, so it can never drift from what the engine itself promises is the real occupied interval.
 - `is_test` rows are bound by it too (they occupy real time).
 - No application-level advisory lock is used for this dimension: a lock can be lost across a process crash or a second instance; a constraint cannot. §4's re-validation exists purely to give the user a clean, friendly `SLOT_TAKEN` before the constraint would have rejected the `INSERT` anyway.
 
@@ -169,7 +180,7 @@ An exclusion constraint can only express a **pairwise** invariant ("no two rows 
 SELECT pg_advisory_xact_lock(hashtext('groway:store_appt:' || store_id::text));
 ```
 
-Taken as step 0 of the creation and reschedule transactions (§7). This is **not** the kind of application lock ruled out in §6.1: that concern was about locks held in an app process's own memory (a C# `lock`, or a Redis lock without fencing) — state that dies with the process and desyncs across multiple instances. `pg_advisory_xact_lock` is a Postgres server-side lock bound to the transaction: it releases automatically on commit, rollback, or disconnect, and the lock table itself is shared by the database, not any one app instance — two different instances calling it for the same key are still serialized correctly. The two are not the same mechanism, and using this one doesn't reopen §6.1's decision.
+Taken as step 0a of the creation and reschedule transactions (§9) — right after the idempotency claim-or-replay at step 0, not before it (§9's note on why that order matters). This is **not** the kind of application lock ruled out in §6.1: that concern was about locks held in an app process's own memory (a C# `lock`, or a Redis lock without fencing) — state that dies with the process and desyncs across multiple instances. `pg_advisory_xact_lock` is a Postgres server-side lock bound to the transaction: it releases automatically on commit, rollback, or disconnect, and the lock table itself is shared by the database, not any one app instance — two different instances calling it for the same key are still serialized correctly. The two are not the same mechanism, and using this one doesn't reopen §6.1's decision.
 
 Cost: one store's creates/reschedules serialize against each other; different stores don't interact. At v1 scale (single store, low concurrency) lock hold time is one transaction (milliseconds) — negligible.
 
@@ -181,22 +192,20 @@ Same counting shape as capacity (§6.2), same mechanism, different key — and p
 SELECT pg_advisory_xact_lock(hashtext('phone_cap:' || chain_id::text || ':' || normalized_phone));
 ```
 
-**Lock acquisition order is fixed and must never be reversed**: the capacity lock (§6.2, store-scoped) is always acquired first, at transaction step 0; this lock is acquired second, at step 4.5 (§9), only on the public channel. PostgreSQL advisory locks don't prevent deadlocks between different keys on their own — that's purely an application discipline. With only two lock types in the system, pinning the order here (rather than leaving it to convention) is cheap insurance against a future third lock being added in the wrong relative order by a different code path.
+**Lock acquisition order is fixed and must never be reversed**: the capacity lock (§6.2, store-scoped) is always acquired first, at transaction step 0a; this lock is acquired second, at step 4.5 (§9), only on the public channel. PostgreSQL advisory locks don't prevent deadlocks between different keys on their own — that's purely an application discipline. With only two lock types in the system, pinning the order here (rather than leaving it to convention) is cheap insurance against a future third lock being added in the wrong relative order by a different code path.
 
-**Count query** — chain-wide, joining both ways a phone number can appear on an appointment, `DISTINCT` to avoid double-counting a claimed booking that matches on both sides:
+**Count query** — chain-wide, reading **only `store.appointments`**, via the `normalized_contact_phone` snapshot column (§16):
 
 ```sql
-SELECT COUNT(DISTINCT a.id)
+SELECT COUNT(*)
 FROM store.appointments a
 JOIN store.stores s ON s.id = a.store_id
-LEFT JOIN customer.customers c ON c.id = a.customer_id
 WHERE s.chain_id = :chain_id
   AND a.status IN ('pending', 'confirmed')
-  AND (normalize_phone(a.guest_phone) = :normalized_phone
-       OR normalize_phone(c.phone) = :normalized_phone);
+  AND a.normalized_contact_phone = :normalized_phone;
 ```
 
-Without the `DISTINCT`, a guest appointment that gets claimed onto a customer record afterward (`customer-records-design.md` §4.4) would match both the `guest_phone` and the `customer_id → customers.phone` branches and count twice — letting someone book 5 as a guest, get claimed, then book 5 more. Phone normalization reuses the existing E.164 convention (`customer-records-design.md` §2). A count `>= platform.abuse_config.max_upcoming_per_phone_per_chain` (default 5) fails the request with `409 PHONE_LIMIT` (§15); the count **including the new booking**, when it succeeds, is returned to the client as `phone_upcoming_count` (§3.1) rather than queried separately.
+**No `JOIN store.customers`/`customer.customers` here, ever.** An earlier version of this query reached across into the Customer Module's schema (`LEFT JOIN customer.customers c ON c.id = a.customer_id`) to resolve a claimed booking's phone — a real violation of "extraction-ready, no cross-schema access" (`groway-v1-architecture.md` §5), even without a declared FK: the moment Store Module is ever pulled into its own service with its own database, a raw cross-schema `JOIN` simply can't run anymore, while an FK-less *reference* always could. `normalized_contact_phone` is the Store-local substitute: written once at creation (from `guest_phone`, or from the resolved customer's phone if `customer_id` was already known, §16), and kept current by `customer-records-design.md` §4.4's claim action updating this same column on the claimed row. Because the column is written directly (not joined at query time), the earlier `DISTINCT`-to-avoid-double-counting concern disappears too — there's exactly one phone value per row, so `COUNT(*)` is already correct; claiming a guest booking changes *which* phone that row claims to be, not *how many* rows match a given phone. Normalization reuses the existing E.164 convention (`customer-records-design.md` §2). A count `>= platform.abuse_config.max_upcoming_per_phone_per_chain` (default 5) fails the request with `409 PHONE_LIMIT` (§15); the count **including the new booking**, when it succeeds, is returned to the client as `phone_upcoming_count` (§3.1) rather than queried separately.
 
 ```sql
 CREATE SCHEMA IF NOT EXISTS platform;
@@ -246,6 +255,7 @@ D_total = header.ends_at - header.starts_at
 
 - The public endpoint accepts `Idempotency-Key`; the staff endpoint requires it.
 - Semantics: `(store_id, key)` within 24 hours — same key + same request-body hash returns the original `201` response (no second row created); same key + different body is `422 IDEMPOTENCY_KEY_REUSED`.
+- **This promise is enforced by where the check runs, not just by the table existing.** An earlier version of this document had the idempotency row written at step 7 — *after* slot re-validation (step 4) — which meant a retry of a request whose first attempt already succeeded would see its own row occupying the slot and fail with `409 SLOT_TAKEN` before ever reaching the idempotency check, never reaching the replay this section promises. The fix (§9): claim-or-replay is step 0 itself, ahead of the advisory lock (now step 0a) and everything else, not a check tacked onto the end.
 
 ```sql
 CREATE TABLE store.idempotency_keys (
@@ -253,18 +263,39 @@ CREATE TABLE store.idempotency_keys (
   key             TEXT NOT NULL,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   request_hash    TEXT NOT NULL,
-  response_status INT NOT NULL,
-  response_body   JSONB NOT NULL,
+  response_status INT,              -- NULL while the original request is still in flight
+  response_body   JSONB,            -- NULL while the original request is still in flight
   PRIMARY KEY (store_id, key)
 );
 -- periodic cleanup: created_at < now() - interval '24 hours'
 ```
 
+`response_status`/`response_body` are nullable now (not `NOT NULL`) — a row can exist in a genuinely in-flight state, claimed but not yet resolved, which is exactly the state the claim-or-replay pattern below depends on being able to represent.
+
 ## 9. Transaction boundary (single DB transaction)
+
+**Step 0 (if an `Idempotency-Key` was supplied) is a claim-or-replay, and it's the first thing this transaction does — before even the advisory lock.** An earlier version of this document ran the equivalent check at step 7 instead (§8 explains why that broke the replay promise: a retry would see its own already-created row and fail `SLOT_TAKEN` at step 4, never reaching step 7 to discover it should have replayed). It's inside the same `BEGIN`/`COMMIT` as everything else, deliberately — a rollback later in this same transaction rolls back this claim too, so a request that fails outright (e.g. `409 SLOT_TAKEN`) leaves no stale row behind for the next retry to trip over; only a request that reaches `COMMIT` leaves a resolved record.
 
 ```
 BEGIN
-  0. SELECT pg_advisory_xact_lock(hashtext('groway:store_appt:' || store_id::text));
+  0. IF Idempotency-Key provided:
+       WITH upsert AS (
+         INSERT INTO store.idempotency_keys (store_id, key, request_hash, response_status, response_body)
+         VALUES (:store_id, :key, :hash, NULL, NULL)
+         ON CONFLICT (store_id, key) DO UPDATE SET store_id = store.idempotency_keys.store_id
+           -- a no-op update, purely to force a row lock: if another in-flight
+           -- request already claimed this key, this blocks until that other
+           -- transaction commits or rolls back, then re-reads the outcome
+         RETURNING request_hash, response_status, response_body
+       )
+       SELECT * FROM upsert;
+       -- response_status IS NOT NULL  -> already resolved by an earlier attempt:
+       --   request_hash matches  -> return that stored response verbatim, COMMIT, stop (no re-execution)
+       --   request_hash differs  -> 422 IDEMPOTENCY_KEY_REUSED, COMMIT, stop
+       -- response_status IS NULL -> freshly claimed (first attempt, or every
+       --   prior attempt with this key rolled back entirely, taking its claim
+       --   with it) -> continue to step 0a below
+  0a. SELECT pg_advisory_xact_lock(hashtext('groway:store_appt:' || store_id::text));
      (unconditional — negligible overhead for a capacity=NULL store, no branch needed)
   1. Validate input: store/service/option/staff existence (cross-store → 404),
      items non-empty, 'from' requires option_id, start is well-formed.
@@ -281,7 +312,7 @@ BEGIN
      409 CAPACITY_FULL (rollback, no side effects).
   4.5. Public channel only (§3.1; skipped entirely for §3.2 staff create and
      for reschedule, §10): SELECT pg_advisory_xact_lock('phone_cap:...') (§6.3,
-     always after the step-0 capacity lock) → COUNT → >= cap → 409 PHONE_LIMIT
+     always after the step-0a capacity lock) → COUNT → >= cap → 409 PHONE_LIMIT
      (rollback, no side effects, no quota touched). This runs before quota for
      the same reason step 4 does: don't charge quota for a request that was
      going to fail anyway.
@@ -292,9 +323,15 @@ BEGIN
      sets expires_at = now() + pending_hold_minutes; occupies_capacity = OR
      across items' service.occupies_capacity; channel = 'public_web' or
      'staff_manual' per the calling endpoint, §1 decision 12; sms/email_
-     marketing_consent from the request, default false, §1 decision 13)
+     marketing_consent from the request, default false, consent_text_version/
+     consent_at set together whenever either consent boolean is true, §1
+     decision 13; normalized_contact_phone = normalize_phone(contact.phone)
+     — always the phone on the request, regardless of whether customer_id
+     also resolved, §6.3)
      + INSERT appointment_items (snapshots)
-     + UPSERT idempotency_keys (if a key was supplied)
+     + UPDATE idempotency_keys SET response_status=201, response_body=:body
+       WHERE store_id=:store_id AND key=:key (if a key was supplied — the row
+       was already claimed at step -1; this resolves it, it never inserts)
      + INSERT store.outbox (§11 event — carries customer_id when resolved,
        so a consumer can propagate consent onto the customer record,
        customer-records-design.md §7, without this transaction crossing
@@ -314,9 +351,11 @@ Order matters: lock first, re-validate before consuming quota — don't charge q
 - Cancelling doesn't refund quota; `occupied_range` becomes `NULL` automatically, releasing the slot.
 
 **Reschedule** (in-place `UPDATE starts_at/ends_at[/staff_id]`):
-- Re-runs the full §4 validation (including capacity) against the new `(staff, start)`, then §7's sequencing.
+- Re-runs the full §4 validation (including capacity) against the new `(staff, start)`, **passing this appointment's own id as `excludeAppointmentId`** (§4) — without it, a new time overlapping the appointment's own current block would be rejected as a conflict with itself — then §7's sequencing.
 - Takes the same store-level advisory lock first (§6.2) — a reschedule and a new booking racing for the same slot are serialized by it exactly like two creates would be.
 - No new row, so no additional quota charge.
+- **On success, if the new `starts_at` is more than 24h/2h away from now, clear the matching `reminder_24h_sent_at`/`reminder_2h_sent_at`** (columns owned by `customer-booking-confirmation-reminders-design.md` §10) — otherwise the new time gets no reminder at all, since the old ones are already marked sent. `customer-booking-confirmation-reminders-design.md` §3 already states this as a requirement on this document's reschedule path; this is that requirement, written down here where the reschedule logic actually lives.
+- **Also increment `appointments.reschedule_seq` by 1** (§16) — the occurrence discriminator `customer-booking-confirmation-reminders-design.md` §7's notification dedup key needs. Without it, a second reschedule's confirmation notification collides with the first reschedule's dedup key `(appointment_id, event_type='rescheduled', channel)` and is silently dropped — and the same collision would independently suppress a *second* round of reminders after the clearing above, since the dedup key doesn't otherwise know "this `reminder_24h` is for a different booking of the same slot than the one already logged."
 - Customer self-reschedule is bound by `cancel_threshold_hours` too (it's logically a cancel-and-rebook); staff can reschedule any time.
 - The exclusion constraint is sufficient concurrency protection for v1; a stronger optimistic lock (version column) is deferred (§18).
 - Reschedule never runs the phone-cap check (§6.3/§9 step 4.5): it doesn't create a new row, so the phone's upcoming count is unchanged by it. It **does** still run the blocklist check (step 1.5) — a store that doesn't want this number shouldn't have it rescheduled into a new slot either.
@@ -430,20 +469,33 @@ ALTER TABLE store.appointments
     -- meaningful only when guest_email/the resolved customer has an email;
     -- the CASL basis for V3's AI recall SMS. Propagation onto customer.customers
     -- is customer-records-design.md §7's job, not this table's.
-  ALTER COLUMN customer_id DROP NOT NULL,
-  ADD COLUMN occupied_range TSTZRANGE
-    GENERATED ALWAYS AS (
-      CASE WHEN status IN ('pending', 'confirmed')
-           THEN tstzrange(starts_at, ends_at) END
-    ) STORED;
+  ADD COLUMN consent_text_version TEXT,              -- §1 decision 13 — which copy the checkboxes showed
+  ADD COLUMN consent_at           TIMESTAMPTZ,        -- when consent was captured, not just that it was
+    -- a bare boolean is thin evidence for CASL's burden of proof ("what did
+    -- they see, when did they click") — these two columns are the minimum
+    -- that lets a future audit answer that. NULL/NULL when both consent
+    -- booleans are false (nothing was agreed to, nothing to date-stamp).
+  -- Phone-cap's count query (§6.3) must never cross into the Customer
+  -- Module's schema (architecture doc §5; "extraction-ready" means no raw
+  -- cross-schema JOIN, not just no FK). This snapshot is the Store-local
+  -- substitute: written at creation (guest_phone, or the resolved
+  -- customer's phone if customer_id was already known), kept current by
+  -- customer-records-design.md §4.4's claim action. It is also, incidentally,
+  -- an audit record of "what number did we actually count this against."
+  ADD COLUMN normalized_contact_phone TEXT,
+  -- Occurrence discriminator for notification dedup (2026-10-02 fix) -
+  -- customer-booking-confirmation-reminders-design.md §7 uses this as part
+  -- of notification_log's unique key, so a second reschedule's confirmation
+  -- (or a second round of reminders after reschedule resets the sent-at
+  -- flags) doesn't collide with the first and get silently ON CONFLICT
+  -- DO NOTHING'd away.
+  ADD COLUMN reschedule_seq INT NOT NULL DEFAULT 0,
+  ALTER COLUMN customer_id DROP NOT NULL;
+  -- occupied_range and no_double_booking are defined once, in §6.1 — not restated here.
 
 ALTER TABLE store.appointments DROP CONSTRAINT appointments_status_check;
 ALTER TABLE store.appointments ADD CONSTRAINT appointments_status_check
   CHECK (status IN ('pending','confirmed','completed','cancelled','no_show','expired'));
-
-ALTER TABLE store.appointments
-  ADD CONSTRAINT no_double_booking
-  EXCLUDE USING gist (staff_id WITH =, occupied_range WITH &&);
 
 -- after backfilling reference_code on existing rows:
 ALTER TABLE store.appointments
@@ -468,7 +520,19 @@ CREATE TABLE store.phone_blocklist (
 );
 ```
 
-`reference_code` generation: `upper(substr(md5(gen_random_uuid()::text), 1, 8))`, retry on collision. `store.idempotency_keys` (§8), `store.outbox` (§12), `store.capacity_breaches` (§11), `store.phone_blocklist` (above), and `platform.abuse_config` (§6.3) are new tables, defined where introduced above.
+**`reference_code` generation (corrected, 2026-10-02): a true CSPRNG-backed base32 encoding, not `md5`.** The previous formula, `upper(substr(md5(gen_random_uuid()::text), 1, 8))`, is hex — only 16 distinct symbols — giving 16^8 (~4.3 billion) possibilities, not the 36^8 this document and `customer-my-bookings-design.md` (guest lookup's anti-enumeration argument) both claimed. The randomness source was never the problem (`gen_random_uuid()` is a real CSPRNG); the alphabet was too narrow for what was promised. Fix direction is the generator catching up to the documented promise, not the promise being quietly downgraded to match the code:
+
+```sql
+-- Base32 (RFC 4648 alphabet, no padding), 8 characters = 40 bits of entropy (32^8) —
+-- every character drawn from a CSPRNG, not derived from a UUID's hex digest.
+upper(encode(gen_random_bytes(5), 'base32'))
+```
+
+Collision handling needs a `SAVEPOINT`, not a bare retry-in-place: Postgres aborts the **entire** enclosing transaction on any error, including a `unique_violation` — without an explicit `SAVEPOINT` before the `INSERT` attempt, a collision would roll back everything already done in steps 0–6, not just the code generation. Pattern: `SAVEPOINT gen_ref; INSERT ...; -- on unique_violation: ROLLBACK TO SAVEPOINT gen_ref; regenerate; retry`.
+
+`store.idempotency_keys` (§8), `store.outbox` (§12), `store.capacity_breaches` (§11), `store.phone_blocklist` (above), and `platform.abuse_config` (§6.3) are new tables, defined where introduced above.
+
+**Note on `ALTER` vs. base schema**: this section is written as `ALTER` statements because that's the actual order these decisions landed in relative to `store-onboarding-v1-design.md`'s original `CREATE TABLE`. A genuinely fresh V1 deployment has no reason to replay that history — folding these columns directly into that document's base `CREATE TABLE store.appointments` is equally correct and arguably clearer. Written as `ALTER` here specifically so the sequence remains legible to anyone tracing *why* each column exists, not because a migration-by-migration deploy is required.
 
 ## 17. Test cases
 
@@ -479,7 +543,7 @@ Concurrency (must pass under real parallel load, not just sequential simulation)
 3. `pending` at its TTL boundary: confirm succeeds one second before `expires_at`; the sweeper run one second after flips it to `expired` and frees the slot for rebooking.
 4. Same appointment, two concurrent reschedules → one succeeds, one `409 SLOT_TAKEN`.
 5. Free-plan quota at the 99/100 boundary: two concurrent creates → exactly one `409 QUOTA_EXHAUSTED`, usage settles at 100.
-6. Same `Idempotency-Key` sent twice → same `reference_code`, one DB row, second call returns the first response body.
+6. Same `Idempotency-Key` sent twice, **the first call allowed to fully succeed and commit before the second is sent** (the regression case for the step-0-vs-step-7 bug): same `reference_code`, one DB row, second call returns the first response body as a `201` — **not** `409 SLOT_TAKEN` from colliding with its own first-attempt row.
 7. `capacity=2`, two `confirmed` already in the window → a third, overlapping create → `409 CAPACITY_FULL`, no new row.
 8. `capacity=1`, staff A and B both free: book A at 09:00 → succeeds; book B at 09:00 (B fully free) → `409 CAPACITY_FULL` (proves capacity is independent of staff availability).
 9. Concurrent: `capacity=1`, two requests in the same millisecond for the same window, different staff → one `201`, one `409 CAPACITY_FULL`; one DB row.
@@ -495,6 +559,10 @@ Concurrency (must pass under real parallel load, not just sequential simulation)
 19. Basket of 2 services, added in reverse of the merchant's `sequence_order` → the created appointment's `appointment_items` are in merchant order regardless, and the slots that were offered already reflected the merchant-ordered block.
 20. Staff qualified for only one of two basket services, submitted directly via `staff_id` → `409 STAFF_NOT_QUALIFIED`, no row created; the same staff member omitted (any-staff mode) with no one else qualified and free → empty result at the slots-query stage, not an error, and nothing to submit.
 21. A 6-service public basket, or a basket with a duplicate `service_id` → `400`, rejected before any other validation runs. The same baskets via staff entry → no cap, proceeds normally.
+22. Customer A books 10:00–11:00 with `buffer_after_minutes=30`; Customer B (same staff) books 11:00–12:00 — the service spans don't overlap, but the buffer-inclusive occupied ranges do. The second `INSERT` must be rejected by `no_double_booking` (§6.1) even though a bare service-time check would have let both through.
+23. Reschedule an appointment to a new time that overlaps its own current block (e.g. 10:00–11:00 moved to 10:30–11:30) → succeeds; `excludeAppointmentId` (§4) must keep the row from being treated as a conflict with itself.
+24. An `Idempotency-Key`'d request that fails outright (e.g. `409 SLOT_TAKEN` at step 1-4) → the whole transaction, including the step-0 idempotency claim, rolls back; retrying with the same key afterward is a genuinely fresh attempt, not a stuck "in-flight forever" row.
+25. Phone-cap's count query (§6.3) never issues a query against `customer.customers` — verifiable by inspection of the generated SQL, not just by test data.
 
 ## 18. Deferred
 

@@ -6,7 +6,7 @@ Baseline: cancel/reschedule business rules are fixed in `create-appointment-tran
 
 ## 1. Decisions
 
-1. **Guests look themselves up by `reference_code` + phone number, no SMS OTP.** An 8-character code space (36^8) resists enumeration when combined with rate limiting, and the data being viewed is already in the customer's own SMS inbox. OTP is deferred to v2.
+1. **Guests look themselves up by `reference_code` + phone number, no SMS OTP.** An 8-character code space (32^8, ~40 bits — base32-encoded, CSPRNG-backed, `create-appointment-transaction-design.md` §16; an earlier version of that generator was hex-based, 16^8, and this document's claim is corrected to match the actual fix, not the other way around) resists enumeration when combined with rate limiting, and the data being viewed is already in the customer's own SMS inbox. OTP is deferred to v2.
 2. **Routes live on the Customer Module (`/api/customer/bookings`), data stays in the store schema**, called in-process. Routing ownership is Customer's; data ownership is Store's — matches the project's established cross-module pattern.
 3. **Customer-side cancel/reschedule rules are identical to the staff-side rules** (same `cancel_threshold_hours`) — one rule set, no "why can the store refund me but I can't cancel myself" confusion.
 4. **Reschedule UI reuses the public flow's date/time picker** (`public-booking-end-to-end-design.md` Step 3) — no second time-selection UI.

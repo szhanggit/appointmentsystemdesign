@@ -6,7 +6,7 @@
 
 **Relationship to other documents:** this is the fixed reference for the booking-domain tables (stores, staff, services, schedules, appointments) and the Back Office / public booking APIs. `growayshop-registration-workflow.md` owns the *account/identity* layer (chains, chain_admin/store_admin/staff logins) and adds its own columns to `store.stores` via `ALTER TABLE` (`chain_id`, `store_admin_id`) rather than redefining this table — same pattern `groway-billing-workflow.md` uses for `billing_account_id`. `staff-schedule-entry-workflow.md` (who fills `business_hours`/`staff_schedules`/`staff_time_offs`, and how) and `availability-slot-engine.md` (how those tables plus `services`/`appointments` get turned into bookable times, `GET /api/store/public/slots`) are separate documents built directly on the tables defined here — this document owns the schema, they own how it's populated and consumed.
 
-**V1 decision, unchanged from the retired document:** no self-service store registration. A chain's owner emails Groway → Groway admin enters everything into the Back Office (`growayshop-registration-workflow.md` §6.1 now does this at chain-creation time, one or more stores at once).
+**V1 decision (2026-10-02, superseding the retired document's assumption): self-service registration is the primary path onto Groway**, not Groway-admin-assisted onboarding. A chain owner signs up directly (`growayshop-registration-workflow.md` §6.0) — email, password, chain name, first store, address — with no Groway admin in the loop at all. The admin-assisted flow this document originally described (§2) still exists, but as the *exception* path for large customers or white-glove requests (`growayshop-registration-workflow.md` §6.1), not the default. See §2 for how the two paths both land on the same schema.
 
 ---
 
@@ -25,22 +25,45 @@
 
 ## 2. Onboarding flow
 
+**Primary path — self-service** (`growayshop-registration-workflow.md` §6.0):
+
+```
+Chain owner registers directly: email + password + chain name + first store + address
+↓
+Email verification link sent; store created as status='pending' (invisible — excluded from the public map and booking flow the same way any non-`active` store is, `beauty-map-nearby-search-design.md` §1, `availability-slot-engine.md` §2)
+↓
+Verify → store.stores.status flips to 'active' automatically (no admin step — nobody's in the loop to flip it manually)
+↓
+Chain owner (now logged in, as both chain_admin and that store's store_admin) fills in the rest:
+  services → staff → staff↔service → business hours / booking rules
+↓
+Store's public booking link is live once §2.3's derived readiness condition is also true
+```
+
+**Exception path — Groway-admin-assisted** (`growayshop-registration-workflow.md` §6.1), for large customers or white-glove onboarding, not the default:
+
 ```
 Chain owner emails Groway (intake template, §3)
 ↓
-Groway admin creates the chain in Back Office (growayshop-registration-workflow.md §6.1) —
-one or more stores, one chain_admin, one store_admin per store, all in one pass
+Groway admin creates the chain in Back Office — one or more stores, one chain_admin,
+one store_admin per store, all in one pass; status='pending', email_verified_at
+set immediately (the admin creating the account from a real email thread already
+is the verification — growayshop-registration-workflow.md §6.1)
 ↓
 Per store: enter basic info → add services → add staff → assign staff↔service → set business hours / booking rules
+↓
+Groway admin or chain_admin manually flips status to 'active' when ready
 ↓
 Generate each store's public booking link → hand off to the chain
 ```
 
-Store lifecycle (`store.stores.status`): `pending` (created) → `active` → `suspended` — a **manual** business decision by a Groway admin or `chain_admin`, never auto-flipped. It's orthogonal to (not a stand-in for) the derived operational-readiness condition in `staff-schedule-entry-workflow.md` §2.3 (business hours filled in, ≥1 bookable staff assignment, ≥1 bookable service). A store only accepts real customer bookings when **both** hold: `status='active'` AND that derived condition is true. `active` with an incomplete setup still can't be booked (the back office nudges the admin on what's missing); `suspended` is an unconditional kill switch regardless of how complete the setup is — an emergency close doesn't require touching schedules or the catalog.
+Both paths land on the exact same schema and the same `pending → active → suspended` lifecycle (`store.stores.status`) — they differ only in *who* drives the flow and *what* flips `pending` to `active` (automatic on self-serve email verification; a manual decision by a Groway admin or `chain_admin` on the assisted path). That transition is orthogonal to (not a stand-in for) the derived operational-readiness condition in `staff-schedule-entry-workflow.md` §2.3 (business hours filled in, ≥1 bookable staff assignment, ≥1 bookable service). A store only accepts real customer bookings when **both** hold: `status='active'` AND that derived condition is true. `active` with an incomplete setup still can't be booked (the UI nudges on what's missing); `suspended` is an unconditional kill switch regardless of how complete the setup is — an emergency close doesn't require touching schedules or the catalog.
 
 ---
 
-## 3. Intake email template
+## 3. Intake email template (exception path only — `growayshop-registration-workflow.md` §6.1)
+
+The self-service web form this section once deferred to "V2" already exists and is the primary path (§2, `growayshop-registration-workflow.md` §6.0). This template now only matters for the exception path — a large customer or white-glove request a Groway admin handles by hand:
 
 ```
 Subject: {Chain name}
@@ -55,8 +78,6 @@ Subject: {Chain name}
    - Business hours (Mon–Sun, open–close, "closed" if none)
    - Booking rules: slot granularity (default 15 min) / advance-booking window in days (default 90) / auto-confirm (default yes)
 ```
-
-Fields are stable enough to become a self-service web form later (V2) — the intake email is V1's substitute for that form, not a permanent design.
 
 ---
 

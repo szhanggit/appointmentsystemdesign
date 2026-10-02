@@ -82,7 +82,7 @@ INSERT INTO platform.spoken_languages (code, name_en, name_zh, sort_order) VALUE
 - **Completed bookings**: `COUNT(*) FROM store.appointments WHERE staff_id = :staff_id AND store_id = :store_id AND status = 'completed' AND is_test = false AND <that store's is_test = false>`. Only `completed` counts — not `confirmed`, not `no_show`.
 - **Customers served**: `COUNT(DISTINCT customer_id)` under the same filter. Guest bookings (`customer_id IS NULL`) aren't counted — a guest never gets a `customer.customers` row (`customer-records-design.md` §3), so there's nothing distinct to count. This is a known undercount for guest-heavy stores, not a bug to fix here.
 - Computed live on page load in v1.1 — volume is low enough; a cached counter is a later optimization, not designed here.
-- **Store-scoped, not person-scoped**: both filters include `store_id = :store_id` **because `staff_id` alone would not narrow correctly** — `appointments.staff_id` is person-level, so a multi-store staff member's row would otherwise pull in appointments from every store they work at, not just this one. The `store_id` filter is what makes a staff member working at two stores in the same chain get two different, correct numbers on their two profile pages (by design, decision 6).
+- **Store-scoped, not person-scoped**: both filters include `store_id = :store_id` **because `staff_id` alone would not narrow correctly** — `appointments.staff_id` is person-level, so a multi-store staff member's row would otherwise pull in appointments from every store they work at, not just this one. The `store_id` filter is what makes a staff member working at two stores in the same chain get two different, correct numbers on their two profile pages (by design, decision 10).
 - A `store_admin`-only toggle (scoped to the `staff_store_assignments` row; exact column left to implementation) switches that assignment's display between exact numbers and a banded form ("500+"); default is exact.
 
 ## 6. Store-side data entry
@@ -145,6 +145,6 @@ POST /api/store/team/{staffId}/bio/reject   { reason }
 ## 8. Non-goals (v1.1)
 
 1. Staff accepting bookings individually — every appointment remains store-owned, never staff-owned.
-2. A chain-wide aggregate stats view (decision 6; would live on a future chain-level page, not here).
+2. A chain-wide aggregate stats view (decision 10; would live on a future chain-level page, not here).
 3. Free-text language entry.
 4. Rich-text bio editor.

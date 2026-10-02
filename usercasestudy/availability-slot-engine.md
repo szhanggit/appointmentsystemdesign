@@ -110,7 +110,9 @@ Step 5b additionally requires `occupies_capacity = true` (also a header snapshot
 2. **Staff working interval `W`**: `staff_schedules WHERE staff_store_assignment_id AND day_of_week = dow(T)` → all `[start_time, end_time]` rows.
 3. **Base availability `A0 = O ∩ W`** (interval-set intersection).
 4. **Subtract time off**: `staff_time_offs WHERE staff_id` intersecting `tstzrange(store-midnight(T), store-midnight(T+1))` (converted to UTC for comparison) — subtract the intersecting portion from `A0`. **Person-level**: this staff member's time off at *any* store blocks them here too; no need to know what else they have booked elsewhere, the row already covers it.
-5. **Subtract existing occupied blocks**: every `store.appointments` row `WHERE store_id AND staff_id` meeting the **occupancy criteria** above, overlapping `T`. Subtract each one's interval from `A0`.
+5. **Subtract existing occupied blocks**: every `store.appointments` row `WHERE staff_id` (**not** also filtered to this `store_id` — 2026-10-02 fix, see note below) meeting the **occupancy criteria** above, overlapping `T`. Subtract each one's interval from `A0`.
+
+   **Why no `store_id` filter here, unlike Step 5b**: `no_double_booking` (`create-appointment-transaction-design.md` §6.1) is a plain `(staff_id, occupied_range)` exclusion constraint with no store scoping at all — a staff member physically cannot hold two overlapping bookings at *any* stores, because the constraint doesn't know "store" exists. An earlier version of this step filtered `WHERE store_id AND staff_id`, matching Step 4 (time off, already correctly person-level with no store filter) in spirit but not in fact: for a staff member working at two stores in the same chain, that version would show a slot as available at Store B that the constraint would then reject at create time, because the real conflict sat in Store A's own appointments and this store-scoped query never saw it. Scoping to `staff_id` alone — at minimum within the chain, since cross-chain multi-store staff aren't a modeled case — makes this step's view match what the constraint actually enforces, the same way Step 5b's occupancy criteria and the constraint's own buffer-inclusive range were brought into alignment (`create-appointment-transaction-design.md` §6.1).
 6. **Subtract elapsed time**: if `T` is today (store timezone), subtract `[store-midnight(T), now() + min_lead_minutes]`.
 7. **Slice into candidate starts**: for each remaining interval `[a, b]`, a start `s` is feasible iff `[s - Bb, s + D + Ba] ⊆ [a, b]`, i.e. `s ∈ [a + Bb, b - Ba - D]`, aligned up to the nearest `slot_granularity_minutes` step from the lower bound. An interval too short to fit the whole block is skipped entirely — no half-length slots are ever offered.
 
@@ -141,7 +143,7 @@ function getSlots(store, services[], date, staffId?):   # services[] has 1-5 ent
         W = staffSchedules(a.id, dow(date))
         A = intersect(O, W)
         A = subtract(A, timeOffsIntersecting(a.staff_id, date))     # Step 4, person-level
-        A = subtract(A, occupiedBlocks(store.id, a.staff_id, date)) # Step 5: occupancy criteria above, filtered WHERE staff_id = a.staff_id
+        A = subtract(A, occupiedBlocks(a.staff_id, date)) # Step 5: occupancy criteria above, filtered WHERE staff_id = a.staff_id only — no store_id (2026-10-02 fix, see Step 5's note)
         if date == today(store.tz):
             A = subtract(A, [midnight, now() + min_lead_minutes])
         for [s_lo, s_hi] in feasibleStarts(A, Bb_first, Ba_last, D_total, slot_granularity_minutes):

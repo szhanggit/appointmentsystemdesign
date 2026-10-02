@@ -111,7 +111,8 @@ zh: {name}您好，您在{store_name}预留的时间（{date}{time}）已过期�
 
 - Send worker: failure → exponential backoff (5m → 30m → 2h), marked `failed` after 3 attempts, no further retries.
 - **Reminder-specific rule**: if a retry would fire after `starts_at` has already passed, mark `failed` immediately and skip — a late reminder is worse than none.
-- Dedup: `store.notification_log` is unique on `(appointment_id, event_type, channel)`; an outbox relay replay is `ON CONFLICT DO NOTHING` — **never** resent.
+- **Dedup key includes an occurrence discriminator (2026-10-02 fix): `(appointment_id, event_type, channel, occurrence)`**, where `occurrence = appointments.reschedule_seq` at send time (`create-appointment-transaction-design.md` §16). The original two-part key `(appointment_id, event_type, channel)` only correctly deduplicates an outbox relay *replaying the same event* — it accidentally also suppressed a *second, legitimately distinct* occurrence of the same event type: a second reschedule's `rescheduled` confirmation collides with the first reschedule's row and never sends, and independently, a second round of 24h/2h reminders (after a later reschedule resets `reminder_24h_sent_at`/`reminder_2h_sent_at`, §3) collides with the first round's already-logged row the same way. `reschedule_seq` increments once per successful reschedule, so each distinct "version" of the appointment's schedule gets its own row; an outbox replay still carries the same `reschedule_seq` it always did, so true replays are still caught exactly as before.
+- An outbox relay replay (true replay, same occurrence) is `ON CONFLICT DO NOTHING` — **never** resent.
 
 ```sql
 CREATE TABLE store.notification_log (
@@ -119,6 +120,7 @@ CREATE TABLE store.notification_log (
   appointment_id       UUID NOT NULL REFERENCES store.appointments(id),
   event_type           TEXT NOT NULL,   -- created/confirmed/cancelled/rescheduled/expired/reminder_24h/reminder_2h
   channel              TEXT NOT NULL CHECK (channel IN ('sms','email')),
+  occurrence           INT NOT NULL DEFAULT 0,  -- appointments.reschedule_seq at send time
   recipient            TEXT NOT NULL,
   template_key         TEXT NOT NULL,
   lang                 TEXT NOT NULL,
@@ -128,7 +130,7 @@ CREATE TABLE store.notification_log (
   error                TEXT,
   created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
   sent_at              TIMESTAMPTZ,
-  UNIQUE (appointment_id, event_type, channel)
+  UNIQUE (appointment_id, event_type, channel, occurrence)
 );
 ```
 
@@ -176,6 +178,9 @@ The scheduler's query adds `AND reminder_24h_enabled` (read from that store's `b
 7. SMS gateway down for 3 consecutive attempts → `failed`, no 4th attempt; an error is logged.
 8. A STOP'd number → SMS skipped, email still sent; with neither available → one log row, no exception thrown.
 9. An `auto_confirm=false` store → the customer receives the pending template, not the confirmed template.
+10. An appointment is rescheduled twice → both `rescheduled` confirmation notifications are actually sent (two distinct `occurrence` values), not just the first.
+11. An appointment is rescheduled (resetting `reminder_24h_sent_at`) and the new time is again >24h out → the second 24h reminder actually sends, distinct `occurrence` from the first round's already-logged row.
+12. The outbox relay replays the same `appointment.rescheduled` event twice (same `reschedule_seq` both times) → still only one notification sent — the occurrence fix doesn't weaken true-replay dedup.
 
 ## 12. Deferred
 

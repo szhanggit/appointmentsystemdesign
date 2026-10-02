@@ -12,7 +12,7 @@ Baseline: step order is service (now a 1–5 item basket) → staff → time →
 4. **`409 SLOT_TAKEN` never shows an error page** — the client silently re-queries that day's slots and highlights what's still open. Being beaten to a slot is normal, not exceptional.
 5. **`409 CAPACITY_FULL` gets an explicit message, not a silent refresh** — unlike `SLOT_TAKEN`, a full store is store-wide state, and at peak times neighboring slots are often full too; silently refreshing would make the customer repeatedly hit the same wall with no explanation.
 6. **One flow, three entry URLs.** The map/profile pages (`beauty-map-ui-design.md`, `staff-profile-design.md`) all deep-link into this same flow with an optional preselection — a store-detail page, a staff profile's "Book them" CTA, and a service row's "Book" button all land on `/book/{store_id}` with a different optional query param (§4). There's exactly one booking flow to maintain, never a parallel "quick book" path.
-7. **A deposit, when required, is its own step** — not folded into Step 5's review. `payment_required=true` stores insert a Payment step between Review and Confirmation (§3), so the customer sees "review" and "pay" as two distinct, clearly-labeled moments rather than one combined screen.
+7. **Deposit/payment is V2 (`payment-deposit-preauth-design.md`'s own status tag) — V1 never shows a payment step, full stop.** An earlier version of this document treated Step 6 (Stripe Payment Element) as real, shipping V1 work; it isn't — payments/deposits were explicitly cut to backlog in the 2026-10-01/02 V1 scope decisions. `booking_settings.payment_required` stays in the schema (`create-appointment-transaction-design.md` §14's minimal hook: a reserved `payment_intent_id` column, nothing else) but V1 has no UI to turn it on and no provider wired up, so the flow is unconditionally Step 5 → Confirmation. When deposits actually ship, this decision — and Step 6 — get written for real against whatever `payment-deposit-preauth-design.md` looks like at that time.
 8. **The phone-cap heads-up lives on the confirmation screen, after a successful booking — never as a pre-submit lookup.** A separate "check how many bookings this phone has" call, triggered as the customer types their number in Step 4, would be a standalone oracle: anyone could probe an arbitrary phone number's booking activity with no booking attempt required. Instead, the create endpoint's own response already carries `phone_upcoming_count` (`create-appointment-transaction-design.md` §3.1) — zero new queries, zero new endpoints, and the count is only ever disclosed to whoever just successfully booked with that number. The cost is timing: the customer learns they're near the cap one booking later than ideal (after their 5th succeeds, not while typing their 6th attempt) — acceptable, since "surprise" means learning only at the wall, and this always shows the heads-up at least once before that.
 9. **A staff deep-link that's real but unqualified for the full basket degrades silently, never errors on load.** This is a deliberate narrowing of decision 6's general "deep links never break the funnel" rule to a case that rule didn't originally anticipate: the person exists (unlike an unknown `staff_id`, already ignored), they just can't do this specific combo. The preselection is dropped, the flow falls back to "Any available," and a non-blocking inline notice explains why ("{name} can't perform all selected services — showing everyone who can"). The hard `409 STAFF_NOT_QUALIFIED` (`create-appointment-transaction-design.md` §7) only exists as a create-time guard against a forced direct `POST` — it never fires from a page load, and this flow never shows it as a page-level error.
 
@@ -21,8 +21,10 @@ Baseline: step order is service (now a 1–5 item basket) → staff → time →
 ```
 /book/{store_id}[?staff_id=xxx | ?service_id=xxx]   (§5 — optional preselection, service_id adds one item to the basket)
   Step 1 Service (basket, 1-5 items) → Step 2 Staff (intersection) → Step 3 Date/Time (combined block) → Step 4 Contact → Step 5 Review
-    → [Step 6 Payment, only if payment_required=true] → Confirmation
+    → Confirmation
 ```
+
+(A payment step would sit between Review and Confirmation once deposits ship — V2, `payment-deposit-preauth-design.md`, §1 decision 7. V1's flow has no such step.)
 
 A step indicator at the top allows back-navigation (prior selections are kept). Each step depends only on earlier selections; `store_id` stays in the URL throughout.
 
@@ -34,20 +36,24 @@ A step indicator at the top allows back-navigation (prior selections are kept). 
 
 **Step 3 — Date & time.** Date picker spans `today(store_tz)` through `today + advance_booking_days`; past dates disabled. On date selection: `GET /api/store/public/slots?store_id=&service_ids[]=&option_ids[]=&date=&staff_id=` (single-item basket uses the equivalent `service_id`/`option_id` form — same endpoint, same response shape either way, `availability-slot-engine.md` §1). The response's `total_duration_minutes` and re-sorted `services[]` (merchant execution order, not the customer's add order) drive the UI; times render at `slot_granularity_minutes` resolution, and the displayed block spans the whole basket, not one item. In "any staff" mode the UI shows only the time, not which staff member (kept for the confirmation screen — a customer who cares can pick a specific person in Step 2). No slots that day → "Fully booked today," with a one-tap jump to the next day.
 
-**Step 4 — Contact.** Name and phone required; email optional (confirmation email only sent if present). Phone format-validated (Canadian 10-digit); no OTP in v1 — rate limiting already covers abuse, OTP is a v2 hardening. One checkbox, always checked and effectively non-optional in practice: "Booking confirmation and reminders will be sent to this number." A second, **unchecked-by-default** checkbox, entirely separate from the first: "Send me occasional offers and win-back messages by SMS" (exact copy pending the CASL legal review already flagged for the reminders document) — maps to `sms_marketing_consent` on the create request (`create-appointment-transaction-design.md` §1 decision 13, §16); this is V1 groundwork for V3's AI recall, with no V1 feature consuming it yet. Transactional reminders are never gated on this box; it's purely the marketing-outreach opt-in.
+**Step 4 — Contact.** Name and phone required; email optional (confirmation email only sent if present). Phone format-validated (Canadian 10-digit); no OTP in v1 — rate limiting already covers abuse, OTP is a v2 hardening. One line of copy, not a checkbox (it's not optional in practice): "Booking confirmation and reminders will be sent to this number."
 
-**Step 5 — Review.** Shows store name, every basket item in execution order (+ option where applicable), staff ("to be assigned" if "Any"), date/time for the combined block, total price, contact info. Submit button: "Confirm booking" (or "Continue to payment" when Step 6 follows).
+Below that, **two independent, unchecked-by-default marketing-consent checkboxes** (2026-10-02 decision — one checkbox covering both channels was considered and rejected: CASL's burden of proof requires being able to show exactly what the customer agreed to, and one shared checkbox can't distinguish "agreed to SMS" from "agreed to email" if only one contact method was ever actually used):
+- "Send me occasional offers and win-back messages by SMS" → `sms_marketing_consent`.
+- "Send me occasional offers and win-back messages by email" → `email_marketing_consent`, shown/enabled only when an email address has been entered above (no point offering it with nothing to send to).
 
-**Step 6 — Payment** (only when `booking_settings.payment_required=true`). Submitting Step 5 creates the appointment (`pending`, `payment_status='awaiting'`) and immediately presents the Stripe Payment Element (`payment-deposit-preauth-design.md` §6) for the deposit — this is a distinct, clearly-labeled screen, not merged into Step 5's review. Confirmation only follows the `payment_intent.succeeded` webhook, same as that document's flow; a `payment_required=false` store never sees this step.
+(Exact copy for both pending the CASL legal review already flagged for the reminders document.) Checking either box also sets `consent_text_version` (which copy they saw) and `consent_at` (when) on the create request — `create-appointment-transaction-design.md` §1 decision 13, §16 — the CASL evidence trail a bare boolean alone can't provide. Both map independently to the create request; this is V1 groundwork for V3's AI recall, with no V1 feature consuming the booleans yet. Transactional reminders are never gated on either box.
 
-**Confirmation screen.** Large `reference_code`, booking details, "Confirmation sent to {phone}." Buttons: [Download calendar (.ics)] [Book another]. Copy: "To reschedule or cancel, call {store_phone}" (self-serve management is `customer-my-bookings-design.md`, not linked from here in v1). A `pending` result (`auto_confirm=false` stores, or payment still awaiting) shows "Received — awaiting confirmation," matching the pending SMS template. When the `201` response's `phone_upcoming_count` is at or above the cap minus one (default cap 5, so `count >= 4`), also show a non-blocking line: "Heads up: you now have {count} upcoming appointments with {store} — that's the limit for online booking, please call us for more." (§1 decision 8).
+**Step 5 — Review.** Shows store name, every basket item in execution order (+ option where applicable), staff ("to be assigned" if "Any"), date/time for the combined block, total price, contact info. Submit button: "Confirm booking." Goes straight to Confirmation on success — there is no payment step in V1 (§1 decision 7).
 
-## 4. Submit request (Step 5 → Step 6 or Confirmation)
+**Confirmation screen.** Large `reference_code`, booking details, "Confirmation sent to {phone}." Buttons: [Download calendar (.ics)] [Book another]. Copy: "To reschedule or cancel, call {store_phone}" (self-serve management is `customer-my-bookings-design.md`, not linked from here in v1). A `pending` result (`auto_confirm=false` stores — the only V1 cause of `pending` on this flow, since payment is V2) shows "Received — awaiting confirmation," matching the pending SMS template. When the `201` response's `phone_upcoming_count` is at or above the cap minus one (default cap 5, so `count >= 4`), also show a non-blocking line: "Heads up: you now have {count} upcoming appointments with {store} — that's the limit for online booking, please call us for more." (§1 decision 8).
+
+## 4. Submit request (Step 5 → Confirmation)
 
 ```
 POST /api/store/public/appointments
 Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
-{ store_id, items: [{service_id, option_id}, ...], staff_id, start, contact: {name, phone, email}, notes: null, sms_marketing_consent, email_marketing_consent }
+{ store_id, items: [{service_id, option_id}, ...], staff_id, start, contact: {name, phone, email}, notes: null, sms_marketing_consent, email_marketing_consent, consent_text_version, consent_at }
 ```
 
 `items` carries the basket in whatever order the customer built it — the server re-sorts by `sequence_order` before sequencing (`create-appointment-transaction-design.md` §7); the client never needs to pre-sort it.
@@ -94,7 +100,6 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 | 2 | `GET /api/store/staff?service_ids[]=` (promoted to V1-built, no longer deferred) | `availability-slot-engine.md` §1 |
 | 3 | `GET /api/store/public/slots` (multi-item form, §1/§3 of that document) | `availability-slot-engine.md` §7 |
 | 5 | `POST /api/store/public/appointments` (`items[]` 1–5, response carries `phone_upcoming_count`, no separate lookup) | `create-appointment-transaction-design.md` §3.1, §6.3, §7 |
-| 6 | Stripe Payment Element / webhook | `payment-deposit-preauth-design.md` §6 |
 | Confirmation | `.ics` generated client-side | §1 decision 2 |
 | SMS / Email | outbox → relay | `customer-booking-confirmation-reminders-design.md` |
 
@@ -111,7 +116,7 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 9. Expired date / invalid `store_id` → correct `400`/`404` page.
 10. `/book/{store_id}?staff_id=<unknown>` and `?service_id=<unknown>` → the param is ignored, flow starts at its normal default, no `400`.
 11. `/book/{store_id}?staff_id=xxx` from a staff profile → Step 2 opens preselected to that staff member, still changeable.
-12. `payment_required=true` store → Step 6 appears after Review; `payment_required=false` → Step 5 goes straight to Confirmation.
+12. A store with `booking_settings.payment_required=true` → still no payment step shown (V1 has no UI path to meaningfully enable it); Step 5 goes straight to Confirmation regardless of this flag's value.
 13. A phone's 5th successful booking → confirmation screen shows the heads-up line; its 6th attempt → full-page `PHONE_LIMIT` message with the escape-door copy, not a silent re-query.
 14. A blocklisted phone → full-page `PHONE_BLOCKED` message, no retry/override control anywhere on this flow.
 15. Basket of 2 services → Step 2's staff list shows only the intersection; slots at Step 3 are offered only where an intersection-staff member is free for the whole combined block; submitting creates one `appointments` row.
@@ -124,5 +129,6 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 
 1. Logged-in member login / My Bookings link from the confirmation screen.
 2. Deep links to Google/Apple calendar beyond plain `.ics`.
-3. Tips (gratuity) — distinct from deposits, which Step 6 / `payment-deposit-preauth-design.md` already cover.
+3. Tips (gratuity) — distinct from deposits.
 4. Parallel/simultaneous multi-staff bookings (e.g. two technicians on one customer at once) — stays staff-manual, in-store request only (`V1Backlog.md`); never offered through this public flow.
+5. **Deposit/payment collection (V2) — `payment-deposit-preauth-design.md` is the full design, kept ready, not built.** The whole Payment Element flow, the `payment_intent.succeeded` webhook, and the `payment_required` setting having any real UI consequence all wait for this to actually ship.
