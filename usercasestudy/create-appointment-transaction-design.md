@@ -63,7 +63,7 @@ Headers: `Idempotency-Key` (optional, §8).
 }
 ```
 
-- `items` has ≥ 1 entry; a `price_type='from'` service must carry `option_id` (`OPTION_REQUIRED`, same as the slot engine).
+- `items` has 1–5 entries (§7's validation enforces the range and rejects duplicates on this channel); a `price_type='from'` service must carry `option_id` (`OPTION_REQUIRED`, same as the slot engine). Multi-item baskets are promoted, public-facing V1 (sequential-only, merchant-ordered — `availability-slot-engine.md` §1/§9 item 3); parallel/simultaneous multi-staff bookings stay staff-manual, in-store only.
 - `staff_id: null` means "any staff" (§5).
 - `start` is store-local time and must land exactly on a currently-valid slot start (re-validated per §4).
 
@@ -202,11 +202,20 @@ INSERT INTO platform.abuse_config (key, value_int) VALUES
 -- one global value, Groway-admin editable; no per-store/per-chain override UI in v1
 ```
 
-## 7. Multi-service sequencing
+## 7. Multi-service sequencing — the normative definition (`availability-slot-engine.md` §3 references this, doesn't restate it)
+
+**Validation, before any sequencing math runs** (public channel only for the size limit; the rest applies to both channels, §3.1/§3.2):
+- 2–5 items on the public endpoint (`400` outside that range); staff manual entry has no cap — same staff-exemption pattern as the phone cap (§1 decision 10) and `min_lead_minutes` (§3.2): a trained human assembling a legitimate large combo isn't the thing this limit exists to stop.
+- No duplicate `service_id` in the basket (`400`).
+- Every item's service belongs to `store_id` (already covered by step 1's per-item existence check — items are validated against the one requested `store_id`, so "all same store" falls out of that for free, not a separate check) and is bookable (`409 SERVICE_NOT_BOOKABLE`, naming the offending service).
+- The assigned staff (resolved or specified, §5) is qualified for **every** item — the intersection of staff-service assignments across the whole basket. A specified `staff_id` failing this → `409 STAFF_NOT_QUALIFIED`. This is the one validation in this section that only ever surfaces here, at create time — `availability-slot-engine.md`'s read-only slots query never throws it (an unqualified specified staff there just yields an empty candidate set, its own §2).
+
+**Sequencing** — **items are re-sorted by `(sequence_order, service_name)` before this walk runs**, regardless of what order the caller's `items[]` array arrived in (`store-onboarding-v1-design.md` §7: the merchant's catalog order wins, Fresha parity; a customer adding services in any order ends up with the same execution order every time):
 
 ```
+sortedItems = sortBy(items, (service.sequence_order, service.name))
 cursor = start
-for i, item in items:
+for i, item in sortedItems:
     D_i  = option?.duration_minutes ?? service.duration_minutes
     Bb_i = service.buffer_before_minutes ?? store.buffer_before_minutes
     Ba_i = service.buffer_after_minutes  ?? store.buffer_after_minutes
@@ -214,14 +223,16 @@ for i, item in items:
     item.ends_at   = cursor + D_i
     cursor = item.ends_at + (max(Ba_i, Bb_{i+1}) if a next item exists)
 header.starts_at = start
-header.ends_at   = items.last.ends_at
-header.buffer_before_minutes = Bb_0
-header.buffer_after_minutes  = Ba_last
+header.ends_at   = sortedItems.last.ends_at
+header.buffer_before_minutes = Bb_first   # sortedItems[0]'s Bb
+header.buffer_after_minutes  = Ba_last    # sortedItems[-1]'s Ba
+D_total = header.ends_at - header.starts_at
 ```
 
-- Each item snapshots `price_cents`, `service_name`, `option_name`, `duration_minutes` at creation.
-- The full span, `[header.starts_at - Bb_0, header.ends_at + Ba_last]`, must fit inside the assigned staff's available time for the day — checked by §4's re-validation.
+- Each item snapshots `price_cents`, `service_name`, `option_name`, `duration_minutes` at creation, **in execution order** (`sortedItems`), not the order the request body listed them in.
+- The full span, `[header.starts_at - Bb_first, header.ends_at + Ba_last]`, must fit inside the assigned staff's available time for the day — checked by §4's re-validation, which for a multi-item basket is exactly `D_total`/`Bb_first`/`Ba_last` handed to the same single-block algorithm (`availability-slot-engine.md` §3/§4 — no separate multi-service algorithm exists anywhere).
 - Single-person, single-block: multiple services never split across staff.
+- Quota, capacity, and the phone cap all count this as **one** appointment regardless of item count — one row, one quota unit, one capacity unit. A multi-service booking is strictly cheaper (quota-wise) than the old staff-manual workaround of two separate single-service appointments back to back.
 
 ## 8. Idempotency
 
@@ -375,6 +386,7 @@ CREATE TABLE store.outbox (
 | 409 | `SLOT_TAKEN` | Re-validation or exclusion-constraint conflict — guide the client to re-pick a time |
 | 409 | `CAPACITY_FULL` | Store-wide capacity full for that interval, independent of staff availability (§4, §6.2) — "this time is fully booked, please choose another" |
 | 409 | `STAFF_NOT_AVAILABLE` | Requested staff exists but has no availability that day |
+| 409 | `STAFF_NOT_QUALIFIED` | Requested staff can't perform every service in the basket (§7) — create-time only, never thrown by `availability-slot-engine.md`'s read-only slots query |
 | 409 | `QUOTA_EXHAUSTED` | Free-plan monthly quota exhausted (`groway-billing-workflow.md` §4.3 copy) |
 | 409 | `CANCEL_TOO_LATE` | Customer cancel/reschedule inside `cancel_threshold_hours` |
 | 409 | `PHONE_LIMIT` | This phone already has `max_upcoming_per_phone_per_chain` upcoming bookings chain-wide (§6.3). Public channel only. Copy: "You've reached the limit of 5 upcoming bookings for this phone number — please call {store_phone} and we'll book you in right away." (the escape door matters — staff entry isn't subject to this cap, §1 decision 10) |
@@ -456,6 +468,9 @@ Concurrency (must pass under real parallel load, not just sequential simulation)
 16. Concurrent: two public requests for the same phone in the same millisecond, both reading "4 upcoming" → one `201` (returning `phone_upcoming_count: 5`), one `409 PHONE_LIMIT`; never both succeed.
 17. Guest books 5 (public channel), gets claimed onto a customer record (`customer-records-design.md` §4.4), then tries to book a 6th → `409 PHONE_LIMIT` (the `DISTINCT` in §6.3's count query prevents the claimed booking from being counted twice and under-reporting).
 18. A blocklisted phone on the public endpoint → `403 PHONE_BLOCKED`, no override option offered. The same phone via staff entry with `override_phone_block_reason` set → `201`; without it → `403 PHONE_BLOCKED`. Either way, the blocklist row itself is untouched — the next booking attempt from that number is blocked again.
+19. Basket of 2 services, added in reverse of the merchant's `sequence_order` → the created appointment's `appointment_items` are in merchant order regardless, and the slots that were offered already reflected the merchant-ordered block.
+20. Staff qualified for only one of two basket services, submitted directly via `staff_id` → `409 STAFF_NOT_QUALIFIED`, no row created; the same staff member omitted (any-staff mode) with no one else qualified and free → empty result at the slots-query stage, not an error, and nothing to submit.
+21. A 6-service public basket, or a basket with a duplicate `service_id` → `400`, rejected before any other validation runs. The same baskets via staff entry → no cap, proceeds normally.
 
 ## 18. Deferred
 

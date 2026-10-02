@@ -5,9 +5,9 @@
 **Relationship to other documents:**
 - `store-onboarding-v1-design.md` defines every table this engine reads (`business_hours`, `staff_schedules`, `staff_time_offs`, `booking_settings`, `services`/`service_options`, `appointments`).
 - `staff-schedule-entry-workflow.md` is how those input tables get filled in.
-- A **future, not-yet-written** document owns the actual appointment-creation transaction and double-booking prevention — this engine only answers "what's bookable," it never locks or reserves anything.
+- `create-appointment-transaction-design.md` owns the actual appointment-creation transaction and double-booking prevention — this engine only answers "what's bookable," it never locks or reserves anything. For a multi-service basket, that document's §7 is the **normative, single definition** of how per-item duration/buffers combine into one block (`D_total`, `Bb_first`, `Ba_last`) — this document references that definition rather than restating it (§3 below), the same discipline that fixed the Step 5/5b occupancy-criteria drift earlier in this project: two documents each independently describing the same formula is how that kind of bug happens.
 
-**One-line scope:** given (store, service/option, date, optional staff), compute every bookable start time that day. **Pure computation, no side effects** — it never writes to the database, never pre-reserves a slot. Seeing a slot in the response is not the same as owning it.
+**One-line scope:** given (store, 1–5 services/options in merchant-set sequence, date, optional staff), compute every bookable start time that day for the combined block. **Pure computation, no side effects** — it never writes to the database, never pre-reserves a slot. Seeing a slot in the response is not the same as owning it.
 
 ---
 
@@ -18,53 +18,82 @@
 | Param | Required | Notes |
 |---|---|---|
 | `store_id` | Yes | |
-| `service_id` | Yes | |
+| `service_id` | Yes (single-item form) | Mutually exclusive with `service_ids[]` below |
 | `option_id` | Conditional | Required if the service's `price_type='from'`, else `400 OPTION_REQUIRED` |
+| `service_ids[]` | Yes (multi-item form) | 2–5 entries, merchant-set sequence order is irrelevant to the caller — the engine re-sorts by `services.sequence_order` before computing anything (`store-onboarding-v1-design.md` §7). Duplicate ids → `400`. All must belong to `store_id` and be bookable, else `409 SERVICE_NOT_BOOKABLE` naming the offending service. |
+| `option_ids[]` | Conditional | Positional, aligned to `service_ids[]`'s *input* order (not the re-sorted execution order) — same `from`-service rule as `option_id`, per entry |
 | `date` | Yes | `YYYY-MM-DD`, interpreted in the store's timezone |
 | `staff_id` | No | A specific person (`store.staff.id`, person-level); omitted = "any available staff" mode |
+
+The single-item form (`service_id`/`option_id`) keeps working unchanged — it's equivalent to `service_ids[]` with exactly one entry, not a separate code path.
 
 ### Output
 
 ```json
 {
   "store_id": "…",
-  "service_id": "…",
-  "option_id": "…",
+  "services": [
+    { "service_id": "…", "option_id": "…", "duration_minutes": 60 },
+    { "service_id": "…", "option_id": null, "duration_minutes": 30 }
+  ],
   "date": "2026-10-05",
   "timezone": "America/Toronto",
-  "duration_minutes": 60,
+  "total_duration_minutes": 90,
   "buffer_before_minutes": 0,
   "buffer_after_minutes": 10,
   "slots": [
-    { "start": "2026-10-05T09:00:00", "end": "2026-10-05T10:00:00", "staff_ids": ["uuid-a", "uuid-b"] },
-    { "start": "2026-10-05T09:15:00", "end": "2026-10-05T10:15:00", "staff_ids": ["uuid-a"] }
+    { "start": "2026-10-05T09:00:00", "end": "2026-10-05T10:30:00", "staff_ids": ["uuid-a", "uuid-b"] },
+    { "start": "2026-10-05T09:15:00", "end": "2026-10-05T10:45:00", "staff_ids": ["uuid-a"] }
   ]
 }
 ```
 
+- `services[]` echoes the request **in execution order** (post-`sequence_order`-sort), not the order the caller sent them in — this is what the client's basket UI re-displays as "here's the order it'll actually run in."
+- A single-item request still returns this same shape (`services` has one entry) — no conditional response format.
 - Times are always store-local (`YYYY-MM-DDTHH:mm:ss`), per architecture-wide convention.
 - `staff_ids` is always **person-level** — the customer is choosing a person, not an assignment; the engine works internally in assignments (§4).
-- `end = start + duration_minutes` — buffer is excluded from the displayed window; it only affects *whether* a start is offered, never what's shown.
+- `end = start + total_duration_minutes` — buffer is excluded from the displayed window; it only affects *whether* a start is offered, never what's shown.
+
+### 1a. Companion endpoint: `GET /api/store/staff` (promoted to V1-built, 2026-10-02)
+
+Public, unauthenticated, same rate-limit tier as `/slots`. Powers Step 2 of `public-booking-end-to-end-design.md` (picking a staff member *before* a date is chosen) — a narrower, date-independent question than `/slots` answers, reusing the same qualification data.
+
+```
+GET /api/store/staff?store_id=&service_id=        (single-item form)
+GET /api/store/staff?store_id=&service_ids[]=      (multi-item form, same 2-5/dedup/bookable
+                                                      validation as §2 items 2-3, store-wide, not date-scoped)
+```
+
+```json
+{ "staff": [{ "staff_id": "…", "name": "…" }, ...] }
+```
+
+- The list is the same intersection §4's candidate-set definition computes — every staff member with a bookable assignment at `store_id` qualified for **every** requested service — just without a `date`/`staff_time_offs`/occupied-block filter, since this endpoint answers "who could ever do this combo," not "who's free on a specific day." An empty list is a normal `200`, same philosophy as an empty `slots` array.
+- This is what `public-booking-end-to-end-design.md` §3's Step 2 calls directly; it does **not** derive this list by calling `/slots` first (that would need a date up front, which Step 2 doesn't have yet) and does not call `/slots` internally either — two independent reads of the same underlying qualification data, not one endpoint wrapping the other.
 
 ## 2. Preconditions (any failure short-circuits before the algorithm runs)
 
 1. Store exists and `status='active'` — else `404`. (`store.stores.status` has no separate "deleted" state; `pending` and `suspended` are both rejected here, uniformly as `404` — a public, unauthenticated caller has no business distinguishing "still being onboarded" from "temporarily closed" from "never existed." This is the actual enforcement point for `store-onboarding-v1-design.md`'s "`status='active'` AND derived readiness" rule — without it, a `pending` store that already has business hours filled in would leak real bookable slots before anyone decided it was open for business.)
-2. Service belongs to this store, `status='active'`, not soft-deleted — else `404` (cross-store non-existence convention).
-3. Service is bookable (`store-onboarding-v1-design.md` §7.6: active + not deleted + ≥1 assignment has it assigned + a `from` service has ≥1 live option) — else `409 SERVICE_NOT_BOOKABLE`.
+2. 1–5 services requested (`400` outside that range); no duplicate `service_id` in the basket (`400`). Each one belongs to this store, `status='active'`, not soft-deleted — else `404` (cross-store non-existence convention).
+3. Each service is bookable (`store-onboarding-v1-design.md` §7.6: active + not deleted + ≥1 assignment has it assigned + a `from` service has ≥1 live option) — else `409 SERVICE_NOT_BOOKABLE`, naming the first offending service.
 4. `date` is valid: `today(store_tz) ≤ date ≤ today + advance_booking_days` — past date → `400 DATE_IN_PAST`; too far → `400 DATE_TOO_FAR`.
-5. If `staff_id` is given: that person exists and has an assignment at this store (no assignment → `404`). Having zero open slots that day is still a `200` with an empty `slots` array — "exists but fully booked" is not "doesn't exist."
+5. If `staff_id` is given: that person exists and has an assignment at this store (no assignment → `404`). **Not** being qualified for every requested service is **not** a precondition failure here — it just means that person's candidate set is empty (§4), producing an ordinary `200` with an empty `slots` array. The hard `409 STAFF_NOT_QUALIFIED` only exists at create time (`create-appointment-transaction-design.md` §7); this read-only endpoint never throws it — "exists but can't do this combo" gets the same empty-array treatment as "exists but fully booked," not a special error.
 
-## 3. Duration and buffer
+## 3. Duration and buffer (multi-service: see `create-appointment-transaction-design.md` §7)
 
-- `D` (duration): the chosen option's `duration_minutes` for a `from` service, otherwise the service's own.
-- `Bb` / `Ba` (buffer before/after): the service's `buffer_before/after_minutes` if set, else the store's `booking_settings` defaults.
-- Total occupied block for a candidate start `s`: `[s - Bb, s + D + Ba]`.
+Single service: `D` is the chosen option's `duration_minutes` for a `from` service, otherwise the service's own; `Bb`/`Ba` are that service's `buffer_before/after_minutes` if set, else the store's `booking_settings` defaults.
+
+**Multi-service basket**: sort the requested services by `(sequence_order, service_name)` — the merchant's execution order, irrespective of the order the customer added them in (`store-onboarding-v1-design.md` §7). Then compute `D_total`, `Bb_first` (the first item's `Bb`), and `Ba_last` (the last item's `Ba`) by running `create-appointment-transaction-design.md` §7's cursor walk over that sorted list. **This document does not restate that formula** — it's defined exactly once, there, and referenced here; inter-item buffers are already folded into `D_total` by that walk (each gap is `max(Ba_i, Bb_{i+1})`), so nothing here needs to know about them directly.
+
+For a single-item basket, `D_total = D`, `Bb_first = Bb`, `Ba_last = Ba` — the multi-item path is a strict generalization, not a fork.
+
+Total occupied block for a candidate start `s`: `[s - Bb_first, s + D_total + Ba_last]`. Everywhere the rest of this document says `D`/`Bb`/`Ba`, read `D_total`/`Bb_first`/`Ba_last` for a multi-service basket — the algorithm itself (§4) doesn't change shape, only which three numbers it's handed.
 
 ## 4. Algorithm
 
 Let `T` be the target date (store timezone), `dow(T)` its day of week. Computed **independently per candidate assignment**, then merged.
 
-Candidate set = assignments at this store satisfying "bookable" (`staff-schedule-entry-workflow.md` §6); in specified-staff mode, only that person's assignment at this store.
+Candidate set = assignments at this store satisfying "bookable" (`staff-schedule-entry-workflow.md` §6) **and qualified for every requested service** — the intersection of staff-service assignments across the whole basket, not just any one item (a single-item basket's "intersection" is trivially that one service's own qualified set). In specified-staff mode, only that person's assignment at this store, and only if it's in that intersection — otherwise the candidate set is empty for them (§2 item 5).
 
 **Occupancy criteria — defined once here, referenced by both Step 5 and Step 5b, never restated.** (An earlier version of this document stated this separately in each step; Step 5b's copy drifted from Step 5's and fell out of sync with the `pending`-counts-too decision below. Defining it once removes the ability for that to happen again.) An appointment occupies time when:
 - its `status` is one that still holds the slot — `confirmed`, or `pending` with `expires_at IS NULL OR expires_at > now()` (an expired, unconfirmed hold is already released — this engine checks live, it doesn't wait for a sweeper to catch up);
@@ -100,12 +129,13 @@ This is a filter, not a new occupancy source of truth — the actual prevention 
 ### Pseudocode
 
 ```
-function getSlots(store, service, option, date, staffId?):
+function getSlots(store, services[], date, staffId?):   # services[] has 1-5 entries, each {service_id, option_id}
     run §2 preconditions
-    D, Bb, Ba = §3
+    sortedServices = sortBy(services, (sequence_order, service_name))   # §3, store-onboarding-v1-design.md §7
+    D_total, Bb_first, Ba_last = create-appointment-transaction-design.md §7's cursor walk over sortedServices
     O = businessHours(store, dow(date))            # non-NULL row only
     if O empty: return []
-    assigns = bookableAssignments(store, service, staffId?)
+    assigns = bookableAssignments(store, sortedServices, staffId?)   # intersection across every service, §4
     slotsByStart = {}
     for a in assigns:
         W = staffSchedules(a.id, dow(date))
@@ -114,7 +144,7 @@ function getSlots(store, service, option, date, staffId?):
         A = subtract(A, occupiedBlocks(store.id, a.staff_id, date)) # Step 5: occupancy criteria above, filtered WHERE staff_id = a.staff_id
         if date == today(store.tz):
             A = subtract(A, [midnight, now() + min_lead_minutes])
-        for [s_lo, s_hi] in feasibleStarts(A, Bb, Ba, D, slot_granularity_minutes):
+        for [s_lo, s_hi] in feasibleStarts(A, Bb_first, Ba_last, D_total, slot_granularity_minutes):
             for s in range(s_lo, s_hi + 1, slot_granularity_minutes):
                 slotsByStart[s].add(a.staff_id)   # person-level id in the output
 
@@ -123,7 +153,7 @@ function getSlots(store, service, option, date, staffId?):
         blocks = storeWideOccupiedBlocks(store.id, date)   # same occupancy criteria + occupies_capacity=true, no staff_id filter - deliberately a different query than occupiedBlocks above, not just a rename
         full = sweepFullIntervals(blocks, cap)             # intervals where concurrent count >= cap
         for s in list(keys(slotsByStart)):
-            if intersects([s - Bb, s + D + Ba], full):
+            if intersects([s - Bb_first, s + D_total + Ba_last], full):
                 delete slotsByStart[s]                     # whole start removed, not just staff_ids
 
     return sorted(slotsByStart)
@@ -143,18 +173,19 @@ Complexity: one store, one day — trivial, milliseconds, including Step 5b's in
 
 ## 7. API
 
-`GET /api/store/public/slots?store_id=&service_id=&option_id=&date=&staff_id=`
+`GET /api/store/public/slots?store_id=&service_id=&option_id=&date=&staff_id=` (single-item)
+`GET /api/store/public/slots?store_id=&service_ids[]=&service_ids[]=&option_ids[]=&option_ids[]=&date=&staff_id=` (multi-item, 2–5)
 
 - Public, unauthenticated, rate-limited by IP + `store_id`.
-- Returns `200` even with an empty `slots` array — "nothing available" is a normal business outcome, not an error.
-- Error codes: `OPTION_REQUIRED` (400), `DATE_IN_PAST` (400), `DATE_TOO_FAR` (400), `SERVICE_NOT_BOOKABLE` (409), out-of-scope resource (404).
+- Returns `200` even with an empty `slots` array — "nothing available" is a normal business outcome, not an error. This includes a specified `staff_id` who exists but isn't qualified for every requested service (§2 item 5) — empty, not an error.
+- Error codes: `OPTION_REQUIRED` (400), `DATE_IN_PAST` (400), `DATE_TOO_FAR` (400), `SERVICE_NOT_BOOKABLE` (409), out-of-scope resource (404), basket size/duplicate (400, §2 item 2). `STAFF_NOT_QUALIFIED` (409) is **not** one of this endpoint's error codes — it only exists at create time (`create-appointment-transaction-design.md` §7).
 - Supersedes an earlier sketch, `GET /public/stores/{slug}/availability` — everything under `/api/store` now, addressed by `store_id`, per the architecture doc's route-prefix rule.
 
 ## 8. Left open (not decided in this document)
 
 1. ~~`auto_confirm=false`: whether a `pending` booking should occupy a slot~~ — **resolved, 2026-09-30**: yes. `appointments.status` does have a `pending` value (with a TTL, `expires_at`); the occupancy criteria above (§4) count `pending` the same as `confirmed` as long as it hasn't expired. This document previously only subtracted `status='confirmed'`, which — for any store running `auto_confirm=false` or `payment_required=true` — silently under-counted occupancy and would have let the engine show a time as bookable that the creation transaction would then reject. Fixed by defining the criteria once and sharing it between Step 5 and Step 5b, instead of each step stating its own (and drifting).
 2. ~~`is_test` appointments~~ — **resolved**: they occupy real time like any other appointment (§4's shared occupancy criteria); billing-quota treatment is a separate, independently-settled question.
-3. **Multi-service sequencing**: this engine's `GET /slots` only ever queries a **single** service (+ option) at a time. A booking with several services back-to-back is sequenced into one continuous block at creation time (the appointment header's `starts_at`/`ends_at` *is* that block) — the exact sequencing rule belongs to the create-appointment document.
+3. ~~**Multi-service sequencing**~~ — **resolved, 2026-10-02, promoted to V1**: `GET /slots` now accepts a 2–5 service basket (`§1`), sorted into merchant-set execution order and merged into one combined-block query using `create-appointment-transaction-design.md` §7's `D_total`/`Bb_first`/`Ba_last` (§3, §4) — no new merge algorithm, every eligible staff member (now an intersection across all requested services, not just one) runs the same single-block algorithm this document already had, just with those three numbers instead of a single service's own. Sequential-only; parallel/simultaneous multi-staff bookings remain staff-manual, in-store only (`V1Backlog.md`).
 
 ## 9. Explicitly not in V1
 

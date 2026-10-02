@@ -158,6 +158,16 @@ CREATE TABLE store.services (
     price_type       VARCHAR(10) NOT NULL DEFAULT 'fixed' CHECK (price_type IN ('free', 'fixed', 'from')),
     status           VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     deleted_at       TIMESTAMPTZ,  -- soft delete (default DELETE); a separate hard "purge" is §8's concern, not a flag here
+    -- Doubles as menu display order within a category AND multi-service combo
+    -- execution order (2026-10-02) - one column, not two. §7.2's PUT .../order
+    -- endpoint had nowhere to persist to before this (services had no order
+    -- column at all, unlike categories/options); it now writes here. Accepted
+    -- V1 limitation: a service's menu position and its position in a combo
+    -- can't diverge (e.g. "consultation" shown last as an add-on but always
+    -- performed first) - split into a separate display_order if a real store
+    -- ever needs that; YAGNI until then. Default 0 + name tie-break preserves
+    -- today's display behavior for existing rows.
+    sequence_order   INT NOT NULL DEFAULT 0,
     -- NULL = inherit the store's booking_settings.buffer_before/after_minutes;
     -- non-NULL overrides it for this service. Not split by option - a 'from'
     -- service's options share one buffer (2026-09-29 decision).
@@ -390,7 +400,7 @@ A category name is unique **among live categories** in a store (`uq_service_cate
 | `POST /api/store/services` | `{ categoryId?, name, description?, priceType, priceCents?, durationMinutes?, options?:[{name,durationMinutes,priceCents}] }` |
 | `GET /api/store/services/{id}` | Detail, including live `options` and assigned staff |
 | `PUT /api/store/services/{id}` | Edit. Switching `priceType` is validated per §7.4's rules (e.g. `fixed`→`from` requires supplying at least one option in the same call) |
-| `PUT /api/store/services/order` | `{ categoryId, orderedIds: [...] }` — reorder within one category |
+| `PUT /api/store/services/order` | `{ categoryId, orderedIds: [...] }` — reorder within one category; writes each service's `sequence_order` (0-based index in `orderedIds`). This is also the execution-order editor for multi-service combos (`availability-slot-engine.md` §3, `create-appointment-transaction-design.md` §7) — the same drag-to-reorder UI, one column, both effects |
 | `DELETE /api/store/services/{id}` | **Soft delete** (`deleted_at`) — idempotent, the everyday "take this off the menu" action. Existing appointments/`appointment_items` are untouched; `staff_services` rows are kept (so restoring brings staff assignments back too) |
 | `DELETE /api/store/services/{id}/purge` | **Hard delete** — a separate, deliberately scary endpoint name, not a query flag on the endpoint above (a dangerous action should look dangerous in the route itself). `409 SERVICE_HAS_APPOINTMENTS` if any `appointment_items` row ever referenced it (any status, including cancelled/no-show); otherwise deletes the row, cascading to `service_options` and `staff_services` |
 | `POST /api/store/services/{id}/restore` | Clears `deleted_at`, undoing a soft delete |
@@ -477,7 +487,7 @@ sequenceDiagram
 ## 9. Open questions
 
 1. **Wireframe detail** was intentionally not reproduced at the same fidelity as the retired document — this is the schema/API contract; pixel-level Back Office UI can be redrawn separately if needed.
-2. ~~Multi-service, multi-staff appointments~~ — **narrowed 2026-09-29**: the baseline model is single-person, single-block (`appointments.staff_id` is one person for the whole block) — a multi-service appointment is several `appointment_items` performed back-to-back by that *same* person, never split across staff. Exactly how multiple services get sequenced into one block is still open, deferred to the not-yet-written create-appointment document (`availability-slot-engine.md` §8 item 3).
+2. ~~Multi-service, multi-staff appointments~~ — **narrowed 2026-09-29, sequencing resolved 2026-10-02**: the baseline model is single-person, single-block (`appointments.staff_id` is one person for the whole block) — a multi-service appointment is several `appointment_items` performed back-to-back by that *same* person, never split across staff. The sequencing rule (merchant-set order via `sequence_order` above, cursor-walked into one combined block) is `create-appointment-transaction-design.md` §7's normative definition, now also exposed as a public, customer-facing booking flow (2–5 services, `availability-slot-engine.md` §1/§3) — not just the staff-manual path this note originally scoped it to.
 3. **Leaving one store while staying at another** (2026-09-29, from the `staff`/`staff_store_assignments` split) — removing a `staff_store_assignments` row for one store, while the person's `store.staff` row (and their login, if they have one) stays active for their other store(s), isn't designed as an endpoint yet. `store.staff.status` is person-level (mirrors their login being deactivated entirely, `growayshop-staff-invite-workflow.md` §4.2) — it does not mean "inactive at this one store."
 4. ~~Geocoding is not wired up~~ — **resolved 2026-09-29**: Groway uses **Mapbox only**, never Google Maps/Google Business Profile (confirmed explicitly — no Google integration is planned). The actual design — a Mapbox `retrieve` call at store creation/address-edit time, populating `formatted_address`/`latitude`/`longitude`/`geo_provider`/`geo_place_id` — lives in `growayshop-registration-workflow.md` §2.2, not here.
 5. **Chain-wide shared catalog** (one price list, edited once, applying to every store) is explicitly a v2 idea — §8's copy is a one-time seed, deliberately not a live sync, per store, following the project's general principle of not over-building for a hypothetical future need.
