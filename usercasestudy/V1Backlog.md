@@ -19,8 +19,7 @@ design into the relevant `usercasestudy/` doc and delete the line here.
 - Tips / gratuity (distinct from deposits).
 - Pre-auth hold (deferred to v2; v1 uses direct capture to avoid the 7-day expiry problem).
 - Phone OTP step-up for booking abuse (v2 hardening; v1 relies on rate limiting + per-phone cap + blocklist).
-- Multi-service public booking (waits on multi-service slot merging in the slot engine).
-- Simultaneous/parallel services (e.g. head massage + foot wash at the same time, two technicians; hair-color processing + manicure). Real in Chinese spas. DB layer already compatible (exclusion constraint is per-staff, overlapping rows with different staff don't conflict); needs slot search for "two qualified staff free in the same window" + parallel-group duration semantics (max, not sum). Ranked behind multi-service booking. Manual workaround exists today: staff create two overlapping appointments (different staff, same customer) via back-office entry — no system block; known imperfections: burns 2 quota units, counts 2 against store capacity.
+- Simultaneous/parallel services (e.g. head wash + foot wash at the same time, two technicians). DECIDED 2026-10-02: follow Fresha — online books sequential multi-service only; simultaneous must be requested in-store and is done staff-manual (two overlapping appointments, different staff — no system block; burns 2 quota units, counts 2 against capacity). No self-service parallel booking, no DB change needed.
 - Per-room / per-bed assignment (V1 uses a store-level capacity number; granular assignment waits for the med-aesthetics store).
 
 ## Customers
