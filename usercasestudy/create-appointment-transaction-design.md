@@ -24,6 +24,8 @@ Baseline facts (established elsewhere, referenced here, not re-argued):
 9. **Store-level concurrent capacity (beds/chairs) is a second, independent dimension** on top of per-staff availability — a store can have fewer beds than staff (e.g. 3 staff, 2 beds). It's enforced with a different mechanism than per-staff double-booking because the invariant has a different shape: staff conflicts are **pairwise** ("no two overlapping rows for the same staff"), capacity is **counting** ("at most N concurrent rows store-wide") — see §6.2.
 10. **A chain-wide phone cap is a third, independent dimension**, defending against anonymous scraping/abuse rather than monetization — the same normalized phone number can't hold more than `platform.abuse_config.max_upcoming_per_phone_per_chain` (default 5) unresolved upcoming bookings across the whole chain. It's counting-shaped like capacity, so it gets the same tool (an advisory lock, §6.3) — but it's **public-channel only** (§3.1), never the staff path (§3.2): staff manual entry already has human judgment and an audit trail behind it, and blocking a front-desk booking with no escalation path makes no sense.
 11. **A per-store phone blocklist is a fourth, independent dimension**, store-scoped rather than chain-scoped (a person one store bans may be another store's regular, so chain-wide would over-reach) — unlike the phone cap, this check runs on **every** channel, because the whole point is "this specific store doesn't want this number," not an anonymity-abuse defense. Staff (not the public endpoint) can override it for a single booking, with a mandatory reason, logged — see §9 step 1.5 and §15.
+12. **`channel` is a purely descriptive record, never a branching input.** It's written once, at the step-7 `INSERT`, recording which code path (§3.1 or §3.2, and eventually an AI-agent path) created the row — not a column anything upstream of that `INSERT` reads to decide behavior. The existing endpoint-based branches (phone-cap §3.1-only, `min_lead_minutes` skip §3.2-only, `is_test` §3.2-only) stay exactly as they are: the row doesn't exist yet when those checks run, so `channel` physically cannot be their source of truth. A future AI-booking path sets its own `channel` value the same way §3.1/§3.2 do today — the caller always knows its own origin; the column just keeps the record.
+13. **Marketing-outreach consent is captured once, at creation, never inferred or assumed.** Both public and staff creation accept two independent opt-in booleans (SMS, email), defaulting to `false`, immutable on the appointment row afterward (same "a booking's origin is a fact" principle as `channel`) — the CASL legal basis this creates lives with that specific booking. Propagating it onto the customer record is `customer-records-design.md`'s concern (§7 there), not this document's.
 
 ## 2. State machine
 
@@ -59,13 +61,16 @@ Headers: `Idempotency-Key` (optional, §8).
   "staff_id": "uuid | null",
   "start": "2026-10-05T09:00:00",
   "contact": { "name": "string", "phone": "string", "email": "string | null" },
-  "notes": "string | null"
+  "notes": "string | null",
+  "sms_marketing_consent": false,
+  "email_marketing_consent": false
 }
 ```
 
 - `items` has 1–5 entries (§7's validation enforces the range and rejects duplicates on this channel); a `price_type='from'` service must carry `option_id` (`OPTION_REQUIRED`, same as the slot engine). Multi-item baskets are promoted, public-facing V1 (sequential-only, merchant-ordered — `availability-slot-engine.md` §1/§9 item 3); parallel/simultaneous multi-staff bookings stay staff-manual, in-store only.
 - `staff_id: null` means "any staff" (§5).
 - `start` is store-local time and must land exactly on a currently-valid slot start (re-validated per §4).
+- `sms_marketing_consent`/`email_marketing_consent`: both default `false` if omitted — never inferred from anything else on the request. `email_marketing_consent` is only ever meaningful when `contact.email` was given; capturing it with no email present is accepted but inert. UI copy/placement is `public-booking-end-to-end-design.md` §3 Step 4's concern (one unchecked-by-default checkbox, CASL copy pending legal review).
 
 ```json
 // response 201
@@ -83,7 +88,8 @@ Headers: `Idempotency-Key` (optional, §8).
   ],
   "total_price_cents": 8800,
   "expires_at": "2026-10-05T09:15:00 | null",
-  "phone_upcoming_count": 3
+  "phone_upcoming_count": 3,
+  "channel": "public_web"
 }
 ```
 
@@ -103,6 +109,8 @@ Same body as §3.1, plus:
 Differences from §3.1:
 - `is_test=true` is allowed here only.
 - The phone cap (§6.3) never runs here — only §3.1 (decision 10). A blocklist hit (§9 step 1.5) can be overridden here; it cannot on the public endpoint.
+- `channel='staff_manual'` is set unconditionally, regardless of `is_test` — the two columns record different, independent facts (who created it vs. how it was created).
+- `sms_marketing_consent`/`email_marketing_consent` are accepted the same way as §3.1, default `false` — staff only check the box after asking the customer verbally; nothing here implies consent on the customer's behalf.
 - `min_lead_minutes` is skipped — a staff member booking a walk-in shouldn't be blocked by a lead-time rule meant for self-serve customers. Business hours, schedule, and double-booking checks still apply unconditionally.
 - Runs through the exact same transaction (§7) — no second code path. Any manual-entry route that bypasses quota or double-booking checks is a bug, not a feature.
 
@@ -282,10 +290,15 @@ BEGIN
   6. Generate reference_code (8 chars; unique-violation → retry).
   7. INSERT appointments (status from auto_confirm/payment_required; pending
      sets expires_at = now() + pending_hold_minutes; occupies_capacity = OR
-     across items' service.occupies_capacity)
+     across items' service.occupies_capacity; channel = 'public_web' or
+     'staff_manual' per the calling endpoint, §1 decision 12; sms/email_
+     marketing_consent from the request, default false, §1 decision 13)
      + INSERT appointment_items (snapshots)
      + UPSERT idempotency_keys (if a key was supplied)
-     + INSERT store.outbox (§11 event)
+     + INSERT store.outbox (§11 event — carries customer_id when resolved,
+       so a consumer can propagate consent onto the customer record,
+       customer-records-design.md §7, without this transaction crossing
+       into the Customer Module's schema itself)
 COMMIT
 -- exclusion violation -> 409 SLOT_TAKEN; reference_code unique violation -> retry generation
 -- the advisory lock releases automatically on COMMIT/ROLLBACK
@@ -406,6 +419,17 @@ ALTER TABLE store.appointments
   ADD COLUMN guest_email       TEXT,
   ADD COLUMN customer_notes    TEXT,
   ADD COLUMN payment_intent_id TEXT,                    -- §14
+  -- V1 groundwork for the V2/V3 AI layer (2026-10-02 ruling) - §1 decisions 12/13.
+  ADD COLUMN channel VARCHAR(20) NOT NULL DEFAULT 'public_web'
+    CHECK (channel IN ('public_web','staff_manual','ai_agent','ai_recall','ai_gapfill')),
+    -- the three ai_* values have no V1 writer; reserved now so a future AI
+    -- booking path needs no ALTER. Immutable after INSERT - reschedule/
+    -- cancel/claim never touch it (a booking's origin is a fact).
+  ADD COLUMN sms_marketing_consent   BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN email_marketing_consent BOOLEAN NOT NULL DEFAULT FALSE,
+    -- meaningful only when guest_email/the resolved customer has an email;
+    -- the CASL basis for V3's AI recall SMS. Propagation onto customer.customers
+    -- is customer-records-design.md §7's job, not this table's.
   ALTER COLUMN customer_id DROP NOT NULL,
   ADD COLUMN occupied_range TSTZRANGE
     GENERATED ALWAYS AS (

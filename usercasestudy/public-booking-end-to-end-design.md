@@ -34,7 +34,7 @@ A step indicator at the top allows back-navigation (prior selections are kept). 
 
 **Step 3 — Date & time.** Date picker spans `today(store_tz)` through `today + advance_booking_days`; past dates disabled. On date selection: `GET /api/store/public/slots?store_id=&service_ids[]=&option_ids[]=&date=&staff_id=` (single-item basket uses the equivalent `service_id`/`option_id` form — same endpoint, same response shape either way, `availability-slot-engine.md` §1). The response's `total_duration_minutes` and re-sorted `services[]` (merchant execution order, not the customer's add order) drive the UI; times render at `slot_granularity_minutes` resolution, and the displayed block spans the whole basket, not one item. In "any staff" mode the UI shows only the time, not which staff member (kept for the confirmation screen — a customer who cares can pick a specific person in Step 2). No slots that day → "Fully booked today," with a one-tap jump to the next day.
 
-**Step 4 — Contact.** Name and phone required; email optional (confirmation email only sent if present). Phone format-validated (Canadian 10-digit); no OTP in v1 — rate limiting already covers abuse, OTP is a v2 hardening. One checkbox: "Booking confirmation and reminders will be sent to this number."
+**Step 4 — Contact.** Name and phone required; email optional (confirmation email only sent if present). Phone format-validated (Canadian 10-digit); no OTP in v1 — rate limiting already covers abuse, OTP is a v2 hardening. One checkbox, always checked and effectively non-optional in practice: "Booking confirmation and reminders will be sent to this number." A second, **unchecked-by-default** checkbox, entirely separate from the first: "Send me occasional offers and win-back messages by SMS" (exact copy pending the CASL legal review already flagged for the reminders document) — maps to `sms_marketing_consent` on the create request (`create-appointment-transaction-design.md` §1 decision 13, §16); this is V1 groundwork for V3's AI recall, with no V1 feature consuming it yet. Transactional reminders are never gated on this box; it's purely the marketing-outreach opt-in.
 
 **Step 5 — Review.** Shows store name, every basket item in execution order (+ option where applicable), staff ("to be assigned" if "Any"), date/time for the combined block, total price, contact info. Submit button: "Confirm booking" (or "Continue to payment" when Step 6 follows).
 
@@ -47,7 +47,7 @@ A step indicator at the top allows back-navigation (prior selections are kept). 
 ```
 POST /api/store/public/appointments
 Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
-{ store_id, items: [{service_id, option_id}, ...], staff_id, start, contact: {name, phone, email}, notes: null }
+{ store_id, items: [{service_id, option_id}, ...], staff_id, start, contact: {name, phone, email}, notes: null, sms_marketing_consent, email_marketing_consent }
 ```
 
 `items` carries the basket in whatever order the customer built it — the server re-sorts by `sequence_order` before sequencing (`create-appointment-transaction-design.md` §7); the client never needs to pre-sort it.

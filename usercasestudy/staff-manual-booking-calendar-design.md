@@ -90,8 +90,9 @@ New:
 2. Pick service (+ option if applicable) → pick staff (defaults to the current view's staff column; a staff-role caller can switch to anyone else at the store) → date/time: **pulled from the slots endpoint**, dropdown/click-to-pick only — free-text time entry is not offered, which eliminates "booked into a time nobody has" at the source.
 3. Customer: search existing customer records (`customer-records-design.md`) or enter guest name + phone.
 4. `is_test` checkbox (staff-side form only; the public endpoint always forces `false`).
-5. Submit → `POST /api/store/appointments` → the same transaction (re-validation, quota, idempotency, outbox event all included).
-6. Success: the block appears on the calendar immediately; confirmation SMS sent per `customer-booking-confirmation-reminders-design.md`.
+5. Marketing consent checkbox, unchecked by default: "Customer agreed to receive occasional offers by SMS/email" — staff only checks this after asking verbally; it's never assumed from the booking itself. Maps to `sms_marketing_consent`/`email_marketing_consent` (`create-appointment-transaction-design.md` §1 decision 13) — V1 groundwork for V3's AI recall, no V1 consumer yet.
+6. Submit → `POST /api/store/appointments` → the same transaction (re-validation, quota, idempotency, outbox event all included).
+7. Success: the block appears on the calendar immediately; confirmation SMS sent per `customer-booking-confirmation-reminders-design.md`.
 
 Failure handling:
 - `409 SLOT_TAKEN` → modal message "That time was just taken," auto-refresh that staff member's slots for re-selection.

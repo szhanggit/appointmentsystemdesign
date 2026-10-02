@@ -9,6 +9,7 @@
 3. **Photo moderation is manual, Groway-admin only, with no SLA.** Pilot scale doesn't need AI-assisted review or an appeals flow yet; the schema just doesn't block adding either later.
 4. **Reviews reserve `staff_id` in the schema now; review-writing itself is explicitly out of scope here.** Whenever a review-writing feature actually gets built, it needs `staff_id` from day one (the Fresha "with {staff}" pattern) — adding it after reviews already exist would mean backfilling. This document only reserves the column shape.
 5. **Ratings display is dual-source, modeled on COSReady**: an on-platform rating (reviews, currently always empty since review-writing isn't built) and a separately-labeled Google Places aggregate, shown side by side, never merged into one number, never written back to Google. Chosen specifically to avoid a cold-start store page with a blank or "0 reviews" rating.
+6. **Policies/FAQ text (§2.1a) ships as V1, not gated on the rest of this V1.1 document.** Unlike About/photos/reviews/stats here, `policies_text_en`/`_zh` is approved V1 groundwork for V3's AI front desk (2026-10-02 ruling) — it's described alongside About purely because the two are structurally identical (bilingual plain text on `store.stores`), not because it shares this document's V1.1 timeline.
 
 ## 2. Schema
 
@@ -22,6 +23,18 @@ ALTER TABLE store.stores
 
 - Plain text, line breaks preserved on render, never HTML-interpreted.
 - `NULL`/empty on either language → that language's About section is omitted from the detail page, not shown with placeholder copy.
+
+### 2.1a Policies / FAQ (V1, not V1.1 — decision 6)
+
+```sql
+ALTER TABLE store.stores
+  ADD COLUMN policies_text_en TEXT,
+  ADD COLUMN policies_text_zh TEXT;
+```
+
+- Same shape as About: plain text, line breaks preserved, no rich text, no length cap specified (unstructured free text — V1's structured settings, like `cancel_threshold_hours`, already cover the parts that need to be machine-readable; this column is deliberately for the rest).
+- Edited in back-office store settings, a "Policies / FAQ" textarea (two tabs or two fields, same pattern as About) — **not** on the public detail page in V1. No V1 consumer is required to read it; it exists so V3's AI front desk can answer "what's your cancellation policy?" in the customer's own language without a translation step, the day that feature gets built.
+- `NULL`/empty on either language is simply empty — no placeholder, no rendering obligation, since nothing reads it yet.
 
 ### 2.2 Photos
 
