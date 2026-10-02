@@ -44,7 +44,7 @@ CREATE INDEX idx_store_photos_staff_approved ON store.store_photos(staff_id) WHE
 ```
 
 - The public client only ever reads `status='approved'` rows.
-- **When `staff_id` is set, it must belong to a staff member with an active `staff_store_assignments` row at `store_id`** — an application-level invariant, the same category as the same-store rule that `store.service_is_bookable()` enforces for services (`beauty-map-postgis-schema-design.md` §4); a plain FK can't express "and also assigned at this specific store." Checked at write time; an upload where the staff member has no assignment at this store is rejected with `400 STAFF_NOT_AT_STORE`.
+- **When `staff_id` is set, a `staff_store_assignments` row must exist for that `(staff_id, store_id)` pair** (the table has no `status` column — a plain existence check) — an application-level invariant, the same category as the same-store rule that `store.service_is_bookable()` enforces for services (`beauty-map-postgis-schema-design.md` §4); a plain FK can't express "and also assigned at this specific store." Checked at write time; an upload where the staff member has no assignment at this store is rejected with `400 STAFF_NOT_AT_STORE`.
 - Storage: S3 + CloudFront (already in the architecture); upload goes straight to S3 via a presigned URL, never through the app server.
 - Limits: `jpg`/`png`/`webp`, ≤5MB; ≤20 photos in a store's gallery, ≤10 in any one staff portfolio; banner recommended 16:9 (hinted in the UI, not hard-enforced).
 

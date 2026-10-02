@@ -4,9 +4,9 @@
 
 ## 1. Decisions
 
-1. **Public route, no login: `/s/{store_id}/team/{staff_id}`.** `404`s — not a generic error page with blank fields — when the staff member has no active `staff_store_assignments` row at `store_id`. Same same-store invariant as the photo table (`store-profile-enrichment-design.md` §2.2), and the same "never leak existence" rule used for every other cross-scope lookup in this project.
+1. **Public route, no login: `/s/{store_id}/team/{staff_id}`.** `404`s — not a generic error page with blank fields — when **no** `staff_store_assignments` row exists for that `(staff_id, store_id)` pair (the table has no `status` column — this is a plain existence check, not an active/inactive one). Same same-store invariant as the photo table (`store-profile-enrichment-design.md` §2.2), and the same "never leak existence" rule used for every other cross-scope lookup in this project.
 2. **Content order**: photo, name, title, languages, bio, stats, portfolio, [Book them] CTA.
-3. **Two write endpoints, not a field-level permission check on one.** `PUT .../profile/me` (self-service: bio, photo, languages, portfolio; sets `bio_status='pending'`) and `PUT .../profile` (`store_admin`/`chain_admin`: everything, including `title`). This reuses the project's existing scope-based authorization vocabulary (`storeId ∈ caller.AuthorizedStoreIds`, plus "is this your own staff row") instead of inventing a new field-level permission primitive.
+3. **Two write endpoints, not a field-level permission check on one.** `PUT /api/store/staff/me/profile` (self-service: bio, photo, languages, portfolio; sets `bio_status='pending'`) and `PUT /api/store/staff/{staffId}/profile` (`store_admin`/`chain_admin`, identifying which staff member by `{staffId}`: everything, including `title`). This reuses the project's existing scope-based authorization vocabulary (`storeId ∈ caller.AuthorizedStoreIds`, plus "is this your own staff row") instead of inventing a new field-level permission primitive.
 4. **Stats are exact numbers by default**, with a `store_admin`-only hidden toggle to switch to a banded display ("500+") for a given assignment.
 5. **Spoken-language tags are a separate taxonomy from the customer-notification-language system** (`en`/`zh` only). This one is a discovery signal — "can this person speak with me" — never consumed by SMS/email templates, and never reconciled with that other system.
 6. **Per-store stats are permanent, not a v1.1 shortcut.** A profile page represents this person's relationship with customers *at this store*. A chain-wide aggregate, if it's ever built, belongs on a separate chain-level page — not folded into this one.
@@ -67,19 +67,19 @@ INSERT INTO platform.spoken_languages (code, name_en, name_zh, sort_order) VALUE
 - **Completed bookings**: `COUNT(*) FROM store.appointments WHERE staff_id = :staff_id AND store_id = :store_id AND status = 'completed' AND is_test = false AND <that store's is_test = false>`. Only `completed` counts — not `confirmed`, not `no_show`.
 - **Customers served**: `COUNT(DISTINCT customer_id)` under the same filter. Guest bookings (`customer_id IS NULL`) aren't counted — a guest never gets a `customer.customers` row (`customer-records-design.md` §3), so there's nothing distinct to count. This is a known undercount for guest-heavy stores, not a bug to fix here.
 - Computed live on page load in v1.1 — volume is low enough; a cached counter is a later optimization, not designed here.
-- **Store-scoped, not person-scoped**: both filters include `store_id = :store_id` even though `staff_id` alone would also narrow correctly — a staff member working at two stores in the same chain gets two different numbers on their two profile pages, by design (decision 6).
+- **Store-scoped, not person-scoped**: both filters include `store_id = :store_id` **because `staff_id` alone would not narrow correctly** — `appointments.staff_id` is person-level, so a multi-store staff member's row would otherwise pull in appointments from every store they work at, not just this one. The `store_id` filter is what makes a staff member working at two stores in the same chain get two different, correct numbers on their two profile pages (by design, decision 6).
 - A `store_admin`-only toggle (scoped to the `staff_store_assignments` row; exact column left to implementation) switches that assignment's display between exact numbers and a banded form ("500+"); default is exact.
 
 ## 6. Store-side data entry
 
 - Lives on the existing back-office team page (`store-onboarding-v1-design.md` §7's area) — an extension of it, not a new page.
-- **Self-service** (`PUT .../profile/me`): the staff member edits their own photo, languages, bio, and portfolio uploads (into `store.store_photos` with their own `staff_id`, per `store-profile-enrichment-design.md` §2.2). Saving a bio sets `bio_status='pending'`.
-- **Admin** (`PUT .../profile`): `store_admin`/`chain_admin` can edit everything, including `title`, and inline-approve/reject a pending bio on the same page.
+- **Self-service** (`PUT /api/store/staff/me/profile`): the staff member edits their own photo, languages, bio, and portfolio uploads (into `store.store_photos` with their own `staff_id`, per `store-profile-enrichment-design.md` §2.2). Saving a bio sets `bio_status='pending'`.
+- **Admin** (`PUT /api/store/staff/{staffId}/profile`): `store_admin`/`chain_admin` can edit everything for the staff member identified by `{staffId}`, including `title`, and inline-approve/reject a pending bio on the same page.
 - A new staff member's profile starts empty; the public page renders no placeholder for any empty field ("bio coming soon," "no languages listed," etc.) — an empty field simply doesn't appear.
 
 ## 7. Test cases
 
-1. `/s/{store_id}/team/{staff_id}` where that person has no active assignment at `store_id` → `404`, not a profile page with blank fields.
+1. `/s/{store_id}/team/{staff_id}` where no `staff_store_assignments` row exists for that pair → `404`, not a profile page with blank fields.
 2. `languages = []` → the language row is absent from the rendered page, no error.
 3. A test appointment, or any appointment at a store with `is_test=true`, never counts toward stats.
 4. A staff member edits their own `bio_en` → `bio_status` flips to `pending`; the public page keeps showing the previously-approved version until a `store_admin` approves the new one.
