@@ -112,65 +112,40 @@ CREATE TABLE store.stores (
     updated_at       TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
--- Person-level identity - one row per person, ever, regardless of how many
--- stores (of the same chain) they work at. name/phone/email live here exactly
--- once (2026-09-29 fix: an earlier version put store_id NOT NULL directly on
--- this table, meaning one physical person needed a separate row - and a
--- separate copy of their name - per store; updating a name meant updating
--- multiple rows. That's a normalization bug, not a real business rule).
+-- Person-level identity AND the chain-level employment contract (2026-10-03,
+-- Batch 4 Decision 1). One row per human per chain - consistent with the
+-- standing rule "one person, multiple chains = separate rows/logins"
+-- (growayshop-registration-workflow.md §8 item 8). name/phone/email live here
+-- exactly once (2026-09-29 fix: an earlier version put store_id NOT NULL
+-- directly on this table, meaning one physical person needed a separate row -
+-- and a separate copy of their name - per store; that was a normalization bug).
 --
--- No status column here (2026-10-02 fix, Batch 2 Change 1) - an earlier
--- version put 'active'/'inactive' on this table, person-level, meaning
--- "deactivate" could only ever mean "deactivate everywhere." Status now lives
--- on staff_store_assignments below, where the actual relationship being
--- suspended lives: a person is "active" <=> they have >=1 active assignment,
--- derived, never stored twice. Migration note: before this column is dropped,
--- run the one-time backfill below so no existing person-level 'inactive' fact
--- is silently lost (production-moot pre-launch, but correct-by-construction):
---   UPDATE store.staff_store_assignments SET status = 'inactive'
---     WHERE staff_id IN (SELECT id FROM store.staff WHERE status = 'inactive');
---   ALTER TABLE store.staff DROP COLUMN status;
+-- A staff member contracts with the CHAIN, never with a store - a store is
+-- like a room in the shop, nobody signs a contract with a room. There is no
+-- status column here and never was one that survived: "works at store B" is
+-- derived entirely from staff_schedules (below), never stored as a flag on
+-- this row or anywhere else. There is no "deactivation" domain concept - see
+-- staff-schedule-entry-workflow.md §0.
 CREATE TABLE store.staff (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    chain_id         UUID NOT NULL REFERENCES store.chains(id),
     name             VARCHAR(200) NOT NULL,
     phone            VARCHAR(20),
     email            VARCHAR(255),
     created_at       TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
+CREATE INDEX idx_staff_chain_id ON store.staff(chain_id);
 
--- Which store(s) this person is on the roster for, and their descriptive
--- business-role label AT that store (can differ per store - e.g. manager at
--- one branch, regular staff at another). This is the actual multi-store
--- relationship; store.staff itself is never store-scoped.
---
--- status (2026-10-02, Batch 2 Change 1): the relationship between this person
--- and this store, not the person themself. "Remove from store A, keep store B"
--- and "deactivate entirely" are the same operation at different scopes - the
--- latter is just deactivating every one of a person's active assignments in
--- one transaction (growayshop-staff-invite-workflow.md §4.2). This resolves
--- §9 item 3 by removing its cause (status was stored at the wrong level)
--- rather than patching around it.
-CREATE TABLE store.staff_store_assignments (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    staff_id    UUID NOT NULL REFERENCES store.staff(id),
-    store_id    UUID NOT NULL REFERENCES store.stores(id),
-    role        VARCHAR(50) NOT NULL DEFAULT 'staff',  -- descriptive only, e.g. 'owner' | 'manager' | 'staff' | free text
-    status      VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (staff_id, store_id)
-);
-
--- Every read of "staff at store X" must filter status='active' - route
--- through this view rather than a hand-rolled join, so the filter can't be
--- forgotten by a future writer (2026-10-02, Batch 2 Change 1). An inactive
--- assignment is treated as nonexistent for all operational purposes: reads
--- 404, shared bookability functions filter it out, booking paths reject it.
-CREATE VIEW store.active_staff_assignments AS
-  SELECT ssa.id, ssa.staff_id, ssa.store_id, ssa.role, st.name, st.phone, st.email
-  FROM store.staff_store_assignments ssa
-  JOIN store.staff st ON st.id = ssa.staff_id
-  WHERE ssa.status = 'active';
+-- store.staff_store_assignments is GONE (2026-10-03, Batch 4 Decision 1 -
+-- supersedes Batch 2's assignment-status machinery entirely: the status
+-- column, this table, and store.active_staff_assignments are all dropped).
+-- It reified a relationship staff_schedules already expresses: "works at
+-- store B" <=> has >=1 live (deleted_at IS NULL) entry tagged store_id=B,
+-- below. There is no per-store employment state anywhere in this schema -
+-- not a status, not a membership table, not a per-store contract. The
+-- contract is chain-level (staff.chain_id, above); the timetable is the only
+-- place "where" lives (staff-schedule-entry-workflow.md §0).
 
 -- Categories, added 2026-09-29 (this document's own §7, the service catalog design) - store-scoped,
 -- like services. Chain-wide shared categories are a v2 "copy to other stores"
@@ -253,31 +228,42 @@ CREATE TABLE store.service_options (
 CREATE INDEX idx_service_options_service_id ON store.service_options(service_id);
 
 -- Which services this person can perform, AT a specific store (services are
--- themselves store-scoped, services.store_id) - keyed off the assignment, not
--- staff_id directly, so "can do X at store A" can't be confused with "at store B".
+-- themselves store-scoped, services.store_id) - keyed directly on (staff_id,
+-- store_id) (2026-10-03, Batch 4 - rekeyed off the now-dropped assignment
+-- table; follows staff_schedules's own rekey below). A genuine store-level
+-- fact: which services someone may perform at store A says nothing about
+-- store B, even though both the person and their timetable are chain-level.
 CREATE TABLE store.staff_services (
-    staff_store_assignment_id  UUID NOT NULL REFERENCES store.staff_store_assignments(id),
-    service_id                 UUID NOT NULL REFERENCES store.services(id),
-    assigned_at                TIMESTAMPTZ NOT NULL DEFAULT now(),
-    assigned_by                UUID REFERENCES store.store_users(id),
-    PRIMARY KEY (staff_store_assignment_id, service_id)
+    staff_id     UUID NOT NULL REFERENCES store.staff(id),
+    store_id     UUID NOT NULL REFERENCES store.stores(id),
+    service_id   UUID NOT NULL REFERENCES store.services(id),
+    assigned_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    assigned_by  UUID REFERENCES store.store_users(id),
+    PRIMARY KEY (staff_id, store_id, service_id)
     -- Application-level invariant, not DB-enforced: the referenced service's
-    -- store_id must equal the assignment's store_id - same category of
-    -- cross-table rule as appointments.customer_id (architecture doc §5).
+    -- store_id must equal this row's store_id - same category of cross-table
+    -- rule as appointments.customer_id (architecture doc §5).
 );
+CREATE INDEX idx_staff_services_staff_store ON store.staff_services(staff_id, store_id);
 
--- One timetable per person, not one per (person, store) (2026-10-02, Batch 2
--- Change 2). A chain's stores are physically separate but computationally one
--- scheduling unit: a person's shift at store A and their shift at store B are
--- two entries in the same table, each tagged with the store it belongs to -
--- not two independently-managed per-assignment schedules that happen to share
--- a person. This completes the person-level direction the design already took
--- (person-global occupancy exclusion in create-appointment-transaction-design.md
--- §6.1, person-level staff_time_offs below) - the schedule was the last
--- per-assignment fragment. staff_services (above) is NOT part of this move -
--- which services someone may perform is a genuine store-level fact and stays
--- keyed on the assignment; only the weekly schedule template moved. One row
--- per shift segment; a day with no rows at that store is a day off there.
+-- The chain's one timetable (2026-10-03, Batch 4; keying unchanged from
+-- Batch 2's earlier person-level rekey). The chain owns exactly one
+-- timetable - the set of every schedule entry of every one of its staff; a
+-- store's view and a person's view are both just filtered reads over this one
+-- table (staff-schedule-entry-workflow.md §0), never separate tables and
+-- never a per-store copy that could drift. A person's shift at store A and
+-- their shift at store B are two entries here, each tagged with the store it
+-- belongs to. One row per shift segment; a day with no LIVE row at that store
+-- is a day off there.
+--
+-- deleted_at (2026-10-03, Batch 4): there is no "deactivation" domain event
+-- (staff-schedule-entry-workflow.md §0). "Won't be scheduled at store B
+-- anymore" = that store's entries are soft-deleted through the normal
+-- schedule-edit PUT/DELETE; they stay in the table as history, never read by
+-- anything live. "Works at store B" <=> EXISTS a row here with store_id=B AND
+-- deleted_at IS NULL. Re-adding time blocks (the PUT's upsert-with-restore
+-- semantics, staff-schedule-entry-workflow.md §4) is reinstatement - there is
+-- nothing else to "turn back on."
 --
 -- Concurrency note: because the same person's entries at different stores are
 -- now one table written through independent store-scoped PUT endpoints
@@ -296,21 +282,35 @@ CREATE TABLE store.staff_schedules (
     day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),  -- 0 = Sunday
     start_time  TIME NOT NULL,
     end_time    TIME NOT NULL CHECK (end_time > start_time),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (staff_id, store_id, day_of_week, start_time)
-    -- Overlap is checked per PERSON, not per (person, store): the same
-    -- staff_id's rows must not overlap on the same day_of_week regardless of
-    -- which store they're tagged with - a person can't be in two places at
-    -- once, so the cross-store case needs no special handling anywhere else
-    -- in the system (staff-schedule-entry-workflow.md §5.1, 400
-    -- SCHEDULE_OVERLAP). Still an application-level check, not a DB
-    -- constraint, for the same reason as before (no native TIME-range
-    -- exclusion type without a heavier composite gist index than this
-    -- admin-only, near-zero-contention write path warrants) - the advisory
-    -- lock above is what actually closes the concurrency gap a bare app-level
-    -- check would otherwise leave open.
+    deleted_at  TIMESTAMPTZ,  -- soft-delete (2026-10-03, Batch 4): NULL = live/scheduled; set = removed, kept as history
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    -- Overlap is checked per PERSON, not per (person, store), and only among
+    -- LIVE rows (deleted_at IS NULL) - the same staff_id's live rows must not
+    -- overlap on the same day_of_week regardless of which store they're
+    -- tagged with; a person can't be in two places at once, so the cross-
+    -- store case needs no special handling anywhere else in the system
+    -- (staff-schedule-entry-workflow.md §5.1, 400 SCHEDULE_OVERLAP).
+    -- Soft-deleted rows are invisible to this check - they're history, not
+    -- live data. Still an application-level check, not a DB constraint (no
+    -- native TIME-range exclusion type without a heavier composite gist index
+    -- than this admin-only, near-zero-contention write path warrants, and it
+    -- would need to exclude soft-deleted rows via a partial index anyway) -
+    -- the advisory lock above is what actually closes the concurrency gap a
+    -- bare app-level check would otherwise leave open.
 );
-CREATE INDEX idx_staff_schedules_staff_store ON store.staff_schedules(staff_id, store_id);
+CREATE INDEX idx_staff_schedules_staff_store ON store.staff_schedules(staff_id, store_id) WHERE deleted_at IS NULL;
+-- Partial unique index, not a table-level UNIQUE (2026-10-03, Batch 4): only
+-- one LIVE row may occupy a given (staff_id, store_id, day_of_week,
+-- start_time) slot at a time; any number of soft-deleted historical rows may
+-- have occupied it before. This is also the upsert-with-restore PUT's ON
+-- CONFLICT target (staff-schedule-entry-workflow.md §4) - a resubmitted entry
+-- at a previously-used slot revives the old soft-deleted row automatically,
+-- without the client needing to know or pass its id:
+--   INSERT INTO store.staff_schedules (staff_id, store_id, day_of_week, start_time, end_time)
+--     VALUES (...)
+--     ON CONFLICT (staff_id, store_id, day_of_week, start_time) WHERE deleted_at IS NULL
+--     DO UPDATE SET deleted_at = NULL, end_time = EXCLUDED.end_time;
+CREATE UNIQUE INDEX uq_staff_schedules_live_slot ON store.staff_schedules(staff_id, store_id, day_of_week, start_time) WHERE deleted_at IS NULL;
 
 -- Person-level (staff_id, not assignment) - taking time off means being
 -- unavailable at every store you work, not just one ("sick" doesn't have a
@@ -370,6 +370,11 @@ CREATE TABLE store.booking_settings (
     -- deliberately dropped, not just forgotten.
     payment_required       BOOLEAN NOT NULL DEFAULT FALSE,
     cancel_threshold_hours INT NOT NULL DEFAULT 0 CHECK (cancel_threshold_hours >= 0),
+    -- Per-store reschedule cap (2026-10-03, NEW - Part D), living next to
+    -- cancel_threshold_hours since both are customer-self-serve throttles
+    -- enforced the same way: customer channel only, staff exempt
+    -- (create-appointment-transaction-design.md §10).
+    max_reschedules        INT NOT NULL DEFAULT 3 CHECK (max_reschedules >= 0),
     -- Store-level concurrent capacity (2026-09-30) - e.g. a spa's bed/chair
     -- count. NULL = not configured = unlimited (deliberately no fake default,
     -- so an existing store migrates in with today's unlimited behavior
@@ -391,7 +396,7 @@ CREATE TABLE store.appointments (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_id      UUID NOT NULL REFERENCES store.stores(id),
     customer_id   UUID NOT NULL,  -- application-level reference to customer.customers.id
-    staff_id      UUID NOT NULL REFERENCES store.staff(id),  -- app-level invariant: staff must have an ACTIVE staff_store_assignments row for this store_id at creation time (create-appointment-transaction-design.md §7); not re-checked retroactively if later deactivated - appointment history follows the person regardless
+    staff_id      UUID NOT NULL REFERENCES store.staff(id),  -- app-level invariant: staff must have a LIVE staff_schedules entry at this store_id at creation time (create-appointment-transaction-design.md §7); not re-checked retroactively if those entries are later removed - appointment history follows the person regardless
     status        VARCHAR(20) NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'completed', 'cancelled', 'no_show')),
     starts_at     TIMESTAMPTZ NOT NULL,
     ends_at       TIMESTAMPTZ NOT NULL,
@@ -431,8 +436,6 @@ CREATE TABLE store.appointment_items (
     price_cents       INT NOT NULL  -- snapshot of the price at booking time, not a live join to services
 );
 
-CREATE INDEX idx_staff_store_assignments_staff_id ON store.staff_store_assignments(staff_id);
-CREATE INDEX idx_staff_store_assignments_store_id ON store.staff_store_assignments(store_id);
 CREATE INDEX idx_services_store_id ON store.services(store_id);
 CREATE INDEX idx_appointments_store_id_starts_at ON store.appointments(store_id, starts_at);
 CREATE INDEX idx_appointments_customer_id ON store.appointments(customer_id);
@@ -515,7 +518,7 @@ Full-replace `PUT` instead of individual add/remove calls: idempotent, and match
 
 ### 7.6 Bookable status — derived, never a stored flag
 
-A service is offered to customers only when **`services.deleted_at IS NULL AND status='active' AND EXISTS(≥1 staff_services row whose staff_store_assignment is at this store AND whose assignment status='active')`** (2026-10-02: the staff-level check moved from `store.staff.status`, now dropped, to the assignment's own `status` — Batch 2 Change 1; `store.service_is_bookable()`, `beauty-map-postgis-schema-design.md` §4, is the one shared implementation of this exact rule) — the same "derive it, don't store a flag for it" principle as `growayshop-staff-invite-workflow.md` §2. Deactivating the last active assignment for a service, or unassigning it from everyone, silently drops it from bookability with no separate action required.
+A service is offered to customers only when **`services.deleted_at IS NULL AND status='active' AND EXISTS(≥1 staff_services row at this service's store AND a LIVE staff_schedules entry for that same staff_id at that same store)`** (2026-10-03, Batch 4: the staff-level check is no longer a status column anywhere — it's "does this person have a live schedule entry at this store," since that's the only thing "works here" means now; `store.service_is_bookable()`, `beauty-map-postgis-schema-design.md` §4, is the one shared implementation of this exact rule) — the same "derive it, don't store a flag for it" principle as `growayshop-staff-invite-workflow.md` §2. Removing the last qualified staff member's live entries at this store, or unassigning the service from everyone, silently drops it from bookability with no separate action required.
 
 ---
 
@@ -567,7 +570,7 @@ sequenceDiagram
 
 1. **Wireframe detail** was intentionally not reproduced at the same fidelity as the retired document — this is the schema/API contract; pixel-level Back Office UI can be redrawn separately if needed.
 2. ~~Multi-service, multi-staff appointments~~ — **narrowed 2026-09-29, sequencing resolved 2026-10-02**: the baseline model is single-person, single-block (`appointments.staff_id` is one person for the whole block) — a multi-service appointment is several `appointment_items` performed back-to-back by that *same* person, never split across staff. The sequencing rule (merchant-set order via `sequence_order` above, cursor-walked into one combined block) is `create-appointment-transaction-design.md` §7's normative definition, now also exposed as a public, customer-facing booking flow (2–5 services, `availability-slot-engine.md` §1/§3) — not just the staff-manual path this note originally scoped it to.
-3. ~~**Leaving one store while staying at another**~~ — **resolved 2026-10-02 (Batch 2 Change 1)**: `status` moved from the person-level `store.staff` row (now dropped) to `staff_store_assignments` itself. "Leave store A, stay at store B" is now exactly `POST /api/store/staff-assignments/{assignmentId}/deactivate` against the A assignment — the B assignment is a separate row, untouched (`growayshop-staff-invite-workflow.md` §4.2). The cause (status stored at the wrong level) was removed rather than patched around.
+3. ~~**Leaving one store while staying at another**~~ — **resolved 2026-10-02 (Batch 2), superseded 2026-10-03 (Batch 4)**: Batch 2's answer moved status onto a `staff_store_assignments` row; Batch 4 removes that table entirely. The actual, final answer: there is no status anywhere, and no "deactivation" domain event. "Leave store A, stay at store B" means A's `staff_schedules` entries are soft-deleted through the ordinary schedule-edit `PUT`/`DELETE` (`staff-schedule-entry-workflow.md` §0/§4) — B's entries are untouched, because they were never the same row to begin with.
 4. ~~Geocoding is not wired up~~ — **resolved 2026-09-29**: Groway uses **Mapbox only**, never Google Maps/Google Business Profile (confirmed explicitly — no Google integration is planned). The actual design — a Mapbox `retrieve` call at store creation/address-edit time, populating `formatted_address`/`latitude`/`longitude`/`geo_provider`/`geo_place_id` — lives in `growayshop-registration-workflow.md` §2.2, not here.
 5. **Chain-wide shared catalog** (one price list, edited once, applying to every store) is explicitly a v2 idea — §8's copy is a one-time seed, deliberately not a live sync, per store, following the project's general principle of not over-building for a hypothetical future need.
 6. Everything else the retired document left open (proration, etc.) is not reintroduced here unless it resurfaces.

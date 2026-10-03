@@ -3,99 +3,97 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Groway Admin — Photo moderation</title>
+<title>Groway Platform Ops — Photo moderation</title>
 <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/theme.css">
 <style>
-.sidebar .nav-link{color:rgba(255,255,255,.65);border-left:3px solid transparent;border-radius:0}
-.sidebar .nav-link:hover{color:#fff;background:rgba(255,255,255,.05)}
-.sidebar .nav-link.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:#b98a2f}
-.photo-card img.thumb{height:170px;object-fit:cover;width:100%}
-.photo-card{transition:opacity .4s, transform .4s}
-.photo-card.leaving{opacity:0;transform:scale(.94)}
+.mod-thumb{width:72px;height:72px;object-fit:cover;border-radius:.5rem;flex:none}
 </style>
 </head>
 <body>
-<div class="demo-bar text-center py-1">Investor demo — all data is fictional, no backend connected.</div>
-<div class="container-fluid">
-<div class="row">
-<div class="col-md-3 col-lg-2 px-0">
-<nav class="sidebar bg-teal-dark text-white d-flex flex-column min-vh-100 sticky-top">
-<div class="p-3 border-bottom border-secondary">
-<div class="font-display fs-5">Groway <span class="text-gold">Admin</span></div>
-<div class="small" style="color:rgba(255,255,255,.55)">Platform console</div>
-</div>
-<ul class="nav flex-column py-2">
-<li class="nav-item"><a class="nav-link px-3 py-2" href="overview.html">Overview</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="stores.html">Stores</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2 active" href="photos.html">Photos <span class="badge bg-gold text-dark ms-1" id="navCount">6</span></a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="taxonomy.html">Taxonomy</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="appointments.html">Appointments</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="revenue.html">Revenue</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="notifications.html">Notifications</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="accounts.html">Accounts</a></li>
-</ul>
-<div class="mt-auto p-3 small" style="color:rgba(255,255,255,.45)">v0.1 investor demo<br>All data fictional</div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container-fluid px-3 px-lg-4">
+    <a class="navbar-brand font-display" href="overview.html">Groway <span class="text-gold">·</span> <span class="fs-6 fw-normal">Platform Ops</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="adminNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="overview.html">Overview</a></li>
+        <li class="nav-item"><a class="nav-link" href="stores.html">Stores</a></li>
+        <li class="nav-item"><a class="nav-link" href="accounts.html">Accounts</a></li>
+        <li class="nav-item"><a class="nav-link" href="appointments.html">Appointments</a></li>
+        <li class="nav-item"><a class="nav-link" href="notifications.html">Notifications</a></li>
+        <li class="nav-item"><a class="nav-link active" aria-current="page" href="photos.html">Photos</a></li>
+        <li class="nav-item"><a class="nav-link" href="revenue.html">Revenue</a></li>
+        <li class="nav-item"><a class="nav-link" href="taxonomy.html">Taxonomy</a></li>
+      </ul>
+      <span class="navbar-text small text-white-50">Demo · signed in as <span class="text-white fw-semibold">Groway Admin</span></span>
+    </div>
+  </div>
 </nav>
-</div>
-<main class="col-md-9 col-lg-10 p-4">
-<div class="d-flex justify-content-between align-items-center mb-4">
-<div><h1 class="font-display h3 mb-0">Photo moderation</h1><div class="text-muted small">Every customer-facing image is human-approved before it goes live</div></div>
-<div class="d-flex align-items-center gap-2">
-<span class="badge text-bg-success">Live demo</span>
-<img src="../assets/img/avatar-56.jpg" class="rounded-circle" width="36" height="36" alt="Admin">
-<div class="small"><div class="fw-semibold">Platform Admin</div><div class="text-muted">admin@groway.demo</div></div>
-</div>
-</div>
+<div class="demo-bar text-center py-1 px-2">Static demo — no backend. <a href="../index.html">← Back to Groway homepage</a></div>
 
-<ul class="nav nav-tabs mb-3" id="qTabs">
-<li class="nav-item"><button class="nav-link active" data-q="pending">Pending <span class="badge text-bg-warning" id="cPending">6</span></button></li>
-<li class="nav-item"><button class="nav-link" data-q="approved">Approved <span class="badge text-bg-success" id="cApproved">0</span></button></li>
-<li class="nav-item"><button class="nav-link" data-q="rejected">Rejected <span class="badge text-bg-danger" id="cRejected">0</span></button></li>
-</ul>
-<div class="row g-3" id="grid"></div>
-<div class="alert alert-light border mt-4 small mb-0">Moderation SLA: within 24 hours. Stores are notified in-app on every decision. AI-assisted review is on the roadmap once volume grows.</div>
+<main class="container py-4">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+    <h1 class="font-display h3 mb-0">Photo moderation</h1>
+    <span class="badge rounded-pill text-bg-warning">Concept preview — platform operations</span>
+  </div>
+  <p class="text-muted mb-4">Staff avatars and portfolio photos go through a Groway review queue before they appear publicly. <span class="badge text-bg-secondary">V1.1 concept</span></p>
+
+  <div class="card mb-4"><div class="card-body">
+    <h2 class="h5 font-display mb-3">Pending review <span class="badge text-bg-warning ms-1" id="pendingCount"></span></h2>
+    <div id="pendingList" class="d-flex flex-column gap-3"></div>
+  </div></div>
+
+  <div class="card"><div class="card-body">
+    <h2 class="h5 font-display mb-3">Reviewed</h2>
+    <div id="reviewedList" class="d-flex flex-column gap-3">
+      <p class="text-muted small mb-0" id="reviewedEmpty">Nothing reviewed yet this session — approve or reject a photo above.</p>
+    </div>
+  </div></div>
 </main>
-</div>
-</div>
 
-<div class="modal fade" id="rejectModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-<div class="modal-header"><h5 class="modal-title font-display">Reject photo</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-<div class="modal-body">
-<p class="small text-muted" id="rejLabel"></p>
-<label class="form-label small fw-semibold">Reason (shown to the store)</label>
-<textarea class="form-control" id="rejReason" rows="3" placeholder="e.g. Blurry — please re-upload a sharper image"></textarea>
-</div>
-<div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-danger" id="rejConfirm">Reject photo</button></div>
-</div></div></div>
+<footer class="border-top mt-5 py-4">
+  <div class="container text-center text-muted small">Groway investor demo · Platform operations · All data on this page is illustrative.</div>
+</footer>
 
-<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
+<script src="../assets/js/admin-data.js"></script>
 <script>
-let photos=[
- {img:"headspa-1.webp",store:"Selah Head Spa",ctx:"Amy's portfolio",ago:"12 min ago",q:"pending"},
- {img:"headspa-2.webp",store:"Selah Head Spa",ctx:"ELLA's portfolio",ago:"26 min ago",q:"pending"},
- {img:"facial-1.png",store:"Aurelia Skin Clinic",ctx:"Store gallery",ago:"1 h ago",q:"pending"},
- {img:"massage-1.png",store:"Zenith Massage & Wellness",ctx:"Store gallery",ago:"2 h ago",q:"pending"},
- {img:"nails-1.webp",store:"Lumière Nail Bar",ctx:"Store gallery",ago:"3 h ago",q:"pending"},
- {img:"nails-2.jpg",store:"Gilded Lash Studio",ctx:"Store gallery",ago:"4 h ago",q:"pending"}
-];
-let curTab="pending", rejectIdx=null, rejectModal=null;
-function toast(msg){const t=$('<div class="toast align-items-center text-bg-dark border-0"><div class="d-flex"><div class="toast-body">'+msg+'</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>');$("#toasts").append(t);new bootstrap.Toast(t[0],{delay:2600}).show();t.on("hidden.bs.toast",()=>t.remove());}
-function render(){
- const list=photos.map((p,i)=>({...p,i})).filter(p=>p.q===curTab);
- $("#grid").html(list.length?list.map(p=>'<div class="col-md-4"><div class="card photo-card h-100" id="pc'+p.i+'"><img class="thumb card-img-top" src="../assets/img/'+p.img+'" alt="Pending photo"><div class="card-body"><div class="fw-semibold small">'+p.store+'</div><div class="small text-muted">'+p.ctx+' · uploaded '+p.ago+'</div>'+(p.reason?'<div class="small text-danger mt-1">Reason: '+p.reason+'</div>':"")+(curTab==="pending"?'<div class="mt-2 d-flex gap-2"><button class="btn btn-sm btn-success flex-fill" data-ok="'+p.i+'">Approve</button><button class="btn btn-sm btn-outline-danger flex-fill" data-no="'+p.i+'">Reject</button></div>':"")+'</div></div></div>').join(""):'<div class="col-12"><div class="alert alert-light border text-center text-muted">Nothing here.</div></div>');
- const c=q=>photos.filter(p=>p.q===q).length;
- $("#cPending").text(c("pending"));$("#cApproved").text(c("approved"));$("#cRejected").text(c("rejected"));$("#navCount").text(c("pending"));
-}
-function decide(i,to,msg){const card=$("#pc"+i);card.addClass("leaving");setTimeout(()=>{photos[i].q=to;render();toast(msg);},380);}
-$(document).on("click","[data-ok]",function(){const i=$(this).data("ok");decide(i,"approved","Approved — now live on "+photos[i].store+".");});
-$(document).on("click","[data-no]",function(){rejectIdx=$(this).data("no");$("#rejLabel").text(photos[rejectIdx].store+" — "+photos[rejectIdx].ctx);$("#rejReason").val("");rejectModal=rejectModal||new bootstrap.Modal("#rejectModal");rejectModal.show();});
-$("#rejConfirm").click(()=>{const r=$("#rejReason").val().trim()||"Does not meet photo guidelines";photos[rejectIdx].reason=r;rejectModal.hide();decide(rejectIdx,"rejected","Rejected — store notified with reason.");});
-$("#qTabs .nav-link").click(function(){$("#qTabs .nav-link").removeClass("active");$(this).addClass("active");curTab=$(this).data("q");render();});
-render();
+$(function () {
+  function card(p) {
+    return $('<div class="d-flex gap-3 align-items-center border rounded p-2" data-id="' + p.id + '">' +
+      '<img class="mod-thumb" src="../assets/img/' + p.img + '" alt="">' +
+      '<div class="flex-grow-1"><strong>' + p.kind + '</strong> — ' + p.who +
+      '<div class="text-muted small">' + p.store + " · submitted " + p.submitted + "</div></div>" +
+      '<div class="d-flex gap-2 flex-none">' +
+      '<button class="btn btn-sm btn-primary btn-approve">Approve</button>' +
+      '<button class="btn btn-sm btn-outline-danger btn-reject">Reject</button>' +
+      "</div></div>");
+  }
+
+  var $pending = $("#pendingList"), $reviewed = $("#reviewedList");
+  PLATFORM.photoQueue.forEach(function (p) { $pending.append(card(p)); });
+  updateCount();
+
+  function updateCount() {
+    $("#pendingCount").text($pending.children().length + " pending");
+  }
+
+  $pending.on("click", ".btn-approve, .btn-reject", function () {
+    var $c = $(this).closest("[data-id]");
+    var approved = $(this).hasClass("btn-approve");
+    $("#reviewedEmpty").remove();
+    $c.find(".btn-approve, .btn-reject").remove();
+    $c.append('<span class="badge text-bg-' + (approved ? "success" : "danger") + ' flex-none">' +
+      (approved ? "Approved" : "Rejected") + "</span>");
+    $c.hide().prependTo($reviewed).fadeIn(200);
+    updateCount();
+  });
+});
 </script>
 </body>
 </html>

@@ -21,37 +21,39 @@
     </div>
   </div>
 </nav>
-<div class="container py-4" style="max-width:760px">
-  <h1 class="font-display mb-1">Reschedule</h1>
-  <p class="text-muted mb-4" id="sub"></p>
-  <div class="d-flex gap-2 flex-wrap mb-4" id="dates"></div>
+<div class="container py-4" style="max-width:640px">
+  <a href="#" id="back" class="small text-muted">&larr; Booking detail</a>
+  <h2 class="font-display mt-2 mb-1">Reschedule</h2>
+  <p class="text-muted mb-4">Currently: <strong id="cur"></strong></p>
+  <h6 class="text-uppercase detail-label">New day</h6>
+  <div class="d-flex gap-2 flex-wrap mb-4" id="days"></div>
+  <h6 class="text-uppercase detail-label">New time</h6>
   <div class="row g-2" id="slots"></div>
-  <div class="d-flex justify-content-between mt-4">
-    <a href="#" id="back" class="btn btn-link">← Back to booking</a>
-    <button class="btn btn-primary px-5" id="confirm" disabled>Confirm new time</button>
-  </div>
+  <div class="d-grid mt-4"><button class="btn btn-primary btn-lg" id="save" disabled>Confirm new time</button></div>
 </div>
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
 <script>
-const ref=new URLSearchParams(location.search).get("ref")||"GW-8X2K4N";
-const b=DEMO.myBookings.find(x=>x.ref===ref)||DEMO.myBookings[0];
-const DAYS=["Fri, Oct 2","Sat, Oct 3","Sun, Oct 4","Mon, Oct 5","Tue, Oct 6","Wed, Oct 7","Thu, Oct 8"];
-const TIMES=[];for(let h=10;h<=19;h++){TIMES.push(h+":00",h+":30");}TIMES.pop();
-function fmt(t){let[h,m]=t.split(":").map(Number);const ap=h>=12?"PM":"AM";h=h%12||12;return `${h}:${m===0?"00":"30"} ${ap}`;}
-let selDate=DAYS[1],selTime=null;
-function renderSlots(){const el=$("#slots");el.empty();selTime=null;$("#confirm").prop("disabled",true);
-  TIMES.forEach((t,i)=>{const off=(i*3+selDate.length)%7===1;
-    el.append(`<div class="col-4 col-md-3"><div class="slot${off?' off':''}" data-t="${fmt(t)}">${fmt(t)}</div></div>`);});}
+function fmtT(mins){let h=Math.floor(mins/60),m=mins%60;const ap=h>=12?"PM":"AM";h=h%12||12;return `${h}:${String(m).padStart(2,"0")} ${ap}`}
 $(function(){
-  $("#sub").text(`${b.service} · currently ${b.date}, ${b.time}`);
-  $("#back").attr("href","booking-detail.html?ref="+b.ref);
-  DAYS.forEach((d,i)=>$("#dates").append(`<button class="chip${i===1?' active':''}" data-d="${d}">${d}</button>`));
-  $("#dates").on("click",".chip",function(){$("#dates .chip").removeClass("active");$(this).addClass("active");selDate=$(this).data("d");renderSlots();});
-  $("#slots").on("click",".slot:not(.off)",function(){$("#slots .slot").removeClass("sel");$(this).addClass("sel");selTime=$(this).data("t");$("#confirm").prop("disabled",false);});
-  $("#confirm").on("click",()=>{location.href="booking-detail.html?ref="+b.ref+"&rescheduled=1";});
-  renderSlots();
+  const i=parseInt(new URLSearchParams(location.search).get("i")||"0",10);
+  let all=[];try{all=JSON.parse(sessionStorage.getItem("groway_booking_list")||"[]")}catch(e){}
+  const r=all[i];if(!r){location.href="bookings.html";return;}
+  $("#back").attr("href","booking-detail.html?i="+i);
+  $("#cur").text(r.date+", "+r.time);
+  const mins=r.durationMins||60;
+  const days=["Sat, Oct 3","Sun, Oct 4","Mon, Oct 5","Tue, Oct 6","Wed, Oct 7","Thu, Oct 8","Fri, Oct 9"];
+  let day=days[0],slot=null;
+  function drawDays(){$("#days").empty();days.forEach(d=>$("#days").append(`<button class="chip ${d===day?'active':''}" data-d="${d}">${d}</button>`));}
+  function drawSlots(){$("#slots").empty();for(let t=10*60;t+mins<=19*60+30;t+=30){
+    const label=fmtT(t)+" – "+fmtT(t+mins);
+    $("#slots").append(`<div class="col-4 col-md-3"><div class="slot ${slot===label?'sel':''}" data-t="${label}">${label}</div></div>`);}}
+  $("#days").on("click",".chip",function(){day=$(this).data("d");slot=null;drawDays();drawSlots();$("#save").prop("disabled",true);});
+  $("#slots").on("click",".slot",function(){slot=$(this).data("t");drawSlots();$("#save").prop("disabled",false);});
+  $("#save").on("click",()=>{r.date=day;r.time=slot;sessionStorage.setItem("groway_booking_list",JSON.stringify(all));
+    location.href="booking-detail.html?i="+i;});
+  drawDays();drawSlots();
 });
 </script>
 </body>

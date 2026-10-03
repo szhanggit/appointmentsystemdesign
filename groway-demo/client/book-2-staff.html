@@ -24,36 +24,43 @@
 <div class="container py-4" style="max-width:760px">
   <div class="d-flex align-items-center gap-2 mb-1 flex-wrap" id="steps"></div>
   <h2 class="font-display mb-1">Choose your therapist</h2>
-  <p class="text-muted mb-4" id="svcLine"></p>
-  <div class="d-grid gap-2" id="staffList"></div>
-  <a href="book-1-service.html" class="btn btn-link mt-3">← Back to services</a>
+  <p class="text-muted mb-4">One therapist performs your whole basket — only therapists qualified for <em>every</em> selected service are shown.</p>
+  <div class="alert alert-warning d-none" id="noone">No single therapist at this store can perform this combination. <a href="book-1-service.html">Adjust your basket</a>.</div>
+  <div class="list-group" id="staff"></div>
+  <div class="d-flex justify-content-between mt-4">
+    <a href="book-1-service.html" class="btn btn-outline-secondary">Back</a>
+    <button class="btn btn-primary" id="next" disabled>Continue</button>
+  </div>
 </div>
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
 <script>
 const BK={get(){try{return JSON.parse(sessionStorage.getItem('groway_booking')||'{}')}catch(e){return{}}},set(p){const b=Object.assign(this.get(),p);sessionStorage.setItem('groway_booking',JSON.stringify(b));return b}};
-function renderSteps(n){const L=["Service","Staff","Time","Details","Confirm"];$("#steps").html(L.map((l,i)=>`${i?'<span class="text-muted">—</span>':''}<span class="d-flex align-items-center gap-1"><span class="step-dot ${i<n?'done':i===n?'now':''}">${i<n?'✓':i+1}</span><span class="small ${i===n?'fw-bold':''}">${l}</span></span>`).join(""))}
-const preStaff=new URLSearchParams(location.search).get("staff");
+function renderSteps(n){const L=["Services","Therapist","Time","Details","Confirm"];$("#steps").html(L.map((l,i)=>`${i?'<span class="text-muted">—</span>':''}<span class="d-flex align-items-center gap-1"><span class="step-dot ${i<n?'done':i===n?'now':''}">${i<n?'✓':i+1}</span><span class="small ${i===n?'fw-bold':''}">${l}</span></span>`).join(""))}
 $(function(){
-  let b=BK.get();
-  if(!b.serviceId){const sv=DEMO.services[0];b=BK.set({serviceId:sv.id,serviceName:sv.name,mins:sv.mins,price:sv.price,staffNames:sv.staff});}
   renderSteps(1);
-  $("#svcLine").text(`${b.serviceName} · ${b.mins} mins · $${b.price}`);
-  const list=$("#staffList");
-  const pick=(id,name)=>{BK.set({staffId:id,staffName:name});location.href="book-3-time.html";};
-  list.append(`<button class="btn btn-outline-primary text-start p-3 d-flex justify-content-between align-items-center" data-id="" data-name="First available">
-    <span><span class="fw-semibold">First available</span><br><span class="small text-muted">We'll match you with the earliest open therapist</span></span><span>→</span></button>`);
-  const names=b.staffNames||[];
-  names.forEach(n=>{
-    const t=DEMO.staff.find(x=>x.name.toLowerCase()===n.toLowerCase());
-    const img=t?`../assets/img/${t.avatar}`:null;
-    const pre=t&&t.id===preStaff?' border-primary border-2':'';
-    list.append(`<button class="btn btn-outline-secondary text-start p-3 d-flex gap-3 align-items-center${pre}" data-id="${t?t.id:''}" data-name="${n}">
-      ${img?`<img src="${img}" class="rounded-circle" style="width:52px;height:52px;object-fit:cover">`:`<span class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center" style="width:52px;height:52px">${n[0]}</span>`}
-      <span><span class="fw-semibold">${n}</span>${t?`<br><span class="small text-muted">${t.title} · ★ ${t.completed.toLocaleString()} completed</span>`:'<br><span class="small text-muted">Therapist</span>'}</span></button>`);
-  });
-  list.on("click","button",function(){pick($(this).data("id"),$(this).data("name"));});
+  const b=BK.get();
+  if(!b.serviceIds||!b.serviceIds.length){location.href="book-1-service.html";return;}
+  const svcs=b.serviceIds.map(id=>DEMO.services.find(x=>x.id===id));
+  // one technician = intersection of staff qualified for EVERY service, active at this store
+  const cand=DEMO.staff.filter(p=>p.active[b.storeId]&&svcs.every(sv=>sv.staff.includes(p.id)));
+  let sel=b.staffId&&cand.some(p=>p.id===b.staffId)?b.staffId:"any";
+  function draw(){
+    $("#staff").empty();
+    const any=`<button class="list-group-item list-group-item-action d-flex align-items-center gap-3 stf ${sel==="any"?'active':''}" data-id="any">
+      <span class="step-dot ${sel==="any"?'done':''}">✦</span>
+      <span><span class="fw-semibold">No preference</span><br><span class="small text-muted">First available qualified therapist</span></span></button>`;
+    $("#staff").append(any);
+    cand.forEach(p=>{$("#staff").append(`<button class="list-group-item list-group-item-action d-flex align-items-center gap-3 stf ${sel===p.id?'active':''}" data-id="${p.id}">
+      <img src="../${p.avatar}" class="rounded-circle" style="width:52px;height:52px;object-fit:cover" alt="${p.name}">
+      <span><span class="fw-semibold">${p.name}</span><br><span class="small text-muted">${p.title} · ${p.languages.join(", ")}</span></span></button>`);});
+    $("#next").prop("disabled",false);
+    if(!cand.length){$("#noone").removeClass("d-none");$("#next").prop("disabled",true);}
+  }
+  $("#staff").on("click",".stf",function(){sel=$(this).data("id");draw();});
+  $("#next").on("click",()=>{BK.set({staffId:sel==="any"?null:sel});location.href="book-3-time.html";});
+  draw();
 });
 </script>
 </body>

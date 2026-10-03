@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selah Head Spa — Groway</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<!-- Design note (/c/{chain_id}): a multi-store chain renders this landing page.
+     A single-store chain 302-redirects straight to /book/{store_id} instead (not demoed). -->
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container">
+    <a class="navbar-brand font-display fs-4" href="../index.html">Groway</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link active" href="map.html">Discover</a></li>
+        <li class="nav-item"><a class="nav-link" href="bookings.html">My bookings</a></li>
+        <li class="nav-item"><a class="nav-link" href="../login-client.html">Sign in</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<header class="position-relative text-white">
+  <img id="hero" src="../assets/img/hero-spa.jpg" class="w-100" style="height:420px;object-fit:cover" alt="Selah Head Spa">
+  <div class="position-absolute top-0 start-0 w-100 h-100 hero-overlay d-flex align-items-end">
+    <div class="container pb-5">
+      <div class="detail-label text-white-50 mb-2">Chain page · groway.example/c/chain-selah</div>
+      <h1 class="font-display display-4 fw-bold" id="cname"></h1>
+      <p class="lead mb-0" id="ctag"></p>
+    </div>
+  </div>
+</header>
+
+<div class="container py-5">
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <h3 class="font-display mb-3">Our story</h3>
+      <p class="text-muted" id="cstory"></p>
+    </div>
+    <div class="col-lg-5">
+      <h3 class="font-display mb-3">Locations <span class="badge bg-teal-dark ms-1" id="nloc"></span></h3>
+      <div id="stores" class="d-grid gap-3"></div>
+    </div>
+  </div>
+</div>
+
+<footer class="bg-teal-dark text-white py-4 mt-4">
+  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span class="font-display">Groway</span>
+    <span class="small opacity-75">Investor demo — fictional data.</span>
+  </div>
+</footer>
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+$(function(){
+  const c = DEMO.chain;
+  $("#cname").text(c.name); $("#ctag").text(c.tagline); $("#cstory").text(c.story);
+  $("#nloc").text(DEMO.stores.length + " locations");
+  DEMO.stores.forEach(s=>{
+    $("#stores").append(`<div class="card card-hover"><div class="card-body">
+      <h5 class="font-display mb-1">${s.name}</h5>
+      <p class="small text-muted mb-1">${s.address}</p>
+      <p class="small text-muted mb-3">${s.hours}</p>
+      <div class="d-flex gap-2">
+        <a href="store.html?store=${s.id}" class="btn btn-outline-primary btn-sm">View store</a>
+        <a href="book-1-service.html?store=${s.id}" class="btn btn-primary btn-sm">Book</a>
+      </div></div></div>`);
+  });
+});
+</script>
+</body>
+</html>

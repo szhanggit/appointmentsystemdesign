@@ -12,15 +12,16 @@
   <div class="container"><a class="navbar-brand font-display fs-4" href="../index.html">Groway</a></div>
 </nav>
 <div class="container py-5" style="max-width:440px">
-  <div class="card shadow-sm"><div class="card-body p-4">
-    <h2 class="font-display mb-1">Set a new password</h2>
-    <p class="text-muted small mb-4">Choose something memorable — 8+ characters.</p>
-    <div class="mb-3"><label class="form-label">New password</label><input type="password" class="form-control" placeholder="New password"></div>
-    <div class="mb-4"><label class="form-label">Confirm password</label><input type="password" class="form-control" placeholder="Repeat it"></div>
-    <div class="d-grid"><a href="map.html" class="btn btn-primary btn-lg">Save &amp; sign in</a></div>
+  <h2 class="font-display mb-1">Set a new password</h2>
+  <p class="text-muted mb-4">Choose something you'll remember.</p>
+  <div class="card"><div class="card-body p-4">
+    <div class="mb-3"><label class="form-label">New password</label><input type="password" class="form-control"></div>
+    <div class="mb-3"><label class="form-label">Confirm password</label><input type="password" class="form-control"></div>
+    <div class="d-grid"><button class="btn btn-primary" id="go">Reset password</button></div>
   </div></div>
 </div>
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script>$("#go").on("click",()=>{location.href="../login-client.html";});</script>
 </body>
 </html>

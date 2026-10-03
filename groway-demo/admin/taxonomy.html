@@ -3,96 +3,81 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Groway Admin — Category taxonomy</title>
+<title>Groway Platform Ops — Taxonomy</title>
 <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/theme.css">
-<style>
-.sidebar .nav-link{color:rgba(255,255,255,.65);border-left:3px solid transparent;border-radius:0}
-.sidebar .nav-link:hover{color:#fff;background:rgba(255,255,255,.05)}
-.sidebar .nav-link.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:#b98a2f}
-.slug{font-family:ui-monospace,monospace;font-size:.85rem;background:#f1ede3;border-radius:.35rem;padding:.1rem .45rem}
-</style>
 </head>
 <body>
-<div class="demo-bar text-center py-1">Investor demo — all data is fictional, no backend connected.</div>
-<div class="container-fluid">
-<div class="row">
-<div class="col-md-3 col-lg-2 px-0">
-<nav class="sidebar bg-teal-dark text-white d-flex flex-column min-vh-100 sticky-top">
-<div class="p-3 border-bottom border-secondary">
-<div class="font-display fs-5">Groway <span class="text-gold">Admin</span></div>
-<div class="small" style="color:rgba(255,255,255,.55)">Platform console</div>
-</div>
-<ul class="nav flex-column py-2">
-<li class="nav-item"><a class="nav-link px-3 py-2" href="overview.html">Overview</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="stores.html">Stores</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="photos.html">Photos <span class="badge bg-gold text-dark ms-1">6</span></a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2 active" href="taxonomy.html">Taxonomy</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="appointments.html">Appointments</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="revenue.html">Revenue</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="notifications.html">Notifications</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="accounts.html">Accounts</a></li>
-</ul>
-<div class="mt-auto p-3 small" style="color:rgba(255,255,255,.45)">v0.1 investor demo<br>All data fictional</div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container-fluid px-3 px-lg-4">
+    <a class="navbar-brand font-display" href="overview.html">Groway <span class="text-gold">·</span> <span class="fs-6 fw-normal">Platform Ops</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="adminNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="overview.html">Overview</a></li>
+        <li class="nav-item"><a class="nav-link" href="stores.html">Stores</a></li>
+        <li class="nav-item"><a class="nav-link" href="accounts.html">Accounts</a></li>
+        <li class="nav-item"><a class="nav-link" href="appointments.html">Appointments</a></li>
+        <li class="nav-item"><a class="nav-link" href="notifications.html">Notifications</a></li>
+        <li class="nav-item"><a class="nav-link" href="photos.html">Photos</a></li>
+        <li class="nav-item"><a class="nav-link" href="revenue.html">Revenue</a></li>
+        <li class="nav-item"><a class="nav-link active" aria-current="page" href="taxonomy.html">Taxonomy</a></li>
+      </ul>
+      <span class="navbar-text small text-white-50">Demo · signed in as <span class="text-white fw-semibold">Groway Admin</span></span>
+    </div>
+  </div>
 </nav>
-</div>
-<main class="col-md-9 col-lg-10 p-4">
-<div class="d-flex justify-content-between align-items-center mb-4">
-<div><h1 class="font-display h3 mb-0">Category taxonomy</h1><div class="text-muted small">The shared language behind every map filter</div></div>
-<div class="d-flex align-items-center gap-2">
-<span class="badge text-bg-success">Live demo</span>
-<img src="../assets/img/avatar-56.jpg" class="rounded-circle" width="36" height="36" alt="Admin">
-<div class="small"><div class="fw-semibold">Platform Admin</div><div class="text-muted">admin@groway.demo</div></div>
-</div>
-</div>
+<div class="demo-bar text-center py-1 px-2">Static demo — no backend. <a href="../index.html">← Back to Groway homepage</a></div>
 
-<div class="alert alert-warning d-flex align-items-center gap-2 small">
-<span>⚠</span><span><strong>Changes apply to map filters platform-wide, immediately.</strong> Stores map their own free-text categories onto these entries; renaming a slug breaks saved filters.</span>
-</div>
+<main class="container py-4">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+    <h1 class="font-display h3 mb-0">Service taxonomy</h1>
+    <span class="badge rounded-pill text-bg-warning">Concept preview — platform operations</span>
+  </div>
+  <p class="text-muted mb-4">The platform-wide category list chains pick from when building their menus — and how widely each category is adopted.</p>
 
-<div class="card"><div class="card-body p-0">
-<table class="table align-middle mb-0">
-<thead class="table-light"><tr><th class="ps-3">Slug</th><th>English</th><th>中文</th><th>Stores using</th><th>Sort</th><th class="text-end pe-3"><button class="btn btn-sm btn-primary" id="addBtn">+ Add category</button></th></tr></thead>
-<tbody id="taxRows"></tbody>
-</table>
-</div></div>
-<p class="small text-muted mt-2">Stores keep their own category names — the taxonomy exists only so a "Head Spa" in Richmond Hill and a "Head Spa" in Scarborough filter as one thing on the map.</p>
+  <div class="card"><div class="card-body p-0">
+    <div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+      <thead><tr><th>Category</th><th>Key</th><th>Chains using</th><th style="width:35%">Adoption</th></tr></thead>
+      <tbody id="taxRows"></tbody>
+    </table></div>
+  </div></div>
+
+  <div class="alert alert-light border mt-4 small text-muted mb-0">
+    <strong>Concept — not in V1.</strong> In V1, service categories are per-store (each store curates its own menu);
+    a chain-wide shared catalog — and a platform-standard taxonomy like this one — is a V2 direction.
+  </div>
 </main>
-</div>
-</div>
 
-<div class="modal fade" id="taxModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-<div class="modal-header"><h5 class="modal-title font-display" id="txTitle">Add category</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-<div class="modal-body">
-<div class="mb-2"><label class="form-label small fw-semibold">Slug (lowercase, hyphens)</label><input class="form-control" id="txSlug" placeholder="lash-lift"></div>
-<div class="mb-2"><label class="form-label small fw-semibold">English name</label><input class="form-control" id="txEn" placeholder="Lash Lift"></div>
-<div class="mb-2"><label class="form-label small fw-semibold">中文名称</label><input class="form-control" id="txZh" placeholder="睫毛提升"></div>
-<div class="mb-2"><label class="form-label small fw-semibold">Sort order</label><input class="form-control" id="txSort" type="number" value="120"></div>
-</div>
-<div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="txSave">Save</button></div>
-</div></div></div>
+<footer class="border-top mt-5 py-4">
+  <div class="container text-center text-muted small">Groway investor demo · Platform operations · All data on this page is illustrative.</div>
+</footer>
 
-<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
+<script src="../assets/js/admin-data.js"></script>
 <script>
-let rows=[
- ["head-spa","Head Spa","头疗",3,10],["facial","Facial","面部护理",4,20],["nails","Nails","美甲",2,30],
- ["hair","Hair","美发",1,40],["massage","Massage","按摩",2,50],["lashes-brows","Lashes & Brows","睫毛/眉毛",1,60],
- ["waxing","Waxing","脱毛",0,70],["makeup","Makeup","彩妆",0,80],["foot-spa","Foot Spa","足疗",1,90],
- ["med-aesthetics","Med Aesthetics","医美",1,100],["skincare","Skincare","护肤",0,110]
-];
-let modal=null, editIdx=-1;
-function toast(msg){const t=$('<div class="toast align-items-center text-bg-dark border-0"><div class="d-flex"><div class="toast-body">'+msg+'</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>');$("#toasts").append(t);new bootstrap.Toast(t[0],{delay:2600}).show();t.on("hidden.bs.toast",()=>t.remove());}
-function render(){$("#taxRows").html(rows.map((r,i)=>'<tr><td class="ps-3"><span class="slug">'+r[0]+'</span></td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+(r[3]||'<span class="text-muted">—</span>')+'</td><td>'+r[4]+'</td><td class="text-end pe-3"><button class="btn btn-sm btn-outline-primary" data-edit="'+i+'">Edit</button></td></tr>').join(""));}
-$("#addBtn").click(()=>{editIdx=-1;$("#txTitle").text("Add category");$("#txSlug").val("");$("#txEn").val("");$("#txZh").val("");$("#txSort").val(120);modal=modal||new bootstrap.Modal("#taxModal");modal.show();});
-$(document).on("click","[data-edit]",function(){editIdx=$(this).data("edit");const r=rows[editIdx];$("#txTitle").text("Edit category");$("#txSlug").val(r[0]);$("#txEn").val(r[1]);$("#txZh").val(r[2]);$("#txSort").val(r[4]);modal=modal||new bootstrap.Modal("#taxModal");modal.show();});
-$("#txSave").click(()=>{const slug=$("#txSlug").val().trim().toLowerCase().replace(/\s+/g,"-");if(!slug||!$("#txEn").val().trim()){toast("Slug and English name are required.");return;}
- const r=[slug,$("#txEn").val().trim(),$("#txZh").val().trim(),0,parseInt($("#txSort").val(),10)||0];
- if(editIdx>=0){rows[editIdx]=r;toast("Category updated — map filters refreshed.");}else{rows.push(r);toast("Category added — live on the map now.");}
- rows.sort((a,b)=>a[4]-b[4]);render();modal.hide();});
-render();
+$(function () {
+  var tax = (typeof DEMO !== "undefined" && DEMO.taxonomy) ? DEMO.taxonomy : [];
+  var adopt = {};
+  PLATFORM.taxonomyAdoption.forEach(function (p) { adopt[p[0]] = p[1]; });
+  var chains = PLATFORM.chains.length;
+  var $tb = $("#taxRows");
+
+  tax.forEach(function (t) {
+    var key = t[0], label = t[1];
+    var n = adopt[key] || 0;
+    var pct = Math.round(n / chains * 100);
+    $tb.append("<tr><td><strong>" + label + "</strong></td>" +
+      '<td><code class="text-muted">' + key + "</code></td>" +
+      '<td class="text-center">' + n + " / " + chains + "</td>" +
+      '<td><div class="progress" style="height:8px;"><div class="progress-bar" role="progressbar" style="width:' + pct + '%"></div></div></td></tr>');
+  });
+  if (!tax.length) $tb.append('<tr><td colspan="4" class="text-center text-muted py-4">No taxonomy data.</td></tr>');
+});
 </script>
 </body>
 </html>

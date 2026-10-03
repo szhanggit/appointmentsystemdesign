@@ -3,103 +3,119 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Groway Admin — Revenue</title>
+<title>Groway Platform Ops — Revenue</title>
 <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/theme.css">
 <style>
-.sidebar .nav-link{color:rgba(255,255,255,.65);border-left:3px solid transparent;border-radius:0}
-.sidebar .nav-link:hover{color:#fff;background:rgba(255,255,255,.05)}
-.sidebar .nav-link.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:#b98a2f}
-.bar{width:100%;background:#e9e2d2;border-radius:.4rem .4rem 0 0;min-height:6px}
-.bar:hover{background:#14655a}
-.plan-pro{border:2px solid #b98a2f !important}
+.tier-card{border-top:3px solid var(--gold)}
 </style>
 </head>
 <body>
-<div class="demo-bar text-center py-1">Investor demo — all data is fictional, no backend connected.</div>
-<div class="container-fluid">
-<div class="row">
-<div class="col-md-3 col-lg-2 px-0">
-<nav class="sidebar bg-teal-dark text-white d-flex flex-column min-vh-100 sticky-top">
-<div class="p-3 border-bottom border-secondary">
-<div class="font-display fs-5">Groway <span class="text-gold">Admin</span></div>
-<div class="small" style="color:rgba(255,255,255,.55)">Platform console</div>
-</div>
-<ul class="nav flex-column py-2">
-<li class="nav-item"><a class="nav-link px-3 py-2" href="overview.html">Overview</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="stores.html">Stores</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="photos.html">Photos <span class="badge bg-gold text-dark ms-1">6</span></a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="taxonomy.html">Taxonomy</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="appointments.html">Appointments</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2 active" href="revenue.html">Revenue</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="notifications.html">Notifications</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="accounts.html">Accounts</a></li>
-</ul>
-<div class="mt-auto p-3 small" style="color:rgba(255,255,255,.45)">v0.1 investor demo<br>All data fictional</div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container-fluid px-3 px-lg-4">
+    <a class="navbar-brand font-display" href="overview.html">Groway <span class="text-gold">·</span> <span class="fs-6 fw-normal">Platform Ops</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="adminNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="overview.html">Overview</a></li>
+        <li class="nav-item"><a class="nav-link" href="stores.html">Stores</a></li>
+        <li class="nav-item"><a class="nav-link" href="accounts.html">Accounts</a></li>
+        <li class="nav-item"><a class="nav-link" href="appointments.html">Appointments</a></li>
+        <li class="nav-item"><a class="nav-link" href="notifications.html">Notifications</a></li>
+        <li class="nav-item"><a class="nav-link" href="photos.html">Photos</a></li>
+        <li class="nav-item"><a class="nav-link active" aria-current="page" href="revenue.html">Revenue</a></li>
+        <li class="nav-item"><a class="nav-link" href="taxonomy.html">Taxonomy</a></li>
+      </ul>
+      <span class="navbar-text small text-white-50">Demo · signed in as <span class="text-white fw-semibold">Groway Admin</span></span>
+    </div>
+  </div>
 </nav>
-</div>
-<main class="col-md-9 col-lg-10 p-4">
-<div class="d-flex justify-content-between align-items-center mb-4">
-<div><h1 class="font-display h3 mb-0">Plans & billing</h1><div class="text-muted small">How the marketplace makes money</div></div>
-<div class="d-flex align-items-center gap-2">
-<span class="badge text-bg-success">Live demo</span>
-<img src="../assets/img/avatar-56.jpg" class="rounded-circle" width="36" height="36" alt="Admin">
-<div class="small"><div class="fw-semibold">Platform Admin</div><div class="text-muted">admin@groway.demo</div></div>
-</div>
-</div>
+<div class="demo-bar text-center py-1 px-2">Static demo — no backend. <a href="../index.html">← Back to Groway homepage</a></div>
 
-<div class="row g-3 mb-4 align-items-stretch">
-<div class="col-md-4"><div class="card h-100"><div class="card-body">
-<div class="detail-label mb-1">MRR</div><div class="stat-num">$1,372</div>
-<div class="small text-success">▲ 8.1% MoM</div>
-<div class="small text-muted mt-1">Pro subscriptions + SMS overage + onboarding fees, platform-wide.</div>
-</div></div></div>
-<div class="col-md-4"><div class="card h-100"><div class="card-body">
-<h6 class="font-display">Free</h6>
-<div class="stat-num">$0</div>
-<div class="small text-muted">100 bookings / month · 1 store</div>
-<hr><div class="d-flex justify-content-between small"><span>Stores on Free</span><strong>2</strong></div>
-<div class="d-flex justify-content-between small"><span>Bookings used (Sep)</span><strong>248 / 200</strong></div>
-<div class="small text-warning mt-1">Zenith hit its cap on Sep 27 — prime upgrade candidate.</div>
-</div></div></div>
-<div class="col-md-4"><div class="card h-100 plan-pro"><div class="card-body">
-<h6 class="font-display">Pro <span class="badge bg-gold text-dark ms-1">Most popular</span></h6>
-<div class="stat-num">$49<span class="fs-6 text-muted">/mo</span></div>
-<div class="small text-muted">Unlimited bookings · multi-staff · priority support</div>
-<hr><div class="d-flex justify-content-between small"><span>Stores on Pro</span><strong>3</strong></div>
-<div class="d-flex justify-content-between small"><span>Churn (90d)</span><strong class="text-success">0%</strong></div>
-</div></div></div>
-</div>
+<main class="container py-4">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+    <h1 class="font-display h3 mb-0">Revenue</h1>
+    <span class="badge rounded-pill text-bg-warning">Concept preview — platform operations</span>
+  </div>
+  <p class="text-muted mb-4">Monetization is a V2 direction — every chain is on the <strong>Free</strong> plan today. What follows is the shape of the future billing view.</p>
 
-<div class="card mb-4"><div class="card-body">
-<h6 class="font-display mb-3">MRR growth — last 6 months</h6>
-<div class="d-flex align-items-end gap-3" style="height:150px" id="mrrChart"></div>
-<div class="d-flex gap-3 mt-1 small text-muted" id="mrrLbl"></div>
-</div></div>
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body"><div class="stat-num">$0</div><div class="text-muted small">MRR (all chains on Free)</div></div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body"><div class="stat-num">3</div><div class="text-muted small">Chains on Free plan</div></div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body"><div class="stat-num">0</div><div class="text-muted small">Chains on paid plans</div></div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body"><div class="stat-num">1</div><div class="text-muted small">Overage hard-blocks (Oct)</div></div></div>
+    </div>
+  </div>
 
-<div class="card"><div class="card-body">
-<h6 class="font-display mb-3">October invoices</h6>
-<table class="table align-middle mb-0">
-<thead class="table-light"><tr><th>Store</th><th>Plan</th><th>Amount</th><th>Due</th><th>Status</th></tr></thead>
-<tbody>
-<tr><td>Selah Head Spa</td><td><span class="badge bg-gold text-dark">Pro</span></td><td>$49.00</td><td class="small text-muted">Oct 1</td><td><span class="badge text-bg-success">Paid</span></td></tr>
-<tr><td>Lumière Nail Bar</td><td><span class="badge bg-gold text-dark">Pro</span></td><td>$49.00</td><td class="small text-muted">Oct 1</td><td><span class="badge text-bg-success">Paid</span></td></tr>
-<tr><td>Gilded Lash Studio</td><td><span class="badge bg-gold text-dark">Pro</span></td><td>$49.00</td><td class="small text-muted">Oct 5</td><td><span class="badge text-bg-warning">Pending</span></td></tr>
-<tr><td>Zenith Massage &amp; Wellness</td><td><span class="badge text-bg-secondary">Free</span></td><td>$0.00</td><td class="small text-muted">—</td><td><span class="badge text-bg-light text-muted">—</span></td></tr>
-<tr><td>Aurelia Skin Clinic</td><td><span class="badge text-bg-secondary">Free</span></td><td>$0.00</td><td class="small text-muted">—</td><td><span class="badge text-bg-light text-muted">—</span></td></tr>
-</tbody>
-</table>
-</div></div>
+  <div class="card mb-4"><div class="card-body">
+    <h2 class="h5 font-display mb-3">Chains by plan</h2>
+    <div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+      <thead><tr><th>Chain</th><th>Plan</th><th>Quota used</th><th>MRR</th></tr></thead>
+      <tbody id="revRows"></tbody>
+    </table></div>
+  </div></div>
+
+  <h2 class="h5 font-display mb-1">Paid plans <span class="badge text-bg-secondary ms-1">Concept — not in V1</span></h2>
+  <p class="text-muted small mb-3">Illustrative tiers for the V2 monetization conversation. Not offered, not priced, not built.</p>
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card tier-card h-100"><div class="card-body">
+        <h3 class="h6 font-display">Free</h3>
+        <div class="stat-num">$0</div>
+        <p class="text-muted small">100 bookings / month / chain. The V1 plan — live today.</p>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="card tier-card h-100"><div class="card-body">
+        <h3 class="h6 font-display">Growth <span class="badge text-bg-secondary">concept</span></h3>
+        <div class="stat-num">$49<span class="fs-6 text-muted">/mo</span></div>
+        <p class="text-muted small">500 bookings / month / chain. For chains outgrowing Free.</p>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="card tier-card h-100"><div class="card-body">
+        <h3 class="h6 font-display">Scale <span class="badge text-bg-secondary">concept</span></h3>
+        <div class="stat-num">$129<span class="fs-6 text-muted">/mo</span></div>
+        <p class="text-muted small">2,000 bookings / month / chain. Multi-location operators.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="alert alert-light border small text-muted mb-0">
+    <strong>Billing policy (V1):</strong> quota is per chain per calendar month; warnings at 75 / 90 / 100%;
+    at 100% new bookings are hard-blocked until the next cycle — there is no overage top-up pack in V1,
+    and unused quota does not roll over.
+  </div>
 </main>
-</div>
-</div>
+
+<footer class="border-top mt-5 py-4">
+  <div class="container text-center text-muted small">Groway investor demo · Platform operations · All data on this page is illustrative.</div>
+</footer>
+
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
+<script src="../assets/js/admin-data.js"></script>
 <script>
-const months=["May","Jun","Jul","Aug","Sep","Oct"], mrr=[820,940,1050,1180,1265,1372], mx=Math.max(...mrr);
-$("#mrrChart").html(mrr.map(v=>'<div class="flex-fill d-flex flex-column align-items-center justify-content-end h-100"><div class="small fw-semibold">$'+v.toLocaleString()+'</div><div class="bar" style="height:'+Math.round(v/mx*100)+'%"></div></div>').join(""));
-$("#mrrLbl").html(months.map(m=>'<div class="flex-fill text-center">'+m+'</div>').join(""));
+$(function () {
+  var $tb = $("#revRows");
+  PLATFORM.chains.forEach(function (c) {
+    var pct = PLATFORM_QUOTA.pct(c);
+    $tb.append("<tr><td><strong>" + c.name + "</strong></td>" +
+      '<td><span class="badge text-bg-light border">' + c.plan + "</span></td>" +
+      "<td>" + c.quotaUsed + " / " + c.quotaLimit + " (" + pct + "%)</td>" +
+      '<td class="text-muted">$0</td></tr>');
+  });
+});
 </script>
 </body>
 </html>

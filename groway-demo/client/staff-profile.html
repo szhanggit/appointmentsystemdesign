@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team member — Groway</title>
+<link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<!-- Design concept: public staff profile, store-scoped route /s/{store_id}/team/{staff_id}.
+     404 unless an ACTIVE staff_store_assignments row exists for the pair. -->
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container">
+    <a class="navbar-brand font-display fs-4" href="../index.html">Groway</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link active" href="map.html">Discover</a></li>
+        <li class="nav-item"><a class="nav-link" href="bookings.html">My bookings</a></li>
+        <li class="nav-item"><a class="nav-link" href="../login-client.html">Sign in</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container py-4" style="max-width:760px" id="page">
+  <a href="#" id="back" class="small text-muted">&larr; Back to store</a>
+  <div class="row g-4 mt-1">
+    <div class="col-md-4 text-center">
+      <img id="avatar" class="img-fluid rounded mb-3" style="max-height:280px;object-fit:cover" alt="Staff photo">
+    </div>
+    <div class="col-md-8">
+      <h2 class="font-display mb-1" id="pname"></h2>
+      <p class="text-muted mb-2" id="ptitle"></p>
+      <p class="small mb-3"><span class="detail-label">Languages · </span><span id="plang"></span></p>
+      <p id="pbio"></p>
+      <div class="d-flex gap-4 my-3">
+        <div><div class="stat-num" id="syears"></div><div class="detail-label">Years experience</div></div>
+        <div><div class="stat-num" id="sguests"></div><div class="detail-label">Guests served</div></div>
+      </div>
+      <a href="#" id="bookthem" class="btn btn-primary">Book them</a>
+    </div>
+  </div>
+  <h4 class="font-display mt-5 mb-3">Portfolio</h4>
+  <div class="row g-3" id="portfolio"></div>
+</div>
+<script src="../assets/vendor/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/demo-data.js"></script>
+<script>
+$(function(){
+  const q = new URLSearchParams(location.search);
+  const storeId = q.get("store") || "store-bayview";
+  const staffId = q.get("staff") || "anna";
+  const s = DEMO.stores.find(x=>x.id===storeId) || DEMO.stores[0];
+  const p = DEMO.staff.find(x=>x.id===staffId);
+  // Store-scoped + status-aware: inactive assignment at this store -> 404-style message
+  if(!p || !p.active[s.id]){
+    $("#page").html(`<div class="text-center py-5"><h2 class="font-display">Not found</h2>
+      <p class="text-muted">This team member isn't at ${s.name} right now.</p>
+      <a href="store.html?store=${s.id}" class="btn btn-outline-primary">Back to store</a></div>`);
+    return;
+  }
+  $("#back").attr("href","store.html?store="+s.id);
+  $("#avatar").attr("src","../"+p.avatar);
+  $("#pname").text(p.name); $("#ptitle").text(p.title+" · "+s.short);
+  $("#plang").text(p.languages.join(", ")); $("#pbio").text(p.bio);
+  $("#syears").text(p.years); $("#sguests").text(p.guestsServed.toLocaleString());
+  $("#bookthem").attr("href",`book-1-service.html?store=${s.id}&staff_id=${p.id}`);
+  p.portfolio.forEach(ph=>$("#portfolio").append(
+    `<div class="col-6 col-md-4"><img src="../${ph}" class="img-fluid rounded" alt="Portfolio"></div>`));
+});
+</script>
+</body>
+</html>

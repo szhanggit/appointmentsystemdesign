@@ -51,7 +51,7 @@ The single-item form (`service_id`/`option_id`) keeps working unchanged — it's
 - `services[]` echoes the request **in execution order** (post-`sequence_order`-sort), not the order the caller sent them in — this is what the client's basket UI re-displays as "here's the order it'll actually run in."
 - A single-item request still returns this same shape (`services` has one entry) — no conditional response format.
 - Times are always store-local (`YYYY-MM-DDTHH:mm:ss`), per architecture-wide convention.
-- `staff_ids` is always **person-level** — the customer is choosing a person, not an assignment; the engine works internally in assignments (§4).
+- `staff_ids` is always **person-level** — the customer is choosing a person, and the engine computes per-person-per-store (§4).
 - `end = start + total_duration_minutes` — buffer is excluded from the displayed window; it only affects *whether* a start is offered, never what's shown.
 
 ### 1a. Companion endpoint: `GET /api/store/staff` (promoted to V1-built, 2026-10-02)
@@ -68,16 +68,16 @@ GET /api/store/staff?store_id=&service_ids[]=      (multi-item form, same 2-5/de
 { "staff": [{ "staff_id": "…", "name": "…" }, ...] }
 ```
 
-- The list is the same intersection §4's candidate-set definition computes — every staff member with a bookable assignment at `store_id` qualified for **every** requested service — just without a `date`/`staff_time_offs`/occupied-block filter, since this endpoint answers "who could ever do this combo," not "who's free on a specific day." An empty list is a normal `200`, same philosophy as an empty `slots` array.
+- The list is the same intersection §4's candidate-set definition computes — every staff member bookable at `store_id` (live schedule entry there, `staff-schedule-entry-workflow.md` §6) qualified for **every** requested service — just without a `date`/`staff_time_offs`/occupied-block filter, since this endpoint answers "who could ever do this combo," not "who's free on a specific day." An empty list is a normal `200`, same philosophy as an empty `slots` array.
 - This is what `public-booking-end-to-end-design.md` §3's Step 2 calls directly; it does **not** derive this list by calling `/slots` first (that would need a date up front, which Step 2 doesn't have yet) and does not call `/slots` internally either — two independent reads of the same underlying qualification data, not one endpoint wrapping the other.
 
 ## 2. Preconditions (any failure short-circuits before the algorithm runs)
 
 1. Store exists and `status='active'` — else `404`. (`store.stores.status` has no separate "deleted" state; `pending` and `suspended` are both rejected here, uniformly as `404` — a public, unauthenticated caller has no business distinguishing "still being onboarded" from "temporarily closed" from "never existed." This is the actual enforcement point for `store-onboarding-v1-design.md`'s "`status='active'` AND derived readiness" rule — without it, a `pending` store that already has business hours filled in would leak real bookable slots before anyone decided it was open for business.)
 2. 1–5 services requested (`400` outside that range); no duplicate `service_id` in the basket (`400`). Each one belongs to this store, `status='active'`, not soft-deleted — else `404` (cross-store non-existence convention).
-3. Each service is bookable (`store-onboarding-v1-design.md` §7.6: active + not deleted + ≥1 assignment has it assigned + a `from` service has ≥1 live option) — else `409 SERVICE_NOT_BOOKABLE`, naming the first offending service.
+3. Each service is bookable (`store-onboarding-v1-design.md` §7.6: active + not deleted + ≥1 person with a live schedule entry at this store has it assigned + a `from` service has ≥1 live option) — else `409 SERVICE_NOT_BOOKABLE`, naming the first offending service.
 4. `date` is valid: `today(store_tz) ≤ date ≤ today + advance_booking_days` — past date → `400 DATE_IN_PAST`; too far → `400 DATE_TOO_FAR`.
-5. If `staff_id` is given: that person exists and has an **active** assignment at this store (no active assignment → `404`; 2026-10-02, Batch 2 F1 — a deactivated assignment is treated as nonexistent here, same as no assignment at all, read through `store.active_staff_assignments`). **Not** being qualified for every requested service is **not** a precondition failure here — it just means that person's candidate set is empty (§4), producing an ordinary `200` with an empty `slots` array. The hard `409 STAFF_NOT_QUALIFIED` only exists at create time (`create-appointment-transaction-design.md` §7); this read-only endpoint never throws it — "exists but can't do this combo" gets the same empty-array treatment as "exists but fully booked," not a special error. "Exists but deactivated here" is different from both — it's a `404`, not an empty array, because the relationship itself no longer exists for operational purposes.
+5. If `staff_id` is given: that person exists and has a **live schedule entry at this store** (none → `404`; 2026-10-03, Batch 4 — "works at this store" is the only test now; there is no assignment or status to be active/inactive). **Not** being qualified for every requested service is **not** a precondition failure here — it just means that person's candidate set is empty (§4), producing an ordinary `200` with an empty `slots` array. The hard `409 STAFF_NOT_QUALIFIED` only exists at create time (`create-appointment-transaction-design.md` §7); this read-only endpoint never throws it — "exists but can't do this combo" gets the same empty-array treatment as "exists but fully booked," not a special error. "No live entries at this store" is different from both — it's a `404`, not an empty array, because there's no relationship to this store at all to query against.
 
 ## 3. Duration and buffer (multi-service: see `create-appointment-transaction-design.md` §7)
 
@@ -91,9 +91,9 @@ Total occupied block for a candidate start `s`: `[s - Bb_first, s + D_total + Ba
 
 ## 4. Algorithm
 
-Let `T` be the target date (store timezone), `dow(T)` its day of week. Computed **independently per candidate assignment**, then merged.
+Let `T` be the target date (store timezone), `dow(T)` its day of week. Computed **independently per candidate person**, then merged.
 
-Candidate set = **active** assignments (`store.active_staff_assignments`, 2026-10-02) at this store satisfying "bookable" (`staff-schedule-entry-workflow.md` §6) **and qualified for every requested service** — the intersection of staff-service assignments across the whole basket, not just any one item (a single-item basket's "intersection" is trivially that one service's own qualified set). In specified-staff mode, only that person's assignment at this store, and only if it's in that intersection — otherwise the candidate set is empty for them (§2 item 5).
+Candidate set = people **bookable at this store** (`staff-schedule-entry-workflow.md` §6: ≥1 live schedule entry at `store_id`, 2026-10-03 Batch 4) **and qualified for every requested service** — the intersection of `staff_services` rows across the whole basket, not just any one item (a single-item basket's "intersection" is trivially that one service's own qualified set). In specified-staff mode, only that person, and only if they're in that intersection — otherwise the candidate set is empty for them (§2 item 5).
 
 **Occupancy criteria — defined once here, referenced by both Step 5 and Step 5b, never restated.** (An earlier version of this document stated this separately in each step; Step 5b's copy drifted from Step 5's and fell out of sync with the `pending`-counts-too decision below. Defining it once removes the ability for that to happen again.) An appointment occupies time when:
 - its `status` is one that still holds the slot — `confirmed`, or `pending` with `expires_at IS NULL OR expires_at > now()` (an expired, unconfirmed hold is already released — this engine checks live, it doesn't wait for a sweeper to catch up);
@@ -107,7 +107,7 @@ Step 5b additionally requires `occupies_capacity = true` (also a header snapshot
 ### Steps
 
 1. **Store open interval `O`**: `business_hours WHERE store_id AND day_of_week = dow(T) AND open_time IS NOT NULL` → `[open_time, close_time]`. Empty (closed, or hours never set) → return empty `slots` immediately.
-2. **Staff working interval `W`**: `staff_schedules WHERE staff_id AND store_id = <the store being queried> AND day_of_week = dow(T)` → all `[start_time, end_time]` rows (2026-10-02, Batch 2 Change 2 — `staff_schedules` is now one timetable per person, each entry tagged with its own `store_id`, not keyed on the assignment; this step reads the slice tagged with the store currently being queried).
+2. **Staff working interval `W`**: `staff_schedules WHERE staff_id AND store_id = <the store being queried> AND day_of_week = dow(T) AND deleted_at IS NULL` → all `[start_time, end_time]` rows (`staff_schedules` is the chain's one timetable, each entry tagged with its own `store_id`; this step reads the live slice tagged with the store currently being queried, soft-deleted entries excluded).
 3. **Base availability `A0 = O ∩ W`** (interval-set intersection).
 4. **Subtract time off**: `staff_time_offs WHERE staff_id` intersecting `tstzrange(store-midnight(T), store-midnight(T+1))` (converted to UTC for comparison) — subtract the intersecting portion from `A0`. **Person-level**: this staff member's time off at *any* store blocks them here too; no need to know what else they have booked elsewhere, the row already covers it.
 5. **Subtract existing occupied blocks**: every `store.appointments` row `WHERE staff_id` (**not** also filtered to this `store_id` — 2026-10-02 fix, see note below) meeting the **occupancy criteria** above, overlapping `T`. Subtract each one's interval from `A0`.
@@ -116,17 +116,17 @@ Step 5b additionally requires `occupies_capacity = true` (also a header snapshot
 6. **Subtract elapsed time**: if `T` is today (store timezone), subtract `[store-midnight(T), now() + min_lead_minutes]`.
 7. **Slice into candidate starts**: for each remaining interval `[a, b]`, a start `s` is feasible iff `[s - Bb, s + D + Ba] ⊆ [a, b]`, i.e. `s ∈ [a + Bb, b - Ba - D]`, aligned up to the nearest `slot_granularity_minutes` step from the lower bound. An interval too short to fit the whole block is skipped entirely — no half-length slots are ever offered.
 
-**Step 5b — store-level capacity filter (2026-09-30), after the per-assignment loop, before Step 8's merge:** Steps 1–7 above compute availability *per staff member* — a store with fewer beds/chairs than staff (e.g. 3 staff, 2 beds) can still oversell if each staff member's own schedule looks free, because the thing actually in short supply is the store's concurrent capacity, not any one person's time. This step is store-wide, not per-assignment, and runs once against the *combined* `slotsByStart` built by the loop, not inside it.
+**Step 5b — store-level capacity filter (2026-09-30), after the per-person loop, before Step 8's merge:** Steps 1–7 above compute availability *per staff member* — a store with fewer beds/chairs than staff (e.g. 3 staff, 2 beds) can still oversell if each staff member's own schedule looks free, because the thing actually in short supply is the store's concurrent capacity, not any one person's time. This step is store-wide, not per-assignment, and runs once against the *combined* `slotsByStart` built by the loop, not inside it.
 
 Skipped entirely when `booking_settings.capacity IS NULL` (not configured = unlimited, §3 in `store-onboarding-v1-design.md`). Otherwise:
 
-- A booking counts toward concurrency under the same **occupancy criteria** defined above Step 1, plus `occupies_capacity = true` (capacity's one extra condition, not shared with Step 5) — aggregated **per-store** this time, across every staff member, not per-assignment.
+- A booking counts toward concurrency under the same **occupancy criteria** defined above Step 1, plus `occupies_capacity = true` (capacity's one extra condition, not shared with Step 5) — aggregated **per-store** this time, across every staff member, not per-person.
 - Sweep every such interval at the store for date `T` into a set of "full" sub-intervals where concurrent count `≥ capacity`.
 - Drop any candidate `start` (in *either* "any staff" or "specific staff" mode — a full store is full regardless of who's asking) whose block `[s - Bb, s + D + Ba]` intersects a full interval. In "any staff" mode this removes the whole `start` key, not just individual `staff_ids` — if the store is full, no staff substitution helps.
 
 This is a filter, not a new occupancy source of truth — the actual prevention of overselling happens in the appointment-creation transaction (outside this document's scope), the same division of labor this document already has with staff-level double-booking: this engine answers "what looks bookable," the transaction is what actually makes it safe under concurrent requests.
 
-8. **Merge (only in "any staff" mode)**: group by `start`; `staff_ids` is every person who can serve that start (ordered by, e.g., assignment sort order or creation time).
+8. **Merge (only in "any staff" mode)**: group by `start`; `staff_ids` is every person who can serve that start (ordered by, e.g., name or creation time).
 
 ### Pseudocode
 
@@ -165,8 +165,8 @@ Complexity: one store, one day — trivial, milliseconds, including Step 5b's in
 
 ## 5. "Any staff" vs. a specific one
 
-- **Specific staff**: only that person's assignment at this store is considered; `staff_ids` is always a single element.
-- **Any staff**: the union across assignments, with each slot's own `staff_ids` list. The engine does **not** decide who a customer actually gets when they pick "any" — the create-appointment transaction takes the first id in `staff_ids` order (simple, predictable for V1; a smarter assignment strategy is that document's to design later).
+- **Specific staff**: only that one person, at this store, is considered; `staff_ids` is always a single element.
+- **Any staff**: the union across every bookable person at this store, with each slot's own `staff_ids` list. The engine does **not** decide who a customer actually gets when they pick "any" — the create-appointment transaction takes the first id in `staff_ids` order (simple, predictable for V1; a smarter assignment strategy is that document's to design later).
 
 ## 6. Timezone and DST
 

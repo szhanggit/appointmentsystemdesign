@@ -22,65 +22,44 @@
   </div>
 </nav>
 <div class="container py-4" style="max-width:640px">
-  <nav aria-label="breadcrumb"><ol class="breadcrumb small">
-    <li class="breadcrumb-item"><a href="bookings.html">My bookings</a></li>
-    <li class="breadcrumb-item active" id="crumbRef"></li>
-  </ol></nav>
-  <div id="toast" class="alert alert-success d-none">Rescheduled — your new time is confirmed below.</div>
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="font-display mb-0" id="dSvc"></h1>
-    <span id="dStatus"></span>
-  </div>
+  <a href="bookings.html" class="small text-muted">&larr; My bookings</a>
+  <h2 class="font-display mt-2 mb-1">Booking <span id="ref" style="letter-spacing:.1em"></span></h2>
+  <p><span class="badge bg-teal-dark" id="status"></span></p>
   <div class="card mb-3"><div class="card-body">
-    <div class="detail-label mb-2" id="dStore"></div>
-    <div class="d-flex justify-content-between py-1"><span class="text-muted">Reference</span><strong id="dRef"></strong></div>
+    <div class="detail-label mb-2">Services · in sequence</div><div id="basket"></div><hr>
     <div class="d-flex justify-content-between py-1"><span class="text-muted">Therapist</span><strong id="dStaff"></strong></div>
     <div class="d-flex justify-content-between py-1"><span class="text-muted">When</span><strong id="dWhen"></strong></div>
-    <div class="d-flex justify-content-between py-1"><span class="text-muted">Price</span><strong id="dPrice"></strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">Where</span><strong id="dWhere"></strong></div>
+    <div class="d-flex justify-content-between py-1 d-none" id="srcrow"><span class="text-muted">Booking via</span><strong id="dSrc"></strong></div>
   </div></div>
   <div class="card mb-4"><div class="card-body">
-    <div class="detail-label mb-2">Store</div>
-    <div class="fw-semibold">Selah Head Spa</div>
-    <div class="small text-muted">8120 Bayview Ave, Richmond Hill<br><a href="tel:+19055550134">(905) 555-0134</a></div>
+    <div class="detail-label mb-2">Notifications</div>
+    <p class="small text-muted mb-0">Confirmation sent by SMS + email. A reminder goes out 24h before your visit.</p>
   </div></div>
-  <div id="actions" class="d-grid gap-2">
+  <div class="d-flex gap-2">
     <a href="#" id="resched" class="btn btn-outline-primary">Reschedule</a>
-    <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">Cancel booking</button>
+    <button class="btn btn-outline-danger" id="cancel">Cancel booking</button>
   </div>
-  <div id="cancelledNote" class="alert alert-secondary d-none">This booking was cancelled. <a href="book-1-service.html">Book again</a></div>
 </div>
-
-<div class="modal fade" id="cancelModal" tabindex="-1">
-  <div class="modal-dialog"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title font-display">Cancel this booking?</h5>
-      <button class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body"><p class="mb-0">Free cancellation up to 4 hours before your appointment. This can't be undone.</p></div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" data-bs-dismiss="modal">Keep it</button>
-      <button class="btn btn-danger" id="doCancel">Yes, cancel</button>
-    </div>
-  </div></div>
-</div>
-
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
 <script>
-const ref=new URLSearchParams(location.search).get("ref")||"GW-8X2K4N";
-const b=DEMO.myBookings.find(x=>x.ref===ref)||DEMO.myBookings[0];
 $(function(){
-  if(new URLSearchParams(location.search).get("rescheduled"))$("#toast").removeClass("d-none");
-  $("#crumbRef").text(b.ref);$("#dSvc").text(b.service);
-  $("#dStore").text(b.store+" · 8120 Bayview Ave, Richmond Hill");
-  $("#dRef").text(b.ref);$("#dStaff").text(b.staff);
-  $("#dWhen").text(b.date+" · "+b.time);$("#dPrice").text("$"+b.price+".00");
-  $("#dStatus").html(`<span class="badge bg-success fs-6">${b.status}</span>`);
-  $("#resched").attr("href","reschedule.html?ref="+b.ref);
-  $("#doCancel").on("click",()=>{
-    bootstrap.Modal.getInstance($("#cancelModal")[0]).hide();
-    $("#dStatus").html(`<span class="badge bg-danger fs-6">Cancelled</span>`);
-    $("#actions").addClass("d-none");$("#cancelledNote").removeClass("d-none");
-  });
+  const i=parseInt(new URLSearchParams(location.search).get("i")||"0",10);
+  let all=[];try{all=JSON.parse(sessionStorage.getItem("groway_booking_list")||"[]")}catch(e){}
+  const r=all[i];if(!r){location.href="bookings.html";return;}
+  $("#ref").text(r.ref);$("#status").text(r.status);
+  const list=(r.serviceIds||[]).map(id=>DEMO.services.find(x=>x.id===id)).filter(Boolean).sort((a,b)=>a.seq-b.seq);
+  list.forEach((sv,n)=>$("#basket").append(`<div class="d-flex justify-content-between py-1">
+    <span><span class="badge bg-gold me-2">${n+1}</span>${sv.name}</span><strong>$${sv.price}</strong></div>`));
+  const p=r.staffId?DEMO.staff.find(x=>x.id===r.staffId):null;
+  $("#dStaff").text(p?p.name:"No preference");
+  $("#dWhen").text(r.date+", "+r.time);$("#dWhere").text(r.storeName);
+  if(r.src){$("#srcrow").removeClass("d-none");$("#dSrc").text(DEMO.srcLabels[r.src]||r.src);}
+  $("#resched").attr("href","reschedule.html?i="+i);
+  $("#cancel").on("click",()=>{if(confirm("Cancel this booking? Free cancellation up to 4 hours before.")){r.status="cancelled";
+    sessionStorage.setItem("groway_booking_list",JSON.stringify(all));location.reload();}});
 });
 </script>
 </body>

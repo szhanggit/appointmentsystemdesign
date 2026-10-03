@@ -21,20 +21,28 @@
     </div>
   </div>
 </nav>
-<div class="container py-4" style="max-width:560px">
+<div class="container py-4" style="max-width:640px">
   <div class="d-flex align-items-center gap-2 mb-1 flex-wrap" id="steps"></div>
   <h2 class="font-display mb-1">Your details</h2>
-  <p class="text-muted mb-4">No account needed — just a name and phone number so the store can reach you.</p>
-  <div id="err" class="alert alert-danger d-none"></div>
-  <div class="mb-3"><label class="form-label">Full name *</label><input id="name" class="form-control" placeholder="e.g. Olivia Zhang"></div>
-  <div class="mb-3"><label class="form-label">Phone *</label><input id="phone" class="form-control" placeholder="(416) 555-0100" inputmode="tel"></div>
-  <div class="mb-3"><label class="form-label">Email <span class="text-muted">(optional — for receipt)</span></label><input id="email" type="email" class="form-control" placeholder="you@example.com"></div>
-  <div class="mb-3"><label class="form-label">Notes for the store <span class="text-muted">(optional)</span></label><textarea id="notes" class="form-control" rows="2" placeholder="Allergies, preferences, running late…"></textarea></div>
-  <div class="form-check mb-4"><input class="form-check-input" type="checkbox" id="sms" checked>
-    <label class="form-check-label small" for="sms">Send booking confirmation and reminders to this number.</label></div>
+  <p class="text-muted mb-4">Book as a guest — no account needed.</p>
+  <div class="mb-3"><label class="form-label">Full name</label><input class="form-control" id="name" placeholder="Jane Appleseed"></div>
+  <div class="mb-4"><label class="form-label">Mobile phone</label><input class="form-control" id="phone" placeholder="(416) 555-0100"><div class="form-text">Your confirmation and reminder go here.</div></div>
+  <div class="card mb-4"><div class="card-body">
+    <h6 class="font-display mb-3">Stay in touch <span class="text-muted fw-normal small">(optional)</span></h6>
+    <div class="form-check mb-2">
+      <input class="form-check-input" type="checkbox" id="csms">
+      <label class="form-check-label" for="csms">Send me <strong>SMS</strong> marketing offers and promotions</label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="cemail">
+      <label class="form-check-label" for="cemail">Send me <strong>email</strong> marketing offers and promotions</label>
+    </div>
+    <p class="small text-muted mt-3 mb-0">Both are unchecked by default and completely independent — tick only what you want.</p>
+  </div></div>
+  <p class="small text-muted mb-4">By booking, you acknowledge our cancellation policy: free cancellation up to 4 hours before your appointment. <a href="#" id="polink">Read full policies</a>.</p>
   <div class="d-flex justify-content-between">
-    <a href="book-3-time.html" class="btn btn-link">← Back</a>
-    <button class="btn btn-primary px-5" id="next">Review booking</button>
+    <a href="book-3-time.html" class="btn btn-outline-secondary">Back</a>
+    <button class="btn btn-primary" id="next">Review booking</button>
   </div>
 </div>
 <script src="../assets/vendor/jquery.min.js"></script>
@@ -42,14 +50,18 @@
 <script src="../assets/js/demo-data.js"></script>
 <script>
 const BK={get(){try{return JSON.parse(sessionStorage.getItem('groway_booking')||'{}')}catch(e){return{}}},set(p){const b=Object.assign(this.get(),p);sessionStorage.setItem('groway_booking',JSON.stringify(b));return b}};
-function renderSteps(n){const L=["Service","Staff","Time","Details","Confirm"];$("#steps").html(L.map((l,i)=>`${i?'<span class="text-muted">—</span>':''}<span class="d-flex align-items-center gap-1"><span class="step-dot ${i<n?'done':i===n?'now':''}">${i<n?'✓':i+1}</span><span class="small ${i===n?'fw-bold':''}">${l}</span></span>`).join(""))}
+function renderSteps(n){const L=["Services","Therapist","Time","Details","Confirm"];$("#steps").html(L.map((l,i)=>`${i?'<span class="text-muted">—</span>':''}<span class="d-flex align-items-center gap-1"><span class="step-dot ${i<n?'done':i===n?'now':''}">${i<n?'✓':i+1}</span><span class="small ${i===n?'fw-bold':''}">${l}</span></span>`).join(""))}
 $(function(){
-  if(!BK.get().time)location.href="book-3-time.html";
   renderSteps(3);
+  const b=BK.get();
+  if(!b.time){location.href="book-3-time.html";return;}
+  $("#name").val(b.contactName||"");$("#phone").val(b.contactPhone||"");
+  $("#csms").prop("checked",!!b.consentSms);$("#cemail").prop("checked",!!b.consentEmail);
+  $("#polink").on("click",e=>{e.preventDefault();alert(DEMO.policies.en);});
   $("#next").on("click",()=>{
-    const name=$("#name").val().trim(),phone=$("#phone").val().trim();
-    if(!name||!phone){$("#err").removeClass("d-none").text("Please enter your name and phone number.");return;}
-    BK.set({contactName:name,contactPhone:phone,contactEmail:$("#email").val().trim(),notes:$("#notes").val().trim()});
+    const name=$("#name").val().trim(), phone=$("#phone").val().trim();
+    if(!name||!phone){alert("Please enter your name and mobile phone.");return;}
+    BK.set({contactName:name,contactPhone:phone,consentSms:$("#csms").is(":checked"),consentEmail:$("#cemail").is(":checked")});
     location.href="book-5-review.html";
   });
 });

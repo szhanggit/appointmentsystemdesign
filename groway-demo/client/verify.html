@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Email verified — Groway</title>
+<title>Verify — Groway</title>
 <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/theme.css">
 </head>
@@ -12,14 +12,20 @@
   <div class="container"><a class="navbar-brand font-display fs-4" href="../index.html">Groway</a></div>
 </nav>
 <div class="container py-5 text-center" style="max-width:440px">
-  <div class="card shadow-sm"><div class="card-body p-5">
-    <div class="mb-3"><span class="step-dot done" style="width:64px;height:64px;font-size:1.8rem">✓</span></div>
-    <h2 class="font-display mb-2">Email verified</h2>
-    <p class="text-muted mb-4">Your account is ready. Discover spas near you and book in under a minute.</p>
-    <div class="d-grid"><a href="map.html" class="btn btn-primary btn-lg">Continue to Discover</a></div>
-  </div></div>
+  <h2 class="font-display mb-1">Check your phone</h2>
+  <p class="text-muted mb-4">We sent a 6-digit code by SMS. (Demo: any code works.)</p>
+  <div class="d-flex gap-2 justify-content-center mb-4">
+    <input class="form-control text-center" style="width:52px" maxlength="1"><input class="form-control text-center" style="width:52px" maxlength="1"><input class="form-control text-center" style="width:52px" maxlength="1">
+    <input class="form-control text-center" style="width:52px" maxlength="1"><input class="form-control text-center" style="width:52px" maxlength="1"><input class="form-control text-center" style="width:52px" maxlength="1">
+  </div>
+  <div class="d-grid"><button class="btn btn-primary" id="go">Verify</button></div>
+  <p class="small mt-3 mb-0"><a href="#">Resend code</a></p>
 </div>
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+<script>
+$("input").on("input",function(){if($(this).val()&&$(this).next("input").length)$(this).next("input").focus();});
+$("#go").on("click",()=>{location.href="../login-client.html";});
+</script>
 </body>
 </html>

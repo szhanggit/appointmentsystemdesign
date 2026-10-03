@@ -18,7 +18,7 @@
 
 ## 1. Three app roles
 
-`store-onboarding-v1-design.md`'s `staff_store_assignments.role` (`owner`/`manager`/`staff`, or free text like "CEO") is **descriptive**, not access-control. This document's **app role** is separate:
+`store-onboarding-v1-design.md`'s `store.staff.title` (`owner`/`manager`/`staff`, or free text like "CEO" — 2026-10-03, Batch 4: person-level now, the old per-store `role` column died with `staff_store_assignments`) is **descriptive**, not access-control. This document's **app role** is separate:
 
 | | `chain_admin` | `store_admin` | `staff` |
 |---|---|---|---|
@@ -653,16 +653,13 @@ WHERE id = '99999999-0000-0000-0000-000000000001';
 UPDATE store.stores SET chain_id = 'cc111111-1111-1111-1111-111111111111', store_admin_id = 'c1111112-1111-1111-1111-111111111112'
 WHERE id = '99999999-0000-0000-0000-000000000002';
 
--- Anna: ONE person-level store.staff row (store-onboarding-v1-design.md §4 -
--- name/phone/email live here exactly once), plus one staff_store_assignments
--- row per branch she actually works (this is where "which branches" lives).
-INSERT INTO store.staff (id, name, phone, status)
-VALUES ('b1000000-0000-0000-0000-000000000001', 'Anna', '416-555-0142', 'active');
-
-INSERT INTO store.staff_store_assignments (staff_id, store_id, role)
-VALUES
-    ('b1000000-0000-0000-0000-000000000001', '99999999-0000-0000-0000-000000000001', 'staff'),
-    ('b1000000-0000-0000-0000-000000000001', '99999999-0000-0000-0000-000000000002', 'staff');
+-- Anna: ONE person-level, chain-level store.staff row (store-onboarding-v1-design.md
+-- §4 - name/phone/chain_id live here exactly once; 2026-10-03, Batch 4: there is no
+-- staff_store_assignments table anymore). "Which branches she works" is expressed
+-- by her staff_schedules entries, tagged per store - not reproduced here, see
+-- staff-schedule-entry-workflow.md's own test data for that.
+INSERT INTO store.staff (id, chain_id, name, phone)
+VALUES ('b1000000-0000-0000-0000-000000000001', 'cc111111-1111-1111-1111-111111111111', 'Anna', '416-555-0142');
 
 INSERT INTO store.store_user_store_access (store_user_id, store_id, staff_id, is_primary, granted_by_admin_id)
 VALUES
@@ -685,7 +682,7 @@ VALUES
     ('c2222222-2222-2222-2222-222222222222', 'LOGIN_SUCCESS', NULL, '198.51.100.31', '2026-09-24 09:00:00-04');
 ```
 
-*The owner is `chain_admin`, a genuinely separate account from either store's `store_admin` — this is the current design, not a store_admin wearing two hats. Anna (staff) works both branches with the **same** `staff_id` both times (2026-09-29 fix, `store-onboarding-v1-design.md` §4) — her name/phone live in one `store.staff` row; which branches she works and her per-branch role live in `store.staff_store_assignments`, not in a duplicated `staff` row per branch.*
+*The owner is `chain_admin`, a genuinely separate account from either store's `store_admin` — this is the current design, not a store_admin wearing two hats. Anna (staff) works both branches with the **same** `staff_id` both times (2026-09-29 fix, `store-onboarding-v1-design.md` §4) — her name/phone/chain membership live in one `store.staff` row; which branches she works lives entirely in her `staff_schedules` entries (2026-10-03, Batch 4), not in a duplicated `staff` row per branch and not in any per-store assignment table.*
 
 ---
 

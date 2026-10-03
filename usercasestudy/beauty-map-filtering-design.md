@@ -40,7 +40,7 @@ AND (:open_now    IS NOT TRUE OR store.is_open_now(s.id))
 ```
 
 - `store.is_open_now(store_id)`: helper reading `business_hours` in the store's timezone; returns `false` when hours are unset. Best effort, v1.
-- The category match now joins through `service_categories.taxonomy_id` (`beauty-map-postgis-schema-design.md` §3) and calls `store.service_is_bookable(sv.id)` instead of checking `sv.status = 'active'` alone — a service whose only staff member is deactivated no longer satisfies the filter, matching `price_from_cents`'s own definition exactly.
+- The category match now joins through `service_categories.taxonomy_id` (`beauty-map-postgis-schema-design.md` §3) and calls `store.service_is_bookable(sv.id)` instead of checking `sv.status = 'active'` alone — a service whose only staff member has no live schedule entries here anymore no longer satisfies the filter, matching `price_from_cents`'s own definition exactly.
 - The category subquery is the only join in the hot path; at v1 volumes it's fine. If it ever shows in profiles, denormalize taxonomy slugs onto the store row (same pattern as `price_from_cents`).
 
 ## 4. UI contract (see `beauty-map-ui-design.md` page 2)
@@ -53,7 +53,7 @@ AND (:open_now    IS NOT TRUE OR store.is_open_now(s.id))
 ## 5. Test cases
 
 1. `category=head-spa` → only stores with a taxonomy-mapped, currently-bookable head-spa service.
-2. A store's "Head Spa" category is mapped to the `head-spa` taxonomy slug, but its only assigned staff member is deactivated → `category=head-spa` excludes it (matches `price_from_cents` test case 5 in the schema doc).
+2. A store's "Head Spa" category is mapped to the `head-spa` taxonomy slug, but its only assigned staff member's live entries at this store are removed → `category=head-spa` excludes it (matches `price_from_cents` test case 5 in the schema doc).
 3. `price_max_cents=10000` → a store with cheapest bookable service $68 is included; $120 is excluded.
 4. `open_now=true` at 3 AM → only 24h stores (or none), never a closed store.
 5. `min_rating=4.5` sent directly to the API (bypassing the v1 UI, which doesn't expose it) → `200` with an empty or near-empty result set, not an error — the parameter is valid, just unproductive until V1.1.

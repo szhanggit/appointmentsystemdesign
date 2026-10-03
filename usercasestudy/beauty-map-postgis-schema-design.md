@@ -110,19 +110,16 @@ RETURNS BOOLEAN AS $$
   SELECT EXISTS (
     SELECT 1
     FROM store.services sv
-    JOIN store.staff_services ss           ON ss.service_id = sv.id
-    JOIN store.staff_store_assignments ssa ON ssa.id = ss.staff_store_assignment_id
+    JOIN store.staff_services ss ON ss.service_id = sv.id AND ss.store_id = sv.store_id
     WHERE sv.id = p_service_id
       AND sv.deleted_at IS NULL
       AND sv.status = 'active'
-      AND ssa.status = 'active'  -- 2026-10-02, Batch 2 F6: store.staff.status is gone;
-                                  -- the staff-level check moved to the assignment's own
-                                  -- status (the relationship being suspended, not the
-                                  -- person) - dropped the JOIN store.staff st this used
-                                  -- to need, since st.status was the only reason it existed
-      AND ssa.store_id = sv.store_id  -- the assignment must be AT this service's store;
-                                      -- service/assignment same-store is app-level only
-                                      -- (store-onboarding-v1-design.md §7.6), not DB-enforced
+      AND EXISTS (  -- 2026-10-03, Batch 4: no assignment, no status - "works here" is
+                    -- a live schedule entry at this store, full stop (staff_services is
+                    -- already (staff_id, store_id) keyed, Batch 4 Decision 1)
+        SELECT 1 FROM store.staff_schedules sch
+        WHERE sch.staff_id = ss.staff_id AND sch.store_id = ss.store_id AND sch.deleted_at IS NULL
+      )
   );
 $$ LANGUAGE sql STABLE;
 ```
@@ -161,7 +158,7 @@ Definition: the lowest price among services that currently pass `service_is_book
 
 1. **Service catalog changes** — create/update/delete/restore a service or option, or change `price_type`/`price_cents` (`store-onboarding-v1-design.md` §7.2/§7.3).
 2. **Staff ↔ service assignment changes** — the full-replace `PUT` endpoints (`store-onboarding-v1-design.md` §7.5).
-3. **Staff status changes** — a `staff_store_assignments.status` flips to/from `inactive` (2026-10-02, Batch 2 Q5 — moved from the now-dropped `store.staff.status`), or a `staff_store_assignments` row is added/removed for this store (`growayshop-staff-invite-workflow.md`).
+3. **Timetable entry add/remove** — a `staff_schedules` row for this store is inserted, soft-deleted, or un-deleted (2026-10-03, Batch 4 — supersedes the old "staff status changes" framing entirely; there is no status anywhere, only the timetable, `staff-schedule-entry-workflow.md` §0).
 
 **Not** triggered by `staff_schedules`/`staff_time_offs` changes — `price_from_cents` answers "what does this store sell," not "is someone free right now." A fully-booked-out store still has a `price_from`.
 
@@ -178,7 +175,7 @@ Definition: the lowest price among services that currently pass `service_is_book
 2. Update lat/lng via pin-adjust → `geo` follows; the old position no longer matches.
 3. Set lat/lng to `NULL` → `geo` becomes `NULL`, the store silently drops off the map query.
 4. `EXPLAIN` on the nearby query shows a GIST index scan, not a sequential scan.
-5. Deactivate a service's only assigned staff member → `service_is_bookable()` flips to `false` → the next write on that path recomputes `price_from_cents` and it excludes that service.
+5. Remove a service's only assigned staff member's live entries at this store → `service_is_bookable()` flips to `false` → the next write on that path recomputes `price_from_cents` and it excludes that service.
 6. Mark a store `is_test=true` → it still has normal appointment-booking behavior, but is excluded from the public map query (`beauty-map-nearby-search-design.md` §3).
 7. A category created with no `taxonomy_id` → store's own UI shows it normally; map category filter never matches it.
 

@@ -3,104 +3,103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Groway Admin — Appointments</title>
+<title>Groway Platform Ops — Appointments</title>
 <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/theme.css">
 <style>
-.sidebar .nav-link{color:rgba(255,255,255,.65);border-left:3px solid transparent;border-radius:0}
-.sidebar .nav-link:hover{color:#fff;background:rgba(255,255,255,.05)}
-.sidebar .nav-link.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:#b98a2f}
-tr.clickable{cursor:pointer}
-tr.clickable:hover{background:#f6f2e8}
-.catdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:.35rem}
+.ref-code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600;letter-spacing:.04em}
 </style>
 </head>
 <body>
-<div class="demo-bar text-center py-1">Investor demo — all data is fictional, no backend connected.</div>
-<div class="container-fluid">
-<div class="row">
-<div class="col-md-3 col-lg-2 px-0">
-<nav class="sidebar bg-teal-dark text-white d-flex flex-column min-vh-100 sticky-top">
-<div class="p-3 border-bottom border-secondary">
-<div class="font-display fs-5">Groway <span class="text-gold">Admin</span></div>
-<div class="small" style="color:rgba(255,255,255,.55)">Platform console</div>
-</div>
-<ul class="nav flex-column py-2">
-<li class="nav-item"><a class="nav-link px-3 py-2" href="overview.html">Overview</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="stores.html">Stores</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="photos.html">Photos <span class="badge bg-gold text-dark ms-1">6</span></a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="taxonomy.html">Taxonomy</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2 active" href="appointments.html">Appointments</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="revenue.html">Revenue</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="notifications.html">Notifications</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="accounts.html">Accounts</a></li>
-</ul>
-<div class="mt-auto p-3 small" style="color:rgba(255,255,255,.45)">v0.1 investor demo<br>All data fictional</div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container-fluid px-3 px-lg-4">
+    <a class="navbar-brand font-display" href="overview.html">Groway <span class="text-gold">·</span> <span class="fs-6 fw-normal">Platform Ops</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="adminNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="overview.html">Overview</a></li>
+        <li class="nav-item"><a class="nav-link" href="stores.html">Stores</a></li>
+        <li class="nav-item"><a class="nav-link" href="accounts.html">Accounts</a></li>
+        <li class="nav-item"><a class="nav-link active" aria-current="page" href="appointments.html">Appointments</a></li>
+        <li class="nav-item"><a class="nav-link" href="notifications.html">Notifications</a></li>
+        <li class="nav-item"><a class="nav-link" href="photos.html">Photos</a></li>
+        <li class="nav-item"><a class="nav-link" href="revenue.html">Revenue</a></li>
+        <li class="nav-item"><a class="nav-link" href="taxonomy.html">Taxonomy</a></li>
+      </ul>
+      <span class="navbar-text small text-white-50">Demo · signed in as <span class="text-white fw-semibold">Groway Admin</span></span>
+    </div>
+  </div>
 </nav>
-</div>
-<main class="col-md-9 col-lg-10 p-4">
-<div class="d-flex justify-content-between align-items-center mb-4">
-<div><h1 class="font-display h3 mb-0">Appointments</h1><div class="text-muted small">Every booking across the platform, in one place</div></div>
-<div class="d-flex align-items-center gap-2">
-<span class="badge text-bg-success">Live demo</span>
-<img src="../assets/img/avatar-56.jpg" class="rounded-circle" width="36" height="36" alt="Admin">
-<div class="small"><div class="fw-semibold">Platform Admin</div><div class="text-muted">admin@groway.demo</div></div>
-</div>
-</div>
+<div class="demo-bar text-center py-1 px-2">Static demo — no backend. <a href="../index.html">← Back to Groway homepage</a></div>
 
-<div class="card mb-3"><div class="card-body">
-<div class="row g-2">
-<div class="col-md-3"><label class="form-label small fw-semibold">Store</label><select class="form-select form-select-sm" id="fStore"><option value="">All stores</option></select></div>
-<div class="col-md-2"><label class="form-label small fw-semibold">Date</label><input type="date" class="form-control form-control-sm" id="fDate" value="2026-10-02"></div>
-<div class="col-md-2"><label class="form-label small fw-semibold">Status</label><select class="form-select form-select-sm" id="fStatus"><option value="">All statuses</option></select></div>
-<div class="col-md-3"><label class="form-label small fw-semibold">Search</label><input class="form-control form-control-sm" id="fQ" placeholder="Customer, phone, service…"></div>
-<div class="col-md-2 d-flex align-items-end"><button class="btn btn-sm btn-outline-secondary w-100" id="fClear">Clear</button></div>
-</div>
-</div></div>
+<main class="container py-4">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+    <h1 class="font-display h3 mb-0">Appointments</h1>
+    <span class="badge rounded-pill text-bg-warning">Concept preview — platform operations</span>
+  </div>
+  <p class="text-muted mb-4">Every booking across every chain. <code>channel</code> is derived from the code path that created it — it is never marketing attribution; that lives in the <code>src</code> column.</p>
 
-<div class="card"><div class="card-body p-0">
-<table class="table align-middle mb-0">
-<thead class="table-light"><tr><th class="ps-3">ID</th><th>Time</th><th>Customer</th><th>Service</th><th>Staff</th><th>Store</th><th>Status</th></tr></thead>
-<tbody id="rows"></tbody>
-</table>
-</div></div>
-<p class="small text-muted mt-2" id="countLine"></p>
+  <div class="row g-2 mb-3">
+    <div class="col-md-4">
+      <select id="statusFilter" class="form-select" aria-label="Filter by status">
+        <option value="all">All statuses</option>
+        <option>Confirmed</option><option>Serving</option><option>Completed</option>
+        <option>No-Show</option><option>Cancelled</option>
+      </select>
+    </div>
+    <div class="col-md-8">
+      <input type="search" id="apptSearch" class="form-control" placeholder="Search reference, customer, service…" aria-label="Search appointments">
+    </div>
+  </div>
+
+  <div class="card"><div class="card-body p-0">
+    <div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+      <thead><tr><th>Reference</th><th>Chain / Store</th><th>Customer</th><th>Service</th><th>When</th><th>Channel</th><th>Src</th><th>Status</th></tr></thead>
+      <tbody id="apptRows"></tbody>
+    </table></div>
+  </div></div>
+  <p class="text-muted small mt-3 mb-0">Reference codes are 8-char base32, issued at booking time. A social-link booking still travels the ordinary public flow — <code>channel = public_web</code> — with the campaign recorded only in <code>src</code>.</p>
 </main>
-</div>
-</div>
 
-<div class="modal fade" id="aModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-<div class="modal-header"><h5 class="modal-title font-display" id="aId"></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-<div class="modal-body small" id="aBody"></div>
-<div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button></div>
-</div></div></div>
+<footer class="border-top mt-5 py-4">
+  <div class="container text-center text-muted small">Groway investor demo · Platform operations · All data on this page is illustrative.</div>
+</footer>
 
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
+<script src="../assets/js/admin-data.js"></script>
 <script>
-const APPT_STORE = {"A-1808131":"zenith","A-1808132":"zenith","A-1808139":"aurelia"};
-const storeOf = a => APPT_STORE[a.id] || "selah";
-const storeName = id => DEMO.stores.find(s=>s.id===id).name;
-function statusBadge(s){return '<span class="badge text-bg-'+(STATUS_COLORS[s]||"secondary")+'">'+s+'</span>';}
-DEMO.stores.forEach(s=>$("#fStore").append('<option value="'+s.id+'">'+s.name+'</option>'));
-Object.keys(STATUS_COLORS).forEach(s=>$("#fStatus").append('<option>'+s+'</option>'));
-let modal=null;
-function render(){
- const q=$("#fQ").val().trim().toLowerCase(), fs=$("#fStore").val(), st=$("#fStatus").val();
- const list=DEMO.appointments.filter(a=>
-  (!fs||storeOf(a)===fs)&&(!st||a.status===st)&&
-  (!q||(a.customer+" "+a.phone+" "+a.service+" "+a.id).toLowerCase().includes(q)));
- $("#rows").html(list.length?list.map(a=>'<tr class="clickable" data-aid="'+a.id+'"><td class="ps-3 small text-muted">'+a.id+'</td><td class="small">'+a.start+' – '+a.end+'</td><td>'+a.customer+(a.group?' <span class="badge text-bg-info">Group '+a.group+'</span>':"")+'</td><td class="small"><span class="catdot" style="background:'+(CAT_COLORS[a.cat]||"#999")+'"></span>'+a.service+' <span class="text-muted">('+a.mins+'m)</span></td><td class="small">'+a.staff.join(", ")+'</td><td class="small">'+storeName(storeOf(a))+'</td><td>'+statusBadge(a.status)+'</td></tr>').join(""):'<tr><td colspan="7" class="text-center text-muted py-4">No appointments match.</td></tr>');
- $("#countLine").text(list.length+" of "+DEMO.appointments.length+" bookings · Friday, October 2, 2026");
-}
-$(document).on("click","tr.clickable",function(){const a=DEMO.appointments.find(x=>x.id===$(this).data("aid"));
- $("#aId").text(a.id+" — "+a.customer);
- $("#aBody").html('<div class="row g-2"><div class="col-6"><div class="detail-label">Service</div>'+a.service+' ('+a.mins+' min)</div><div class="col-6"><div class="detail-label">Price</div>$'+a.price.toFixed(2)+'</div><div class="col-6"><div class="detail-label">Time</div>'+a.start+' – '+a.end+'</div><div class="col-6"><div class="detail-label">Staff</div>'+a.staff.join(", ")+'</div><div class="col-6"><div class="detail-label">Store</div>'+storeName(storeOf(a))+'</div><div class="col-6"><div class="detail-label">Source</div>'+a.source+'</div><div class="col-6"><div class="detail-label">Phone</div>'+a.phone+'</div><div class="col-6"><div class="detail-label">Status</div>'+statusBadge(a.status)+'</div></div>'+(a.group?'<div class="alert alert-info mt-3 mb-0 small">Part of group booking '+a.group+' — '+DEMO.appointments.filter(x=>x.group===a.group).length+' appointments booked together.</div>':""));
- modal=modal||new bootstrap.Modal("#aModal");modal.show();});
-$("#fStore,#fStatus").change(render);$("#fQ").on("input",render);
-$("#fClear").click(()=>{$("#fStore").val("");$("#fStatus").val("");$("#fQ").val("");render();});
-render();
+$(function () {
+  var statusCls = { "Confirmed": "success", "Serving": "warning", "Completed": "secondary", "No-Show": "dark", "Cancelled": "danger" };
+
+  function render() {
+    var st = $("#statusFilter").val();
+    var q = $("#apptSearch").val().toLowerCase().trim();
+    var $tb = $("#apptRows").empty();
+    var n = 0;
+    PLATFORM.appointments.forEach(function (a) {
+      if (st !== "all" && a.status !== st) return;
+      var hay = (a.ref + " " + a.customer + " " + a.service + " " + a.chain).toLowerCase();
+      if (q && hay.indexOf(q) === -1) return;
+      n++;
+      $tb.append("<tr>" +
+        '<td class="ref-code">' + a.ref + "</td>" +
+        "<td>" + a.chain + '<div class="text-muted small">' + a.store + "</div></td>" +
+        "<td>" + a.customer + "</td>" +
+        "<td>" + a.service + '<div class="text-muted small">' + a.staff + "</div></td>" +
+        '<td class="text-muted small">' + a.when + "</td>" +
+        '<td><span class="badge text-bg-light border">' + a.channel + "</span></td>" +
+        "<td>" + (a.src === "\u2014" ? '<span class="text-muted">\u2014</span>' : a.src) + "</td>" +
+        '<td><span class="badge text-bg-' + (statusCls[a.status] || "secondary") + '">' + a.status + "</span></td></tr>");
+    });
+    if (!n) $tb.append('<tr><td colspan="8" class="text-center text-muted py-4">No appointments match.</td></tr>');
+  }
+  $("#statusFilter, #apptSearch").on("input change", render);
+  render();
+});
 </script>
 </body>
 </html>

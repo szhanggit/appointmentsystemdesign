@@ -1,159 +1,141 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Settings — Selah Head Spa · Groway Business</title>
+<title>Settings — Selah Back Office</title>
 <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/theme.css">
 <style>
-  .sidebar { width: 232px; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
-  .sidebar .nav-link { color: rgba(255,255,255,.72); border-radius: .5rem; padding: .55rem .8rem; font-size: .92rem; }
-  .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.08); }
-  .sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,.14); font-weight: 600; }
+  .sidebar-nav .list-group-item{background:transparent;border:0;color:rgba(255,255,255,.75);border-radius:.5rem;margin-bottom:2px}
+  .sidebar-nav .list-group-item:hover{background:rgba(255,255,255,.08);color:#fff}
+  .sidebar-nav .list-group-item.active{background:rgba(185,138,47,.22);color:#fff;font-weight:600}
 </style>
 </head>
 <body>
-<div class="demo-bar text-center py-1">Groway demo — Store back office · Selah Head Spa · <span class="text-muted">static prototype, no backend</span></div>
+<div class="demo-bar px-3 py-1 text-center">Static investor demo — no real data · Store back office</div>
 <div class="d-flex">
-  <aside class="sidebar bg-teal-dark text-white d-flex flex-column flex-shrink-0">
-    <div class="p-3 border-bottom border-light border-opacity-10">
-      <div class="font-display fs-5 fw-bold">SELAH HEAD SPA</div>
-      <div class="text-white-50 small">Groway Business</div>
+  <nav class="bg-teal-dark text-white p-3 d-flex flex-column" style="width:248px;min-height:100vh;position:sticky;top:0;height:100vh">
+    <div class="font-display fs-5">Selah Head Spa</div>
+    <div class="small text-white-50 mb-1">Back office</div>
+    <span class="badge bg-gold text-dark align-self-start mb-3">Bayview · Store admin</span>
+    <div class="list-group list-group-flush sidebar-nav">
+      <a href="dashboard.html" class="list-group-item">Dashboard</a>
+      <a href="staff.html" class="list-group-item">Team</a>
+      <a href="services.html" class="list-group-item">Services</a>
+      <a href="customers.html" class="list-group-item">Customers</a>
+      <a href="reports.html" class="list-group-item">Reports</a>
+      <a href="settings.html" class="list-group-item active">Settings</a>
     </div>
-    <nav class="nav flex-column p-2 gap-1">
-      <a class="nav-link" href="dashboard.html">&#128197; Appointments</a>
-      <a class="nav-link" href="customers.html">&#128100; Customers</a>
-      <a class="nav-link" href="staff.html">&#128101; Staff</a>
-      <a class="nav-link" href="services.html">&#128134; Services</a>
-      <a class="nav-link" href="reports.html">&#128202; Reports</a>
-      <a class="nav-link active" href="settings.html">&#9881; Settings</a>
-    </nav>
-    <div class="mt-auto p-3 small text-white-50 border-top border-light border-opacity-10">
-      <div>Mei Lin · Store admin</div>
-      <a href="../index.html" class="text-gold text-decoration-none">← Back to Groway</a>
+    <div class="mt-auto pt-3 border-top border-white-25">
+      <a href="../client/store.html?store=store-bayview" class="btn btn-sm btn-outline-light w-100 mb-2">View storefront</a>
+      <a href="../index.html" class="btn btn-sm btn-link text-white-50 w-100">Log out</a>
     </div>
-  </aside>
-
-  <main class="flex-grow-1 p-4" style="min-width:0;max-width:960px">
-    <h4 class="font-display fw-bold mb-3">Settings</h4>
-    <ul class="nav nav-tabs mb-3" id="setTabs">
-      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#t-profile">Store profile</button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-booking">Booking</button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-cats">Categories</button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-hours">Hours</button></li>
-    </ul>
-
-    <div class="tab-content">
-      <div class="tab-pane fade show active" id="t-profile">
-        <div class="bg-white border rounded p-4">
-          <label class="detail-label">Store name</label>
-          <input class="form-control mb-3" value="Selah Head Spa">
-          <label class="detail-label">About (English)</label>
-          <textarea class="form-control mb-1" rows="4" id="aboutEn"></textarea>
-          <div class="small text-muted mb-3"><span id="aboutCount"></span> / 2000 characters · plain text</div>
-          <div class="row g-3">
-            <div class="col-md-6"><label class="detail-label">Phone</label><input class="form-control" value="(905) 555-0134"></div>
-            <div class="col-md-6"><label class="detail-label">Address</label><input class="form-control" value="8120 Bayview Ave, Richmond Hill"></div>
-          </div>
-          <button class="btn btn-primary mt-4 saveBtn">Save profile</button>
-        </div>
+  </nav>
+  <main class="flex-grow-1 p-4" style="max-width:1180px">
+    <h1 class="font-display mb-0">Settings</h1>
+    <div class="gold-rule mb-4"></div>
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <div class="card mb-3"><div class="card-body">
+          <h5 class="card-title">Store profile</h5>
+          <div class="mb-2"><label class="form-label small">Store name</label>
+            <input class="form-control" id="setName" value="Selah Head Spa — Bayview"></div>
+          <div class="mb-2"><label class="form-label small">Address</label>
+            <input class="form-control" id="setAddr" value="8120 Bayview Ave, Richmond Hill, ON"></div>
+          <div class="mb-0"><label class="form-label small">Phone</label>
+            <input class="form-control" id="setPhone" value="(905) 555-0142"></div>
+        </div></div>
+        <div class="card mb-3"><div class="card-body">
+          <h5 class="card-title">Business hours</h5>
+          <div id="hoursRows"></div>
+        </div></div>
       </div>
-
-      <div class="tab-pane fade" id="t-booking">
-        <div class="bg-white border rounded p-4">
-          <div class="row g-3 align-items-center mb-3">
-            <div class="col-md-6"><label class="detail-label">Max concurrent customers (capacity)</label>
-              <input type="number" class="form-control" value="12" min="1"></div>
-            <div class="col-md-6"><label class="detail-label">Cancellation window</label>
-              <select class="form-select"><option>24 hours</option><option>12 hours</option><option>48 hours</option></select></div>
+      <div class="col-lg-6">
+        <div class="card mb-3"><div class="card-body">
+          <h5 class="card-title">Store policies <span class="badge bg-secondary fw-normal">stores.policies_text</span></h5>
+          <p class="small text-muted">Shown on the storefront booking flow. Bilingual, stored as <code>policies_text_en</code> / <code>policies_text_zh</code>.</p>
+          <div class="mb-2"><label class="form-label small">English</label>
+            <textarea class="form-control" id="polEn" rows="4"></textarea></div>
+          <div class="mb-0"><label class="form-label small">中文</label>
+            <textarea class="form-control" id="polZh" rows="4"></textarea></div>
+        </div></div>
+        <div class="card mb-3"><div class="card-body">
+          <h5 class="card-title">Notifications</h5>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="ntfSmsConfirm" checked>
+            <label class="form-check-label" for="ntfSmsConfirm">Booking confirmation — SMS <span class="text-muted small">(Twilio)</span></label>
           </div>
-          <div class="form-check form-switch mb-3">
-            <input class="form-check-input" type="checkbox" checked id="autoConfirm">
-            <label class="form-check-label" for="autoConfirm">Auto-confirm online bookings</label>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="ntfEmailConfirm" checked>
+            <label class="form-check-label" for="ntfEmailConfirm">Booking confirmation — Email <span class="text-muted small">(SES)</span></label>
           </div>
-          <div class="form-check form-switch mb-3">
-            <input class="form-check-input" type="checkbox" id="depositReq">
-            <label class="form-check-label" for="depositReq">Require deposit at booking (Stripe)</label>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="ntfSmsRemind" checked>
+            <label class="form-check-label" for="ntfSmsRemind">Reminder 24h before — SMS</label>
           </div>
-          <div class="form-check form-switch mb-4">
-            <input class="form-check-input" type="checkbox" checked id="isTest">
-            <label class="form-check-label" for="isTest">Test store <span class="text-muted">— hidden from the public map, bookings don't consume quota</span></label>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="ntfEmailRemind" checked>
+            <label class="form-check-label" for="ntfEmailRemind">Reminder 24h before — Email</label>
           </div>
-          <button class="btn btn-primary saveBtn">Save booking settings</button>
-        </div>
-      </div>
-
-      <div class="tab-pane fade" id="t-cats">
-        <div class="alert alert-warning d-flex gap-2 align-items-start">
-          <span>&#9888;</span>
-          <div class="small"><strong>2 categories aren't mapped</strong> to Groway's discovery taxonomy —
-          they won't appear in map category filters until mapped. Pick a match below (one click each).</div>
-        </div>
-        <div class="bg-white border rounded p-3" id="catMap"></div>
-        <button class="btn btn-primary mt-3 saveBtn">Save mappings</button>
-      </div>
-
-      <div class="tab-pane fade" id="t-hours">
-        <div class="bg-white border rounded p-4">
-          <table class="table mb-0">
-            <thead class="table-light"><tr><th>Day</th><th>Open</th><th>Close</th><th>Closed</th></tr></thead>
-            <tbody id="hoursRows"></tbody>
-          </table>
-          <button class="btn btn-primary mt-3 saveBtn">Save hours</button>
-        </div>
+        </div></div>
+        <button id="saveBtn" class="btn btn-gold px-4">Save settings</button>
       </div>
     </div>
   </main>
 </div>
 
-<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="toast" class="toast" role="status"><div class="toast-body" id="toastBody"></div></div>
+</div>
 
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
 <script>
-function toast(msg){ const t=$(`<div class="toast align-items-center"><div class="d-flex"><div class="toast-body">${msg}</div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
-  $("#toasts").append(t); new bootstrap.Toast(t[0],{delay:2600}).show(); }
-$(".saveBtn").click(()=>toast("Settings saved"));
-
-const about = DEMO.stores[0].about;
-$("#aboutEn").val(about);
-function updCount(){ $("#aboutCount").text($("#aboutEn").val().length); }
-$("#aboutEn").on("input", updCount); updCount();
-
-// taxonomy mapping demo
-const STORE_CATS = [
-  { name:"Signature Head Spa", mapped:"head-spa" },
-  { name:"Facial Care", mapped:"facial" },
-  { name:"Body Care", mapped:"massage" },
-  { name:"Foot Massage", mapped:null },
-  { name:"Registered Massage Therapist", mapped:null }
-];
-function renderCats(){
-  $("#catMap").html(STORE_CATS.map((c,i)=>`
-    <div class="d-flex align-items-center gap-3 py-2 border-bottom">
-      <div class="fw-bold" style="width:260px">${c.name}</div>
-      <select class="form-select form-select-sm mapSel" data-i="${i}" style="max-width:260px">
-        <option value="">Not mapped — invisible in map filters</option>
-        ${DEMO.taxonomy.map(([slug,label])=>`<option value="${slug}"${c.mapped===slug?" selected":""}>${label}</option>`).join("")}
-      </select>
-      ${c.mapped?`<span class="badge bg-success">Mapped</span>`:`<span class="badge bg-warning text-dark">Unmapped</span>`}
-    </div>`).join(""));
-}
-$(document).on("change",".mapSel",function(){
-  const i = +$(this).data("i"); STORE_CATS[i].mapped = $(this).val()||null; renderCats();
+(function(){
+  var ok = window.DEMO && DEMO.chain && DEMO.staff && DEMO.services && DEMO.quota;
+  if (ok) return;
+  window.DEMO = {
+    chain:{id:"chain-selah",name:"Selah Head Spa",tagline:"A calm-luxury head spa ritual, now in two neighbourhoods.",hero:"assets/img/hero-spa.jpg"},
+    stores:[
+      {id:"store-bayview",name:"Selah Head Spa — Bayview",address:"8120 Bayview Ave, Richmond Hill, ON",phone:"(905) 555-0142",hours:"Mon–Sat 10:00–20:00, Sun 11:00–18:00"},
+      {id:"store-yorkville",name:"Selah Head Spa — Yorkville",address:"128 Cumberland St, Toronto, ON",phone:"(416) 555-0198",hours:"Mon–Sat 10:00–21:00, Sun closed"}],
+    staff:[
+      {id:"anna",name:"Anna Chen",title:"Senior Scalp Therapist",avatar:"../assets/img/avatar-47.jpg",languages:["English","Mandarin"],bio:"10 years in scalp therapy.",active:{"store-bayview":true,"store-yorkville":true}},
+      {id:"mei",name:"Mei Wang",title:"Head Spa Specialist",avatar:"../assets/img/avatar-17.jpg",languages:["Mandarin"],bio:"Warm, meticulous head-spa ritualist.",active:{"store-bayview":true,"store-yorkville":false}},
+      {id:"jordan",name:"Lily Zhang",title:"Aromatherapist",avatar:"../assets/img/avatar-33.jpg",languages:["English","Mandarin"],bio:"Aromatherapy and scalp care.",active:{"store-bayview":false,"store-yorkville":true}},
+      {id:"sofia",name:"Grace Liu",title:"Scalp Therapist",avatar:"../assets/img/avatar-44.jpg",languages:["English"],bio:"Deep-cleansing scalp specialist.",active:{"store-bayview":true,"store-yorkville":true}}],
+    services:[
+      {id:"svc-royal",name:"Deluxe Royal Head Spa",cat:"Head Spa",mins:90,price:129,seq:1,staff:["anna","mei","sofia"]},
+      {id:"svc-aroma",name:"Aromatherapy Scalp Treatment",cat:"Head Spa",mins:60,price:89,seq:2,staff:["anna","jordan"]},
+      {id:"svc-facial",name:"Glow Facial",cat:"Facial",mins:45,price:75,seq:3,staff:["mei","sofia"]},
+      {id:"svc-detox",name:"Scalp Detox Treatment",cat:"Head Spa",mins:45,price:69,seq:4,staff:["anna","sofia"]},
+      {id:"svc-shoulder",name:"Shoulder & Neck Massage",cat:"Massage",mins:30,price:49,seq:5,staff:["anna","mei","jordan","sofia"]}],
+    policies:{en:"Cancellation: free up to 4 hours before your appointment. Late cancellations and no-shows may be charged 50% of the service price.",zh:"取消政策：预约开始前4小时可免费取消。迟到取消或爽约可能收取服务价格50%的费用。"},
+    quota:{plan:"Free",used:73,limit:100}
+  };
+})();
+</script>
+<script>
+$(function(){
+  $("#polEn").val(DEMO.policies.en);
+  $("#polZh").val(DEMO.policies.zh);
+  var hours = [["Monday","10:00","20:00",true],["Tuesday","10:00","20:00",true],["Wednesday","10:00","20:00",true],
+               ["Thursday","10:00","20:00",true],["Friday","10:00","20:00",true],["Saturday","10:00","20:00",true],
+               ["Sunday","11:00","18:00",true]];
+  $("#hoursRows").html(hours.map(function(h,i){
+    return '<div class="row g-2 align-items-center mb-2"><div class="col-4 small">'+h[0]+'</div>'+
+      '<div class="col-3"><input type="time" class="form-control form-control-sm" value="'+h[1]+'"></div>'+
+      '<div class="col-3"><input type="time" class="form-control form-control-sm" value="'+h[2]+'"></div>'+
+      '<div class="col-2"><div class="form-check"><input class="form-check-input" type="checkbox" '+(h[3]?"checked":"")+' id="open'+i+'">'+
+      '<label class="form-check-label small" for="open'+i+'">Open</label></div></div></div>';
+  }).join(""));
+  $("#saveBtn").click(function(){
+    $("#toastBody").text("Settings saved — hours, policies (EN/ZH) and notification preferences updated.");
+    new bootstrap.Toast($("#toast")[0]).show();
+  });
 });
-renderCats();
-
-// hours
-const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-const H = { Monday:["10:00 AM","8:00 PM"], Tuesday:["10:00 AM","8:00 PM"], Wednesday:["10:00 AM","8:00 PM"],
-  Thursday:["10:00 AM","8:00 PM"], Friday:["10:00 AM","8:00 PM"], Saturday:["9:00 AM","6:00 PM"], Sunday:["11:00 AM","5:00 PM"] };
-$("#hoursRows").html(DAYS.map(d=>`<tr><td class="fw-bold">${d}</td>
-  <td><input class="form-control form-control-sm" value="${H[d][0]}"></td>
-  <td><input class="form-control form-control-sm" value="${H[d][1]}"></td>
-  <td><input type="checkbox" class="form-check-input"></td></tr>`).join(""));
 </script>
 </body>
 </html>

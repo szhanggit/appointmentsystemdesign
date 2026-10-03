@@ -19,7 +19,6 @@
         <li class="nav-item"><a class="nav-link" href="#how">How it works</a></li>
         <li class="nav-item"><a class="nav-link" href="#business">For business</a></li>
         <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
-        <li class="nav-item"><a class="nav-link" href="#ai">AI roadmap</a></li>
       </ul>
       <a class="btn btn-outline-light btn-sm me-2" href="login-client.html">Client sign in</a>
       <a class="btn btn-gold btn-sm" href="login-store.html">Business sign in</a>
@@ -33,107 +32,76 @@
     <div class="container">
       <div class="col-lg-7">
         <h1 class="font-display display-4 fw-bold">Discover beauty near you.<br>Book in seconds.</h1>
-        <p class="lead mt-3">Head spas, nails, facials, massage — real-time availability, verified reviews, no phone tag.</p>
+        <p class="lead mt-3">Head spas, facials, massage — real-time availability, no phone tag.</p>
         <form class="row g-2 mt-4" onsubmit="location.href='client/map.html';return false">
           <div class="col-md-5"><input class="form-control form-control-lg" placeholder="Try &quot;head spa&quot;"></div>
           <div class="col-md-4"><input class="form-control form-control-lg" value="Richmond Hill, ON"></div>
           <div class="col-md-3"><button class="btn btn-gold btn-lg w-100">Search</button></div>
         </form>
-        <div class="mt-3 d-flex gap-2 flex-wrap" id="heroCats"></div>
       </div>
     </div>
   </div>
 </header>
 
-<section class="py-5">
+<section class="py-5 bg-white border-bottom">
   <div class="container">
-    <div class="d-flex justify-content-between align-items-end mb-4">
-      <div><h2 class="font-display fw-bold">Featured near Richmond Hill</h2><div class="gold-rule mt-2"></div></div>
-      <a href="client/map.html" class="btn btn-outline-primary">Open the map</a>
+    <div class="row align-items-center g-4">
+      <div class="col-md-8">
+        <div class="detail-label mb-2">Featured chain</div>
+        <h2 class="font-display fw-bold mb-2">Selah Head Spa</h2>
+        <p class="text-muted mb-1">A calm-luxury head spa ritual, now in two neighbourhoods.</p>
+        <p class="mb-3"><span class="badge bg-teal-dark">2 locations</span> <span class="text-muted small ms-2">Bayview · Yorkville</span></p>
+        <a href="client/chain.html" class="btn btn-primary">Explore the chain</a>
+        <a href="client/map.html" class="btn btn-outline-primary ms-2">Open the map</a>
+      </div>
+      <div class="col-md-4"><img src="assets/img/headspa-1.webp" class="img-fluid rounded" alt="Head spa"></div>
     </div>
-    <div class="row g-4" id="featured"></div>
   </div>
 </section>
 
-<section id="how" class="py-5 bg-white">
+<section id="how" class="py-5">
   <div class="container">
     <h2 class="font-display fw-bold text-center">How it works</h2><div class="gold-rule mx-auto mt-2 mb-5"></div>
     <div class="row g-4 text-center">
-      <div class="col-md-4"><div class="display-6 text-gold font-display">1</div><h5 class="mt-2">Discover</h5><p class="text-muted">Browse the beauty map, filter by category, price and open-now. Real photos, real reviews.</p></div>
-      <div class="col-md-4"><div class="display-6 text-gold font-display">2</div><h5 class="mt-2">Book</h5><p class="text-muted">Pick a service, a technician, a time. No account needed — your phone number is enough.</p></div>
-      <div class="col-md-4"><div class="display-6 text-gold font-display">3</div><h5 class="mt-2">Glow</h5><p class="text-muted">Get reminders, manage or reschedule from your link. Review your technician after.</p></div>
+      <div class="col-md-4"><div class="step-dot mx-auto mb-3">1</div><h5 class="font-display">Discover</h5><p class="text-muted small">Browse the map or a chain page. No account needed to look around.</p></div>
+      <div class="col-md-4"><div class="step-dot mx-auto mb-3">2</div><h5 class="font-display">Book</h5><p class="text-muted small">Pick services, a therapist and a time — book as a guest in under a minute.</p></div>
+      <div class="col-md-4"><div class="step-dot mx-auto mb-3">3</div><h5 class="font-display">Relax</h5><p class="text-muted small">Get a confirmation text and a reminder before your visit. That's it.</p></div>
     </div>
   </div>
 </section>
 
-<section id="business" class="py-5 bg-teal-dark text-white">
+<section id="business" class="py-5 bg-white">
   <div class="container">
-    <div class="row align-items-center">
-      <div class="col-lg-6">
-        <h2 class="font-display fw-bold">One system to run your entire shop</h2>
-        <p class="mt-3 text-white-50">Calendar, online booking, customer records, staff schedules and reviews — built for beauty businesses, not adapted from a generic calendar.</p>
-        <ul class="list-unstyled mt-4">
-          <li class="mb-2">✓ Real-time calendar with capacity control</li>
-          <li class="mb-2">✓ Your shop on the beauty map — new customers find you</li>
-          <li class="mb-2">✓ Deposits and no-show protection</li>
-          <li class="mb-2">✓ Bilingual — English, French, Simplified &amp; Traditional Chinese</li>
-        </ul>
-        <a href="login-store.html" class="btn btn-gold mt-3">See the business demo</a>
+    <div class="row align-items-center g-4">
+      <div class="col-md-6"><img src="assets/img/headspa-2.webp" class="img-fluid rounded" alt="Studio"></div>
+      <div class="col-md-6">
+        <h2 class="font-display fw-bold">For business</h2><div class="gold-rule mt-2 mb-3"></div>
+        <p class="text-muted">Online booking, a beautiful chain page, and reminders that cut no-shows — free for your first 100 bookings a month.</p>
+        <a href="login-store.html" class="btn btn-gold">Business sign in</a>
       </div>
-      <div class="col-lg-6"><img src="assets/img/headspa-1.webp" class="img-fluid rounded shadow" alt="Head spa"></div>
     </div>
   </div>
 </section>
 
 <section id="pricing" class="py-5">
-  <div class="container">
-    <h2 class="font-display fw-bold text-center">Simple pricing</h2><div class="gold-rule mx-auto mt-2 mb-5"></div>
-    <div class="row g-4 justify-content-center">
-      <div class="col-md-4"><div class="card h-100"><div class="card-body text-center p-4">
-        <h5>Free</h5><div class="display-5 font-display fw-bold">$0</div>
-        <p class="text-muted">100 bookings / month</p><hr>
-        <ul class="list-unstyled text-start"><li>✓ Beauty map listing</li><li>✓ Online booking</li><li>✓ Calendar</li></ul>
-      </div></div></div>
-      <div class="col-md-4"><div class="card h-100 border-primary border-2"><div class="card-body text-center p-4">
-        <span class="badge bg-gold mb-2">Most popular</span><h5>Pro</h5><div class="display-5 font-display fw-bold">$49<span class="fs-6">/mo</span></div>
-        <p class="text-muted">Unlimited bookings</p><hr>
-        <ul class="list-unstyled text-start"><li>✓ Everything in Free</li><li>✓ Deposits &amp; no-show protection</li><li>✓ Review management</li><li>✓ Priority map placement</li></ul>
-      </div></div></div>
-    </div>
+  <div class="container text-center" style="max-width:640px">
+    <h2 class="font-display fw-bold">Simple pricing</h2><div class="gold-rule mx-auto mt-2 mb-4"></div>
+    <div class="card"><div class="card-body p-4">
+      <h4 class="font-display">Free</h4>
+      <p class="display-6 fw-bold">$0<span class="fs-6 text-muted">/month</span></p>
+      <p class="text-muted small">100 bookings / month · online booking · chain page · SMS + email confirmations and reminders</p>
+    </div></div>
   </div>
 </section>
 
-<section id="ai" class="py-5 bg-white">
-  <div class="container">
-    <h2 class="font-display fw-bold text-center">Where this goes: the AI front desk</h2><div class="gold-rule mx-auto mt-2 mb-4"></div>
-    <p class="text-center text-muted col-lg-8 mx-auto">Booking is the wedge. The moat is AI: an AI receptionist that answers every call, fills last-minute gaps automatically, and brings quiet customers back.</p>
-    <div class="row g-4 mt-2 text-center">
-      <div class="col-md-4"><div class="card h-100"><div class="card-body"><h5>AI front desk</h5><p class="text-muted">Answers calls &amp; messages 24/7, books directly into the calendar.</p></div></div></div>
-      <div class="col-md-4"><div class="card h-100"><div class="card-body"><h5>AI gap-filling</h5><p class="text-muted">Detects cancellations and offers the slot to waitlisted customers.</p></div></div></div>
-      <div class="col-md-4"><div class="card h-100"><div class="card-body"><h5>AI recall</h5><p class="text-muted">Win back customers who haven't visited in 60+ days, personally.</p></div></div></div>
-    </div>
-  </div>
-</section>
-
-<footer class="bg-teal-dark text-white-50 py-4">
-  <div class="container d-flex justify-content-between flex-wrap">
-    <span class="font-display text-white">Groway</span>
-    <span class="kbd-hint">Investor demo · <a href="login-admin.html" class="text-white-50">Platform admin</a></span>
+<footer class="bg-teal-dark text-white py-4">
+  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span class="font-display">Groway</span>
+    <span class="small opacity-75">Investor demo — fictional data.</span>
   </div>
 </footer>
-
 <script src="assets/vendor/jquery.min.js"></script>
 <script src="assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="assets/js/demo-data.js"></script>
-<script>
-$("#heroCats").html(DEMO.taxonomy.map(t=>`<button type="button" class="chip" onclick="location.href='client/map.html'">${t[1]}</button>`).join(""));
-$("#featured").html(DEMO.stores.slice(0,3).map(s=>`
- <div class="col-md-4"><div class="card card-hover h-100" style="cursor:pointer" onclick="location.href='client/store.html?id=${s.id}'">
-  <img src="assets/img/${s.photos[0]}" class="card-img-top" style="height:200px;object-fit:cover">
-  <div class="card-body"><h5 class="card-title font-display">${s.name}</h5>
-   <p class="text-muted small mb-1">${s.categories.map(c=>(DEMO.taxonomy.find(t=>t[0]==c)||[])[1]).join(" · ")}</p>
-   <p class="small mb-2">★ ${s.rating} (${s.reviews}) · ${s.city}</p>
-   <span class="price-badge">from $${s.priceFrom}</span></div></div></div>`).join(""));
-</script>
 </body>
 </html>

@@ -3,133 +3,137 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Groway Admin — Overview</title>
+<title>Groway Platform Ops — Overview</title>
 <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/theme.css">
 <style>
-.sidebar .nav-link{color:rgba(255,255,255,.65);border-left:3px solid transparent;border-radius:0}
-.sidebar .nav-link:hover{color:#fff;background:rgba(255,255,255,.05)}
-.sidebar .nav-link.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:#b98a2f}
-.bar{width:100%;background:#e9e2d2;border-radius:.4rem .4rem 0 0;min-height:6px;transition:background .15s}
-.bar:hover{background:#14655a}
+.quota-wrap .quota-tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:rgba(13,63,57,.4)}
+.kpi-icon{width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;background:#efe9d8;color:var(--teal-dark);font-size:1.25rem;flex:none}
+.activity-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);flex:none;margin-top:.45rem}
 </style>
 </head>
 <body>
-<div class="demo-bar text-center py-1">Investor demo — all data is fictional, no backend connected.</div>
-<div class="container-fluid">
-<div class="row">
-<div class="col-md-3 col-lg-2 px-0">
-<nav class="sidebar bg-teal-dark text-white d-flex flex-column min-vh-100 sticky-top">
-<div class="p-3 border-bottom border-secondary">
-<div class="font-display fs-5">Groway <span class="text-gold">Admin</span></div>
-<div class="small" style="color:rgba(255,255,255,.55)">Platform console</div>
-</div>
-<ul class="nav flex-column py-2">
-<li class="nav-item"><a class="nav-link px-3 py-2 active" href="overview.html">Overview</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="stores.html">Stores</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="photos.html">Photos <span class="badge bg-gold text-dark ms-1">6</span></a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="taxonomy.html">Taxonomy</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="appointments.html">Appointments</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="revenue.html">Revenue</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="notifications.html">Notifications</a></li>
-<li class="nav-item"><a class="nav-link px-3 py-2" href="accounts.html">Accounts</a></li>
-</ul>
-<div class="mt-auto p-3 small" style="color:rgba(255,255,255,.45)">v0.1 investor demo<br>All data fictional</div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
+  <div class="container-fluid px-3 px-lg-4">
+    <a class="navbar-brand font-display" href="overview.html">Groway <span class="text-gold">·</span> <span class="fs-6 fw-normal">Platform Ops</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="adminNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link active" aria-current="page" href="overview.html">Overview</a></li>
+        <li class="nav-item"><a class="nav-link" href="stores.html">Stores</a></li>
+        <li class="nav-item"><a class="nav-link" href="accounts.html">Accounts</a></li>
+        <li class="nav-item"><a class="nav-link" href="appointments.html">Appointments</a></li>
+        <li class="nav-item"><a class="nav-link" href="notifications.html">Notifications</a></li>
+        <li class="nav-item"><a class="nav-link" href="photos.html">Photos</a></li>
+        <li class="nav-item"><a class="nav-link" href="revenue.html">Revenue</a></li>
+        <li class="nav-item"><a class="nav-link" href="taxonomy.html">Taxonomy</a></li>
+      </ul>
+      <span class="navbar-text small text-white-50">Demo · signed in as <span class="text-white fw-semibold">Groway Admin</span></span>
+    </div>
+  </div>
 </nav>
-</div>
-<main class="col-md-9 col-lg-10 p-4">
-<div class="d-flex justify-content-between align-items-center mb-4">
-<div><h1 class="font-display h3 mb-0">Platform overview</h1><div class="text-muted small">Friday, October 2, 2026 · Greater Toronto Area</div></div>
-<div class="d-flex align-items-center gap-2">
-<span class="badge text-bg-success">Live demo</span>
-<img src="../assets/img/avatar-56.jpg" class="rounded-circle" width="36" height="36" alt="Admin">
-<div class="small"><div class="fw-semibold">Platform Admin</div><div class="text-muted">admin@groway.demo</div></div>
-</div>
-</div>
+<div class="demo-bar text-center py-1 px-2">Static demo — no backend. <a href="../index.html">← Back to Groway homepage</a></div>
 
-<div class="row g-3 mb-4">
-<div class="col-md-3"><div class="card h-100"><div class="card-body">
-<div class="detail-label mb-1">Total stores</div><div class="stat-num">5</div>
-<div class="small text-muted">3 on Pro · 2 on Free</div></div></div></div>
-<div class="col-md-3"><div class="card h-100"><div class="card-body">
-<div class="detail-label mb-1">Bookings today</div><div class="stat-num">47</div>
-<div class="small text-success">▲ 12% vs yesterday</div></div></div></div>
-<div class="col-md-3"><div class="card h-100"><div class="card-body">
-<div class="detail-label mb-1">GMV today</div><div class="stat-num">$3,812</div>
-<div class="small text-muted">Avg ticket $81 · 47 bookings</div></div></div></div>
-<div class="col-md-3"><div class="card h-100 border-warning"><div class="card-body">
-<div class="detail-label mb-1">Pending reviews</div><div class="stat-num">8</div>
-<div class="small"><a href="photos.html">6 photos</a> · <a href="stores.html#applications">2 stores</a></div></div></div></div>
-</div>
+<main class="container py-4">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+    <h1 class="font-display h3 mb-0">Platform overview</h1>
+    <span class="badge rounded-pill text-bg-warning">Concept preview — platform operations</span>
+  </div>
+  <p class="text-muted mb-4">October 2026 · All chains are on the <strong>Free</strong> plan — 100 bookings / month / chain.</p>
 
-<div class="row g-3 mb-4">
-<div class="col-lg-7"><div class="card h-100"><div class="card-body">
-<h6 class="font-display mb-3">Bookings — last 7 days</h6>
-<div class="d-flex align-items-end gap-2" style="height:150px" id="bookChart"></div>
-<div class="d-flex gap-2 mt-1 small text-muted" id="bookChartLbl"></div>
-</div></div></div>
-<div class="col-lg-5"><div class="card h-100"><div class="card-body">
-<h6 class="font-display mb-3">Revenue — last 7 days</h6>
-<svg viewBox="0 0 560 170" class="w-100" role="img" aria-label="Revenue trend">
-<polyline id="revLine" fill="none" stroke="#14655a" stroke-width="3" points=""/>
-<polyline id="revArea" fill="rgba(20,101,90,.12)" stroke="none" points=""/>
-</svg>
-<div class="d-flex justify-content-between small text-muted"><span>Sep 26</span><span>Oct 2</span></div>
-<div class="mt-2 small">7-day total <strong>$28,972</strong> · <span class="text-success">▲ 9.4% WoW</span></div>
-</div></div></div>
-</div>
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body d-flex align-items-center gap-3">
+        <span class="kpi-icon">◈</span>
+        <div><div class="stat-num" id="kpiChains">3</div><div class="text-muted small">Chains</div></div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body d-flex align-items-center gap-3">
+        <span class="kpi-icon">◎</span>
+        <div><div class="stat-num" id="kpiStores">4</div><div class="text-muted small">Stores</div></div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body d-flex align-items-center gap-3">
+        <span class="kpi-icon">▣</span>
+        <div><div class="stat-num">269</div><div class="text-muted small">Bookings this month</div></div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100"><div class="card-body d-flex align-items-center gap-3">
+        <span class="kpi-icon">✉</span>
+        <div><div class="stat-num">486</div><div class="text-muted small">Notifications sent</div></div>
+      </div></div>
+    </div>
+  </div>
 
-<div class="row g-3">
-<div class="col-lg-6"><div class="card h-100"><div class="card-body">
-<div class="d-flex justify-content-between align-items-center mb-2">
-<h6 class="font-display mb-0">Pending approvals</h6>
-<span class="badge text-bg-warning">8 waiting</span></div>
-<table class="table table-sm align-middle mb-0">
-<tbody id="approvalRows"></tbody>
-</table>
-</div></div></div>
-<div class="col-lg-6"><div class="card h-100"><div class="card-body">
-<div class="d-flex justify-content-between align-items-center mb-2">
-<h6 class="font-display mb-0">Recent bookings</h6>
-<a href="appointments.html" class="small">View all</a></div>
-<table class="table table-sm align-middle mb-0">
-<thead><tr class="small text-muted"><th>Time</th><th>Customer</th><th>Service</th><th>Store</th><th>Status</th></tr></thead>
-<tbody id="recentRows"></tbody>
-</table>
-</div></div></div>
-</div>
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card h-100"><div class="card-body">
+        <h2 class="h5 font-display mb-3">Quota health</h2>
+        <div id="quotaList" class="d-flex flex-column gap-3"></div>
+        <p class="text-muted small mb-0 mt-3">Warnings fire at 75%, 90% and 100% of the monthly quota (tick marks). At 100% new bookings are hard-blocked until the next cycle — no top-up pack in V1, and unused quota does not roll over.</p>
+      </div></div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card mb-4"><div class="card-body">
+        <h2 class="h5 font-display mb-3">Needs attention</h2>
+        <div class="list-group list-group-flush">
+          <a href="stores.html" class="list-group-item list-group-item-action px-0">
+            <span class="badge text-bg-danger me-2">Blocked</span>Luxe Nails Bar hit <strong>100/100</strong> — new bookings hard-blocked until Nov 1.
+          </a>
+          <a href="stores.html" class="list-group-item list-group-item-action px-0">
+            <span class="badge text-bg-warning me-2">Warning</span>Glow Studio at <strong>96/100</strong> — 90% warning email sent Sep 29.
+          </a>
+          <a href="photos.html" class="list-group-item list-group-item-action px-0">
+            <span class="badge text-bg-info me-2">Review</span><span id="photoCount">4</span> photos awaiting moderation.
+          </a>
+          <a href="accounts.html" class="list-group-item list-group-item-action px-0">
+            <span class="badge text-bg-secondary me-2">Account</span>1 suspended account (Kevin Zhou, Luxe Nails Bar).
+          </a>
+        </div>
+      </div></div>
+      <div class="card"><div class="card-body">
+        <h2 class="h5 font-display mb-3">Recent platform activity</h2>
+        <ul class="list-unstyled mb-0 d-flex flex-column gap-2" id="activityList"></ul>
+      </div></div>
+    </div>
+  </div>
 </main>
-</div>
-</div>
-<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+
+<footer class="border-top mt-5 py-4">
+  <div class="container text-center text-muted small">Groway investor demo · Platform operations · All data on this page is illustrative.</div>
+</footer>
+
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
+<script src="../assets/js/admin-data.js"></script>
 <script>
-const APPT_STORE = {"A-1808131":"zenith","A-1808132":"zenith","A-1808139":"aurelia"};
-const storeName = id => (DEMO.stores.find(s=>s.id===(APPT_STORE[id]||"selah"))||{}).name || "—";
-function statusBadge(s){return '<span class="badge text-bg-'+(STATUS_COLORS[s]||"secondary")+'">'+s+'</span>';}
-// bookings bar chart
-const days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], vals=[38,41,44,47,52,61,49], mx=Math.max(...vals);
-$("#bookChart").html(vals.map(v=>'<div class="flex-fill d-flex flex-column align-items-center justify-content-end h-100"><div class="small fw-semibold">'+v+'</div><div class="bar" style="height:'+Math.round(v/mx*100)+'%" title="'+v+' bookings"></div></div>').join(""));
-$("#bookChartLbl").html(days.map(d=>'<div class="flex-fill text-center">'+d+'</div>').join(""));
-// revenue line
-const rev=[2940,3180,3350,3812,4210,5020,4460], rmx=Math.max(...rev);
-const pts=rev.map((v,i)=>[20+i*(520/6), 150-(v/rmx)*130]);
-$("#revLine").attr("points", pts.map(p=>p.join(",")).join(" "));
-$("#revArea").attr("points", "20,160 "+pts.map(p=>p.join(",")).join(" ")+" 540,160");
-// pending approvals
-const approvals=[
- ["Store","Blossom Nails — Mississauga","2 h ago","stores.html#applications","Review"],
- ["Store","The Groom Room — Etobicoke","5 h ago","stores.html#applications","Review"],
- ["Photo","headspa-1.webp — Selah Head Spa","12 min ago","photos.html","Moderate"],
- ["Photo","headspa-2.webp — Selah Head Spa","26 min ago","photos.html","Moderate"],
- ["Photo","facial-1.png — Aurelia Skin Clinic","1 h ago","photos.html","Moderate"],
- ["Photo","nails-1.webp — Lumière Nail Bar","3 h ago","photos.html","Moderate"]
-];
-$("#approvalRows").html(approvals.map(a=>'<tr><td><span class="badge '+(a[0]==="Store"?"text-bg-primary":"text-bg-info")+'">'+a[0]+'</span></td><td>'+a[1]+'</td><td class="text-muted small">'+a[2]+'</td><td class="text-end"><a href="'+a[3]+'" class="btn btn-sm btn-outline-primary">'+a[4]+'</a></td></tr>').join(""));
-// recent bookings
-$("#recentRows").html(DEMO.appointments.slice(0,8).map(a=>'<tr><td class="small">'+a.start+'</td><td>'+a.customer+'</td><td class="small">'+a.service+'</td><td class="small text-muted">'+storeName(a.id)+'</td><td>'+statusBadge(a.status)+'</td></tr>').join(""));
+$(function () {
+  var chains = PLATFORM.chains;
+  $("#kpiChains").text(chains.length);
+  $("#kpiStores").text(chains.reduce(function (n, c) { return n + c.stores.length; }, 0));
+
+  var $q = $("#quotaList");
+  chains.forEach(function (c) {
+    var pct = PLATFORM_QUOTA.pct(c), band = PLATFORM_QUOTA.band(c);
+    var $row = $('<div><div class="d-flex justify-content-between align-items-baseline mb-1">' +
+      '<strong>' + c.name + '</strong>' +
+      '<span class="badge text-bg-' + band.cls + '">' + band.label + '</span></div>' +
+      '<div class="quota-slot"></div></div>');
+    $q.append($row);
+    PLATFORM_QUOTA.renderBar($row.find(".quota-slot"), c);
+  });
+
+  var $a = $("#activityList");
+  PLATFORM.activity.slice(0, 6).forEach(function (ev) {
+    $a.append('<li class="d-flex gap-2"><span class="activity-dot"></span><div><div>' + ev.text + '</div><small class="text-muted">' + ev.t + '</small></div></li>');
+  });
+});
 </script>
 </body>
 </html>

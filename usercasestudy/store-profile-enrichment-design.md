@@ -57,7 +57,7 @@ CREATE INDEX idx_store_photos_staff_approved ON store.store_photos(staff_id) WHE
 ```
 
 - The public client only ever reads `status='approved'` rows.
-- **When `staff_id` is set, an ACTIVE `staff_store_assignments` row must exist for that `(staff_id, store_id)` pair** (2026-10-02, Batch 2 F7 — status-aware, not a plain existence check: a deactivated assignment is treated as nonexistent here too, same reasoning as `staff-profile-design.md` §1 decision 1's public-profile 404) — an application-level invariant, the same category as the same-store rule that `store.service_is_bookable()` enforces for services (`beauty-map-postgis-schema-design.md` §4); a plain FK can't express "and also actively assigned at this specific store." Checked at write time; an upload where the staff member has no active assignment at this store is rejected with `400 STAFF_NOT_AT_STORE` — including a staff member whose assignment here was just deactivated, consistent with the public profile already hiding their existing portfolio photos in this store's context. Reversible: a reactivated staff member can upload again immediately.
+- **When `staff_id` is set, the person must have ≥1 LIVE schedule entry at that `store_id`** (2026-10-03, Batch 4 — replaces F7's assignment-status rule, since there is no assignment or status anymore: "works here" is the only test) — an application-level invariant, the same category as the same-store rule that `store.service_is_bookable()` enforces for services (`beauty-map-postgis-schema-design.md` §4); a plain FK can't express "and also currently works at this specific store." Checked at write time; an upload where the staff member has zero live entries at this store is rejected with `400 STAFF_NOT_AT_STORE` — including a staff member whose entries here were just removed, consistent with the public profile already hiding their existing portfolio photos in this store's context. Reversible: re-adding entries at this store (an ordinary schedule edit, `staff-schedule-entry-workflow.md` §4) lets them upload again immediately.
 - Storage: S3 + CloudFront (already in the architecture); upload goes straight to S3 via a presigned URL, never through the app server.
 - Limits: `jpg`/`png`/`webp`, ≤5MB; ≤20 photos in a store's gallery, ≤10 in any one staff portfolio; banner recommended 16:9 (hinted in the UI, not hard-enforced).
 
@@ -111,7 +111,7 @@ CREATE TABLE store.reviews (
 
 1. A `pending` photo is invisible on the public detail page; approving it makes it appear on the next load.
 2. Two rows both marked `is_banner=true` (a data anomaly) → the application only honors the one with the lowest `sort_order`; the "Set as banner" UI action is designed to prevent this from happening in the first place.
-3. Uploading a photo with `staff_id` set to someone with no assignment at this store → `400 STAFF_NOT_AT_STORE`.
+3. Uploading a photo with `staff_id` set to someone with zero live schedule entries at this store → `400 STAFF_NOT_AT_STORE`.
 4. Empty `about_en` → the English detail page renders no About section at all, not a placeholder.
 5. A store with zero approved photos → the detail page shows the neutral default banner.
 

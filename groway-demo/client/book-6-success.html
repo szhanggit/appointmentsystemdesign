@@ -24,16 +24,17 @@
 <div class="container py-5 text-center" style="max-width:560px">
   <div class="mb-3"><span class="step-dot done" style="width:64px;height:64px;font-size:1.8rem">✓</span></div>
   <h1 class="font-display">You're booked!</h1>
-  <p class="text-muted">A confirmation text is on its way to <strong id="sPhone"></strong>.</p>
+  <p class="text-muted">A confirmation <strong>SMS</strong> and <strong>email</strong> are on their way to <strong id="sPhone"></strong>.</p>
   <div class="card my-4"><div class="card-body">
     <div class="detail-label mb-1">Reference code</div>
-    <div class="font-display fs-2 letter-spacing-2" id="sRef" style="letter-spacing:.15em"></div>
+    <div class="font-display fs-2" id="sRef" style="letter-spacing:.15em"></div>
     <hr>
     <div class="text-start">
-      <div class="d-flex justify-content-between py-1"><span class="text-muted">Service</span><strong id="sSvc"></strong></div>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">Services</span><strong id="sSvc" class="text-end"></strong></div>
       <div class="d-flex justify-content-between py-1"><span class="text-muted">Therapist</span><strong id="sStaff"></strong></div>
       <div class="d-flex justify-content-between py-1"><span class="text-muted">When</span><strong id="sWhen"></strong></div>
-      <div class="d-flex justify-content-between py-1"><span class="text-muted">Where</span><strong>Selah Head Spa</strong></div>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">Where</span><strong id="sWhere"></strong></div>
+      <div class="d-flex justify-content-between py-1 d-none" id="srcrow"><span class="text-muted">Booking via</span><strong id="sSrc"></strong></div>
     </div>
   </div></div>
   <div class="d-grid gap-2 mb-4">
@@ -52,14 +53,21 @@
 <script>
 const BK={get(){try{return JSON.parse(sessionStorage.getItem('groway_booking')||'{}')}catch(e){return{}}}};
 $(function(){
-  const b=BK.get();const ref=new URLSearchParams(location.search).get("ref")||b.ref||"GW-8X2K4N";
+  const b=BK.get();
+  const ref=b.ref||"K7Q2-M9XA";
+  const s=DEMO.stores.find(x=>x.id===b.storeId)||DEMO.stores[0];
+  const svcs=(b.serviceIds||[]).map(id=>DEMO.services.find(x=>x.id===id)).filter(Boolean).sort((a,c)=>a.seq-c.seq);
+  const p=b.staffId?DEMO.staff.find(x=>x.id===b.staffId):null;
   $("#sRef").text(ref);$("#sPhone").text(b.contactPhone||"(416) 555-0100");
-  $("#sSvc").text(b.serviceName||"Signature Soothing Head Spa");
-  $("#sStaff").text(b.staffName||"First available");
-  $("#sWhen").text((b.date||"Sat, Oct 3, 2026")+", "+(b.time||"2:00 PM"));
+  $("#sSvc").text(svcs.map(x=>x.name).join(" + ")||"—");
+  $("#sStaff").text(p?p.name:"No preference");
+  $("#sWhen").text((b.date||"")+", "+(b.time||""));
+  $("#sWhere").text(s.name);
+  if(b.src){$("#srcrow").removeClass("d-none");$("#sSrc").text(DEMO.srcLabels[b.src]||b.src);}
   const ics=["BEGIN:VCALENDAR","VERSION:2.0","BEGIN:VEVENT","UID:"+ref+"@groway.demo",
-    "SUMMARY:"+(b.serviceName||"Spa appointment")+" — Selah Head Spa",
-    "LOCATION:8120 Bayview Ave\\, Richmond Hill","END:VEVENT","END:VCALENDAR"].join("\r\n");
+    "SUMMARY:"+svcs.map(x=>x.name).join(" + ")+" — "+s.name,
+    "LOCATION:"+s.address.replace(/,/g,"\\,"),
+    "DESCRIPTION:Ref "+ref,"END:VEVENT","END:VCALENDAR"].join("\r\n");
   $("#ics").attr("href","data:text/calendar;charset=utf-8,"+encodeURIComponent(ics));
 });
 </script>

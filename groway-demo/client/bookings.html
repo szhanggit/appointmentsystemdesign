@@ -22,29 +22,27 @@
   </div>
 </nav>
 <div class="container py-4" style="max-width:760px">
-  <h1 class="font-display mb-4">My bookings</h1>
-  <h5 class="font-display text-muted">Upcoming</h5>
-  <div id="upcoming" class="d-flex flex-column gap-3 mb-4"></div>
-  <h5 class="font-display text-muted">Past</h5>
-  <div id="past" class="d-flex flex-column gap-3"></div>
+  <h2 class="font-display mb-4">My bookings</h2>
+  <div class="d-grid gap-3" id="list"></div>
+  <div class="text-center mt-4"><a href="map.html" class="btn btn-outline-primary">Book something new</a></div>
 </div>
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
 <script>
-function card(b){
-  const badge=b.status==="Completed"?"secondary":"success";
-  return `<a href="booking-detail.html?ref=${b.ref}" class="card card-hover text-decoration-none text-dark"><div class="card-body d-flex justify-content-between align-items-center">
-    <div><div class="fw-semibold">${b.service}</div>
-    <div class="small text-muted">${b.store} · with ${b.staff}</div>
-    <div class="small text-muted">${b.date} · ${b.time}</div></div>
-    <div class="text-end"><span class="badge bg-${badge}">${b.status}</span><div class="small text-muted mt-1">${b.ref}</div></div>
-  </div></a>`;
-}
 $(function(){
-  const up=DEMO.myBookings.filter(b=>b.status!=="Completed"),pa=DEMO.myBookings.filter(b=>b.status==="Completed");
-  $("#upcoming").html(up.map(card).join("")||`<div class="alert alert-light">No upcoming bookings.</div>`);
-  $("#past").html(pa.map(card).join(""));
+  let mine=[];try{mine=JSON.parse(sessionStorage.getItem("groway_my_bookings")||"[]")}catch(e){}
+  const seed=[{ref:"GW-8X2K4N",storeId:"store-bayview",storeName:"Selah Head Spa — Bayview",
+    serviceIds:["svc-aroma"],staffId:"anna",date:"Fri, Oct 9",time:"2:00 PM – 3:00 PM",durationMins:60,price:89,
+    contactName:"Demo Guest",contactPhone:"(416) 555-0100",consentSms:false,consentEmail:false,src:null,status:"confirmed"}];
+  const all=[...mine,...seed];
+  all.forEach((r,i)=>{$("#list").append(`<a href="booking-detail.html?i=${i}" class="text-decoration-none text-dark"><div class="card card-hover"><div class="card-body d-flex justify-content-between align-items-center">
+    <div><div class="fw-semibold">${r.serviceIds.map(id=>(DEMO.services.find(x=>x.id===id)||{}).name).filter(Boolean).join(" + ")}</div>
+    <div class="small text-muted">${r.storeName} · ${r.date}, ${r.time}</div>
+    <div class="small text-muted">Ref <span class="fw-semibold">${r.ref}</span></div></div>
+    <span class="badge ${r.status==="confirmed"?"bg-teal-dark":"bg-secondary"}">${r.status}</span>
+  </div></div></a>`);});
+  sessionStorage.setItem("groway_booking_list",JSON.stringify(all));
 });
 </script>
 </body>

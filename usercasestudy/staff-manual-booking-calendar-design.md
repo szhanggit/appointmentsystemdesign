@@ -7,7 +7,7 @@ Baseline: state machine and cancel/reschedule rules are `create-appointment-tran
 ## 1. Decisions
 
 1. **v1 calendar interaction is click-based, not drag-and-drop.** Drag/drop adds real pointer/touch complexity; "click an empty slot to book, click an appointment to see details, Move mode + click a new slot to reschedule" covers the full workflow. Drag-and-drop is a v2 UX polish.
-2. **Any staff member with an assignment at the store can manually book for anyone at the store** (assign to any bookable staff there). A front-desk person answering the phone books for every technician; creating is low-risk (the transaction backstops correctness) — editing *someone else's* appointment is the higher-risk action.
+2. **Any staff member with a live schedule entry at the store can manually book for anyone at the store** (assign to any bookable staff there). A front-desk person answering the phone books for every technician; creating is low-risk (the transaction backstops correctness) — editing *someone else's* appointment is the higher-risk action.
 3. **Edit/cancel/no-show/complete are restricted to your own appointments**, unless you're `store_admin`/`chain_admin` (full store / full chain). Matches the "own only" spirit of §4's matrix; a front-desk booking mistake gets fixed by the manager.
 4. **`no-show` can only be marked once the appointment has started** (`now >= starts_at`) — guards against fat-fingering a future appointment.
 5. **No schema increment** — every field already exists. This is a pure API + UI-flow document.
@@ -22,7 +22,7 @@ Baseline: state machine and cancel/reschedule rules are `create-appointment-tran
 | Pending queue | `status='pending'` awaiting confirmation (`auto_confirm=false` stores) | Shown with a red badge only when non-empty |
 
 - Time axis granularity follows `slot_granularity_minutes`.
-- Each block shows: time, customer name, service summary, status color, 🧪 for `is_test`, last 4 characters of `reference_code`.
+- Each block shows: time, customer name, service summary, status color, 🧪 for `is_test`, 💬 for a non-empty `customer_notes` (2026-10-03, Part C — persistent, never dismissed; see §10), last 4 characters of `reference_code`.
 - Time off renders as a gray, read-only block (time-off CRUD is `staff-schedule-entry-workflow.md`'s concern, not duplicated here).
 
 ## 3. List endpoint
@@ -91,8 +91,9 @@ New:
 3. Customer: search existing customer records (`customer-records-design.md`) or enter guest name + phone.
 4. `is_test` checkbox (staff-side form only; the public endpoint always forces `false`).
 5. Two independent marketing-consent checkboxes, both unchecked by default: "Customer agreed to SMS offers" and "Customer agreed to email offers" (2026-10-02 decision — one combined "SMS/email" checkbox was rejected; CASL's burden of proof needs to show exactly which channel was agreed to, and a customer who only gave a phone number can't plausibly have agreed to email offers at all). Staff only check either after asking verbally; never assumed from the booking itself. Map independently to `sms_marketing_consent`/`email_marketing_consent`, with `consent_text_version`/`consent_at` set alongside whichever is checked (`create-appointment-transaction-design.md` §1 decision 13) — V1 groundwork for V3's AI recall, no V1 consumer yet.
-6. Submit → `POST /api/store/appointments` → the same transaction (re-validation, quota, idempotency, outbox event all included).
-7. Success: the block appears on the calendar immediately; confirmation SMS sent per `customer-booking-confirmation-reminders-design.md`.
+6. Optional "Notes" textarea, max 500 characters (2026-10-03, Part C — same field and limit as the public flow, `public-booking-end-to-end-design.md` §3 Step 5) → `appointments.customer_notes`. **Never forces `pending` on this channel** — the create-transaction's notes-forced-pending rule is public-channel-only (`create-appointment-transaction-design.md` §1 decision 15); the staff member entering this is already talking to the customer, so there's nothing left to force a review of.
+7. Submit → `POST /api/store/appointments` → the same transaction (re-validation, quota, idempotency, outbox event all included).
+8. Success: the block appears on the calendar immediately; confirmation SMS sent per `customer-booking-confirmation-reminders-design.md`.
 
 Failure handling:
 - `409 SLOT_TAKEN` → modal message "That time was just taken," auto-refresh that staff member's slots for re-selection.
@@ -118,6 +119,8 @@ Calendar supports multi-select (click/shift-click/drag-select a range of blocks)
 ## 10. Display rules
 
 - Status colors: `confirmed` blue / `pending` amber (blinking red badge, awaiting confirmation) / `cancelled` gray (strikethrough) / `no_show` red / `completed` green / `expired` gray; `is_test` always adds a 🧪 badge regardless of status color.
+- **💬 badge for non-empty `customer_notes` (2026-10-03, Part C) — deliberately does not recolor the block.** Block color means status; reusing it for "has notes" would collide with that existing meaning, so this is an additional badge, same mechanism as 🧪. **Persistent, no "mark as read," no dismissal** — some notes matter at service time, not just at booking time (an allergy, a room preference), so there's no reason to hide the badge once "seen." No noise problem either: terminal states (`cancelled`/`completed`/`no_show`/`expired`) already collapse in the calendar UI by default, so old notes don't clutter the active view. No new state column, no new endpoint — purely a read of `customer_notes IS NOT NULL`.
+- **Details drawer (§8) pins customer notes at the top, in a highlighted section, shown verbatim** when `customer_notes` is non-empty — above the rest of the appointment detail, not buried in it.
 - The pending queue entry point is pinned in the top bar with a red count badge when non-empty.
 - A `confirmed` appointment past `ends_at` that the sweeper hasn't processed yet shows "Awaiting completion," with a manual complete button available.
 
@@ -136,6 +139,8 @@ Calendar supports multi-select (click/shift-click/drag-select a range of blocks)
 11. Booking a blocklisted phone without `override_phone_block_reason` → `403 PHONE_BLOCKED`; with it → `201`, override logged to the activity timeline, blocklist entry unchanged.
 12. A staff member attempts to add a blocklist entry → `403` (store_admin+ only, §7).
 13. Multi-select 3 appointments, one belonging to another staff member, and hit "Cancel selected" (as a `staff` caller) → the other two cancel, the third returns `404` and stays on the calendar.
+14. A manual booking entered with non-empty notes → 💬 badge appears on the block immediately; status still follows `auto_confirm`/`payment_required` as normal (2026-10-03, Part C — never forced to `pending` on this channel). Opening the details drawer shows the note pinned at the top, verbatim.
+15. A manual booking with no notes → no 💬 badge; adding notes later via edit (if the UI supports it) makes the badge appear without any other status change.
 
 ## 12. Deferred
 

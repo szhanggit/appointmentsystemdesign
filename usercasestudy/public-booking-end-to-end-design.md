@@ -47,16 +47,18 @@ Below that, **two independent, unchecked-by-default marketing-consent checkboxes
 
 (Exact copy for both pending the CASL legal review already flagged for the reminders document.) Checking either box also sets `consent_text_version` (which copy they saw) and `consent_at` (when) on the create request — `create-appointment-transaction-design.md` §1 decision 13, §16 — the CASL evidence trail a bare boolean alone can't provide. Both map independently to the create request; this is V1 groundwork for V3's AI recall, with no V1 feature consuming the booleans yet. Transactional reminders are never gated on either box.
 
-**Step 5 — Review.** Shows store name, every basket item in execution order (+ option where applicable), staff ("to be assigned" if "Any"), date/time for the combined block, total price, contact info. Submit button: "Confirm booking." Goes straight to Confirmation on success — there is no payment step in V1 (§1 decision 7).
+**Step 5 — Review.** Shows store name, every basket item in execution order (+ option where applicable), staff ("to be assigned" if "Any"), date/time for the combined block, total price, contact info. An optional "Anything we should know? / 备注" textarea, max 500 characters, sent as `notes` on the create request (2026-10-03, Part C — wires up `appointments.customer_notes`, which already existed but was always `null` until now). Server-side: trimmed, empty string normalized to `NULL`, over 500 characters → `400` (`create-appointment-transaction-design.md` §3.1). Submit button: "Confirm booking." Goes straight to Confirmation on success — there is no payment step in V1 (§1 decision 7).
 
-**Confirmation screen.** Large `reference_code`, booking details, "Confirmation sent to {phone}." Buttons: [Download calendar (.ics)] [Book another]. Copy: "To reschedule or cancel, call {store_phone}" (self-serve management is `customer-my-bookings-design.md`, not linked from here in v1). A `pending` result (`auto_confirm=false` stores — the only V1 cause of `pending` on this flow, since payment is V2) shows "Received — awaiting confirmation," matching the pending SMS template. When the `201` response's `phone_upcoming_count` is at or above the cap minus one (default cap 5, so `count >= 4`), also show a non-blocking line: "Heads up: you now have {count} upcoming appointments with {store} — that's the limit for online booking, please call us for more." (§1 decision 8).
+**Non-empty notes force a `pending` result, even on an `auto_confirm=true` store (2026-10-03, Part C, `create-appointment-transaction-design.md` §1 decision 15).** The store gets a chance to look at what the customer wrote — allergy, special request, a question — before the booking takes effect, and calls if needed. This is invisible to the customer at submit time; it only changes what the Confirmation screen shows (below).
+
+**Confirmation screen.** Large `reference_code`, booking details, "Confirmation sent to {phone}." Buttons: [Download calendar (.ics)] [Book another]. Copy: "To reschedule or cancel, call {store_phone}" (self-serve management is `customer-my-bookings-design.md`, not linked from here in v1). A `pending` result (`auto_confirm=false` stores, or non-empty `notes` forcing `pending` per decision 15 above — the two V1 causes of `pending` on this flow, since payment is V2) shows "Received — awaiting confirmation," matching the pending SMS template — **and, specifically when the client itself sent a non-empty `notes` value** (it already knows this, no new response field needed), extends that line to "Received — we'll call you to confirm the details." When the `201` response's `phone_upcoming_count` is at or above the cap minus one (default cap 5, so `count >= 4`), also show a non-blocking line: "Heads up: you now have {count} upcoming appointments with {store} — that's the limit for online booking, please call us for more." (§1 decision 8).
 
 ## 4. Submit request (Step 5 → Confirmation)
 
 ```
 POST /api/store/public/appointments
 Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
-{ store_id, items: [{service_id, option_id}, ...], staff_id, start, contact: {name, phone, email}, notes: null, sms_marketing_consent, email_marketing_consent, consent_text_version, consent_at, utm_source }
+{ store_id, items: [{service_id, option_id}, ...], staff_id, start, contact: {name, phone, email}, notes, sms_marketing_consent, email_marketing_consent, consent_text_version, consent_at, utm_source }
 ```
 
 `items` carries the basket in whatever order the customer built it — the server re-sorts by `sequence_order` before sequencing (`create-appointment-transaction-design.md` §7); the client never needs to pre-sort it.
@@ -67,7 +69,7 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 - `201` → confirmation screen (`reference_code`, `status`).
 - `409 SLOT_TAKEN` → no error page: toast "That time was just taken," silently re-query that day's slots, restore Step 3 state with the refreshed list.
 - `409 STAFF_NOT_QUALIFIED` → only reachable if a `staff_id` was forced through despite Step 2's intersection list (shouldn't happen via the UI itself, §1 decision 9) — same handling as `STAFF_NOT_AVAILABLE` below: return to Step 2, highlighted.
-- `409 SERVICE_NOT_BOOKABLE` → return to Step 1 with the named offending item highlighted for removal (a service could go unbookable between Step 1 and submit — e.g. its last qualified staff member was deactivated mid-flow).
+- `409 SERVICE_NOT_BOOKABLE` → return to Step 1 with the named offending item highlighted for removal (a service could go unbookable between Step 1 and submit — e.g. its last qualified staff member's live entries at this store were removed mid-flow).
 - `409 CAPACITY_FULL` → **does not** silently refresh like `SLOT_TAKEN`: show an explicit message, "This time is fully booked — try another time," then re-query that day's slots (still auto-refreshed, just with a visible, distinct message rather than a quiet swap).
 - `409 QUOTA_EXHAUSTED` → full-page message (billing §4.3 copy): "This store's monthly booking limit is reached — please call {store_phone}."
 - `409 PHONE_LIMIT` → full-page message with the escape door spelled out (`create-appointment-transaction-design.md` §15 copy): "You've reached the limit of 5 upcoming bookings for this phone number — please call {store_phone} and we'll book you in right away." Not a silent retry — this phone number is capped chain-wide, re-querying slots won't help.
@@ -149,6 +151,8 @@ Idempotency-Key: <uuid v4, generated on entering Step 5, held for that session>
 21. `/book/{store_id}?service_id=xxx&src=xiaohongshu` → both effects apply together: Step 1 opens with that service pre-added, and the resulting booking's `utm_source` is `"xiaohongshu"`.
 22. `/c/{chain_id}` for a two-store chain → a list of both stores, each `[Book]` linking to its own `/book/{store_id}`; the same URL for a single-store chain → `302` straight to that store's `/book/{store_id}`.
 23. `/c/{chain_id}` for an unknown chain → `404`, generic copy; for a chain whose only store is `status != 'active'` → the "no stores currently accepting online bookings" message, not an empty list rendered as if nothing were wrong.
+24. An `auto_confirm=true` store, booking submitted with non-empty Step 5 notes → confirmation shows "Received — we'll call you to confirm the details," not the normal confirmed screen. The same booking with the notes field left empty → confirmed immediately, as `auto_confirm` dictates.
+25. Notes longer than 500 characters → `400` at submit, Step 5 stays active with the field highlighted.
 
 ## 9. Deferred
 

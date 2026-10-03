@@ -54,6 +54,7 @@ Two identities, two lookup paths:
 `PATCH /api/customer/bookings/{id}/reschedule` — same auth as §3.3.
 
 - Body: `{ new_staff_id?, new_start }` (`new_start` in store-local time).
+- **`reschedule_seq >= booking_settings.max_reschedules` → `409 RESCHEDULE_LIMIT_EXCEEDED`** (2026-10-03, Part D) — checked before re-validation, same ordering principle as every other guard in the underlying transaction. This limit is customer-channel only; it exists specifically here, never on the staff-side reschedule path.
 - Runs the full re-validation + in-place `UPDATE` (`create-appointment-transaction-design.md` §10); a conflict returns `409 SLOT_TAKEN` (staff busy) or `409 CAPACITY_FULL` (store-wide capacity full, independent of staff availability) — either way the original booking is left untouched. The chain-wide phone cap never applies to a reschedule (no new row, count unchanged); the per-store blocklist still does, with no override available on this self-serve channel (`create-appointment-transaction-design.md` §1 decisions 10–11).
 - Also bound by `cancel_threshold_hours` (logically a cancel-and-rebook).
 - Success → event → reschedule confirmation SMS; the reminders scheduler resets the sent-at flags per `customer-booking-confirmation-reminders-design.md` §3 (new time gets its own reminders).
@@ -63,11 +64,12 @@ Two identities, two lookup paths:
 **Booking list page** (`/bookings` logged-in, or the guest lookup result page):
 - Upcoming group (pending ones pinned at top with an "awaiting confirmation" badge) and a Past group.
 - Each row: date/time, store name, service, staff, `reference_code`, status badge; `pending` shows "awaiting confirmation," `confirmed` shows [Reschedule][Cancel].
+- **Booking details view shows the customer's own `customer_notes` back to them, read-only** (2026-10-03, Part C) — if they wrote something at booking time, they can see it again here; no edit affordance on this self-serve surface (changing it means calling the store, same as any other detail change not covered by reschedule/cancel).
 - Guest entry point: `/bookings?ref={reference_code}` pre-fills the code field (this is the query-param exception noted in §6) — the phone-match check (§2) still runs before anything is shown. This is the page `customer-booking-confirmation-reminders-design.md`'s `{manage_link}` points to.
 
 **Cancel**: tap cancel → confirmation dialog (shows the threshold copy, e.g. "call us if it's within X hours of start") → `POST` §3.3 → moves to the Cancelled group on success.
 
-**Reschedule**: tap reschedule → reuse the public flow's Step 3 date/time picker (same component, `store_id`/`service_id`/`option_id` carried from the original booking) → pick a new time → confirm (old → new) → `PATCH` §3.4.
+**Reschedule**: tap reschedule → reuse the public flow's Step 3 date/time picker (same component, `store_id`/`service_id`/`option_id` carried from the original booking) → pick a new time → confirm (old → new) → `PATCH` §3.4. A booking already at `reschedule_seq >= max_reschedules` shows the [Reschedule] button disabled from the start (2026-10-03, Part D), copy: "This booking has been rescheduled {n} times — please call {store_phone} and we'll help you find a time," rather than letting the customer go through the picker only to hit `409 RESCHEDULE_LIMIT_EXCEEDED` at the end.
 
 ## 5. Notifications
 
@@ -95,6 +97,8 @@ Two identities, two lookup paths:
 6. Reschedule into a capacity-full window → `409 CAPACITY_FULL`, original untouched.
 7. Cancel → the 24h reminder for that booking never fires (scheduler filters by status).
 8. Reschedule to a later date → reminder flags reset, both reminders fire normally for the new time.
+9. A booking made with notes at submit time → those notes appear read-only on this booking's details view.
+10. A booking at `reschedule_seq = max_reschedules` → [Reschedule] is shown disabled with the limit copy; the same booking one reschedule earlier (`reschedule_seq = max_reschedules - 1`) → [Reschedule] is enabled, and succeeds, landing it at the limit for next time.
 
 ## 9. Deferred
 

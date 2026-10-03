@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Review &amp; confirm — Groway</title>
+<title>Review booking — Groway</title>
 <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/theme.css">
 </head>
@@ -21,22 +21,31 @@
     </div>
   </div>
 </nav>
-<div class="container py-4" style="max-width:560px">
+<div class="container py-4" style="max-width:640px">
   <div class="d-flex align-items-center gap-2 mb-1 flex-wrap" id="steps"></div>
-  <h2 class="font-display mb-4">Review &amp; confirm</h2>
+  <h2 class="font-display mb-4">Review your booking</h2>
   <div class="card mb-3"><div class="card-body">
-    <div class="detail-label mb-2">Selah Head Spa · 8120 Bayview Ave, Richmond Hill</div>
-    <div class="d-flex justify-content-between py-1"><span class="text-muted">Service</span><strong id="rSvc"></strong></div>
-    <div class="d-flex justify-content-between py-1"><span class="text-muted">Therapist</span><strong id="rStaff"></strong></div>
-    <div class="d-flex justify-content-between py-1"><span class="text-muted">When</span><strong id="rWhen"></strong></div>
-    <div class="d-flex justify-content-between py-1"><span class="text-muted">Booked for</span><strong id="rName"></strong></div>
-    <div class="d-flex justify-content-between py-1"><span class="text-muted">Phone</span><strong id="rPhone"></strong></div>
-    <hr><div class="d-flex justify-content-between"><span class="text-muted">Total due at store</span><strong class="fs-5" id="rPrice"></strong></div>
+    <div class="detail-label mb-2">Services · in sequence</div>
+    <div id="basket"></div>
+    <hr>
+    <div class="d-flex justify-content-between"><span class="text-muted">Total time</span><strong id="rtime"></strong></div>
+    <div class="d-flex justify-content-between"><span class="text-muted">Total price</span><strong id="rprice"></strong></div>
   </div></div>
-  <p class="small text-muted mb-4">Free cancellation up to 4 hours before your appointment. Running late? Call <a href="tel:+19055550134">(905) 555-0134</a>.</p>
+  <div class="card mb-3"><div class="card-body">
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">Therapist</span><strong id="rstaff"></strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">When</span><strong id="rwhen"></strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">Where</span><strong id="rwhere"></strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">Booked by</span><strong id="rwho"></strong></div>
+  </div></div>
+  <div class="card mb-3"><div class="card-body">
+    <div class="detail-label mb-2">Marketing consent</div>
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">SMS offers</span><strong id="rsms"></strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">Email offers</span><strong id="remail"></strong></div>
+    <div class="d-flex justify-content-between py-1 d-none" id="srcrow"><span class="text-muted">Booking via</span><strong id="rsrc"></strong></div>
+  </div></div>
   <div class="d-flex justify-content-between">
-    <a href="book-4-contact.html" class="btn btn-link">← Back</a>
-    <button class="btn btn-primary btn-lg px-5" id="confirm">Confirm booking</button>
+    <a href="book-4-contact.html" class="btn btn-outline-secondary">Back</a>
+    <button class="btn btn-gold btn-lg" id="confirm">Confirm booking</button>
   </div>
 </div>
 <script src="../assets/vendor/jquery.min.js"></script>
@@ -44,20 +53,33 @@
 <script src="../assets/js/demo-data.js"></script>
 <script>
 const BK={get(){try{return JSON.parse(sessionStorage.getItem('groway_booking')||'{}')}catch(e){return{}}},set(p){const b=Object.assign(this.get(),p);sessionStorage.setItem('groway_booking',JSON.stringify(b));return b}};
-function renderSteps(n){const L=["Service","Staff","Time","Details","Confirm"];$("#steps").html(L.map((l,i)=>`${i?'<span class="text-muted">—</span>':''}<span class="d-flex align-items-center gap-1"><span class="step-dot ${i<n?'done':i===n?'now':''}">${i<n?'✓':i+1}</span><span class="small ${i===n?'fw-bold':''}">${l}</span></span>`).join(""))}
+function renderSteps(n){const L=["Services","Therapist","Time","Details","Confirm"];$("#steps").html(L.map((l,i)=>`${i?'<span class="text-muted">—</span>':''}<span class="d-flex align-items-center gap-1"><span class="step-dot ${i<n?'done':i===n?'now':''}">${i<n?'✓':i+1}</span><span class="small ${i===n?'fw-bold':''}">${l}</span></span>`).join(""))}
+function fmtDur(m){const h=Math.floor(m/60),r=m%60;return (h?h+"h ":"")+(r?r+"m":"").trim()||"0m"}
+function genRef(){const A="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<8;i++)s+=A[Math.floor(Math.random()*A.length)];return s.slice(0,4)+"-"+s.slice(4)}
 $(function(){
-  const b=BK.get();
-  if(!b.contactName)location.href="book-4-contact.html";
   renderSteps(4);
-  $("#rSvc").text(`${b.serviceName} (${b.mins} mins)`);
-  $("#rStaff").text(b.staffName||"First available");
-  $("#rWhen").text(`${b.date}, ${b.time}`);
-  $("#rName").text(b.contactName);$("#rPhone").text(b.contactPhone);
-  $("#rPrice").text("$"+b.price+".00");
+  const b=BK.get();
+  if(!b.contactName){location.href="book-4-contact.html";return;}
+  const s=DEMO.stores.find(x=>x.id===b.storeId)||DEMO.stores[0];
+  const list=b.serviceIds.map(id=>DEMO.services.find(x=>x.id===id)).sort((a,b2)=>a.seq-b2.seq);
+  list.forEach((sv,i)=>$("#basket").append(`<div class="d-flex justify-content-between py-1">
+    <span><span class="badge bg-gold me-2">${i+1}</span>${sv.name} <span class="text-muted small">· ${sv.mins} min</span></span><strong>$${sv.price}</strong></div>`));
+  const mins=list.reduce((t,x)=>t+x.mins,0), price=list.reduce((t,x)=>t+x.price,0);
+  $("#rtime").text(fmtDur(mins)+" single block");$("#rprice").text("$"+price);
+  const p=b.staffId?DEMO.staff.find(x=>x.id===b.staffId):null;
+  $("#rstaff").text(p?p.name:"No preference");
+  $("#rwhen").text(b.date+", "+b.time);$("#rwhere").text(s.name);$("#rwho").text(b.contactName+" · "+b.contactPhone);
+  $("#rsms").text(b.consentSms?"Yes":"No");$("#remail").text(b.consentEmail?"Yes":"No");
+  if(b.src){$("#srcrow").removeClass("d-none");$("#rsrc").text(DEMO.srcLabels[b.src]||b.src);}
   $("#confirm").on("click",()=>{
-    const ref="GW-"+Array.from({length:6},()=>"ABCDEFGHJKMNPQRSTUVWXYZ23456789"[Math.floor(Math.random()*32)]).join("");
-    BK.set({ref:ref,done:true});
-    location.href="book-6-success.html?ref="+ref;
+    const ref=genRef();
+    const rec={ref,storeId:s.id,storeName:s.name,serviceIds:b.serviceIds,staffId:b.staffId||null,
+      date:b.date,time:b.time,durationMins:mins,price,contactName:b.contactName,contactPhone:b.contactPhone,
+      consentSms:!!b.consentSms,consentEmail:!!b.consentEmail,src:b.src||null,status:"confirmed"};
+    try{const all=JSON.parse(sessionStorage.getItem("groway_my_bookings")||"[]");all.unshift(rec);
+      sessionStorage.setItem("groway_my_bookings",JSON.stringify(all));}catch(e){}
+    BK.set({ref});
+    location.href="book-6-success.html";
   });
 });
 </script>

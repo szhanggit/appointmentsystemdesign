@@ -27,6 +27,7 @@ Baseline facts (established elsewhere, referenced here, not re-argued):
 12. **`channel` is a purely descriptive record, never a branching input.** It's written once, at the step-7 `INSERT`, recording which code path (§3.1 or §3.2, and eventually an AI-agent path) created the row — not a column anything upstream of that `INSERT` reads to decide behavior. The existing endpoint-based branches (phone-cap §3.1-only, `min_lead_minutes` skip §3.2-only, `is_test` §3.2-only) stay exactly as they are: the row doesn't exist yet when those checks run, so `channel` physically cannot be their source of truth. A future AI-booking path sets its own `channel` value the same way §3.1/§3.2 do today — the caller always knows its own origin; the column just keeps the record.
 13. **Marketing-outreach consent is captured once, at creation, never inferred or assumed.** Both public and staff creation accept two independent opt-in booleans (SMS, email), defaulting to `false`, immutable on the appointment row afterward (same "a booking's origin is a fact" principle as `channel`) — the CASL legal basis this creates lives with that specific booking. Propagating it onto the customer record is `customer-records-design.md`'s concern (§7 there), not this document's.
 14. **`utm_source` is a free-text, unbounded companion to `channel` — captured once, at creation, immutable afterward (same posture as `channel`/consent).** `channel` (decision 12) stays purely code-path-derived and is never widened to carry marketing-attribution information — adding per-platform values to its CHECK constraint doesn't scale (social platforms are unbounded; a closed enum chasing them will always be one platform behind). Instead `utm_source` carries whatever value a public booking link's `?src=` query param held (`public-booking-end-to-end-design.md` §5) — `instagram`, `xiaohongshu`, `wechat`, or anything else a future campaign needs — stored verbatim, uninterpreted, `NULL` when the link carried none. This exists so a store can tell which social/marketing channel is actually converting (2026-10-02 decision) without this document ever branching on the value. Public-channel only, by deliberate choice, not just happenstance: §3.2 explicitly ignores any `utm_source` value a staff-create request happens to carry, regardless of input — not merely "nothing on that path ever sends one." The column itself carries no channel restriction; a future AI-booking path is free to set it if it ever has something equivalent to pass through.
+15. **Non-empty `customer_notes` forces `pending` on the public channel only (2026-10-03, Part C).** Steven's workflow: a booking that comes with a note needs a human look before it takes effect — the store may need to call the customer, then confirms manually. At step 7 (`INSERT`), `status` is computed as `pending` whenever `channel = 'public_web'` **and** `customer_notes IS NOT NULL`, overriding `auto_confirm=true` for that one booking; every other `status`-determining rule (payment, `auto_confirm=false`) is unchanged and composes normally — this is one more condition that can force `pending`, not a replacement for the others. `expires_at = now() + booking_settings.pending_hold_minutes` as usual (decision 1) — the existing default (15 minutes) is tuned for payment-hold-style pending, not "we'll call you back" pending; a store that relies on notes should configure a longer hold (e.g. 24h). That's a per-store operational decision, not a new feature or a second hold-duration setting. Staff-manual bookings (§3.2) are never affected by this rule — the staff member is already talking to the customer, so there's nothing left to force a review of.
 
 ## 2. State machine
 
@@ -77,6 +78,7 @@ Headers: `Idempotency-Key` (optional, §8).
 - `sms_marketing_consent`/`email_marketing_consent`: **two independent booleans, two independent checkboxes** (2026-10-02 decision — a single checkbox covering both channels was rejected: CASL's burden of proof needs to show exactly what was agreed to per channel). Both default `false` if omitted — never inferred from anything else on the request. `email_marketing_consent` is only ever meaningful when `contact.email` was given; capturing it with no email present is accepted but inert. UI copy/placement is `public-booking-end-to-end-design.md` §3 Step 4's concern (two unchecked-by-default checkboxes, CASL copy pending legal review).
 - `consent_text_version`/`consent_at`: set together whenever either consent boolean is `true` (the client's own record of which copy it displayed and when the box was checked) — a bare boolean is thin evidence for CASL's burden of proof; these two give an audit trail something to point to. `NULL`/`NULL` when neither consent box was checked.
 - `utm_source`: whatever value, if any, the booking link's `?src=` query param carried (`public-booking-end-to-end-design.md` §5) — passed through verbatim, `NULL` when the link carried none (§1 decision 14). Not validated against any fixed list — this is intentionally a free-text passthrough, never an enum.
+- `notes` (2026-10-03, Part C — wired up end to end; the column and this field already existed, always `null` until now): optional free text, max 500 characters, written to `appointments.customer_notes`. Server-side: trimmed; an empty or whitespace-only string is stored as `NULL`, not `""`; longer than 500 characters → `400`. On the **public channel only**, a non-empty value forces the created appointment to `pending` regardless of `auto_confirm` — see §1 decision 15 and §9 step 7.
 
 ```json
 // response 201
@@ -125,7 +127,7 @@ Differences from §3.1:
 
 | Method & path | Who | Notes |
 |---|---|---|
-| `POST /api/store/appointments/{id}/confirm` | `storeId ∈ AuthorizedStoreIds` | `pending → confirmed` (for `auto_confirm=false` stores) |
+| `POST /api/store/appointments/{id}/confirm` | `storeId ∈ AuthorizedStoreIds` | `pending → confirmed` — the manual-confirm path, for `auto_confirm=false` stores **and** for any booking forced to `pending` by non-empty `customer_notes` (§1 decision 15, Part C); after the staff calls the customer when needed |
 | `POST /api/store/appointments/{id}/cancel` | same, or the appointment's own customer | §9 rules |
 | `PATCH /api/store/appointments/{id}/reschedule` | same | §9 rules, in-place |
 
@@ -229,7 +231,7 @@ INSERT INTO platform.abuse_config (key, value_int) VALUES
 - 2–5 items on the public endpoint (`400` outside that range); staff manual entry has no cap — same staff-exemption pattern as the phone cap (§1 decision 10) and `min_lead_minutes` (§3.2): a trained human assembling a legitimate large combo isn't the thing this limit exists to stop.
 - No duplicate `service_id` in the basket (`400`).
 - Every item's service belongs to `store_id` (already covered by step 1's per-item existence check — items are validated against the one requested `store_id`, so "all same store" falls out of that for free, not a separate check) and is bookable (`409 SERVICE_NOT_BOOKABLE`, naming the offending service).
-- The assigned staff (resolved or specified, §5) is qualified for **every** item — the intersection of staff-service assignments across the whole basket, **read through `store.active_staff_assignments`** so a deactivated assignment's `staff_services` rows never count (2026-10-02, Batch 2 F1 — closes the explicit-`staff_id` override path: a staff member deactivated at this store this morning cannot be directly booked here this afternoon, with no exception for the staff-manual channel; there is no override around deactivation). A specified `staff_id` failing either the qualification check or the active-assignment check → `409 STAFF_NOT_QUALIFIED`. This is the one validation in this section that only ever surfaces here, at create time — `availability-slot-engine.md`'s read-only slots query never throws it (an unqualified or deactivated specified staff there is a `404`, its own §2 item 5).
+- The assigned staff (resolved or specified, §5) is qualified for **every** item — the intersection of `staff_services` rows at `(staff_id, store_id)` across the whole basket, **and** the specified `staff_id` must have a **live schedule entry at this store** (2026-10-03, Batch 4 — "no entries here, no booking" replaces the old assignment-active check; there is no override, on any channel, for booking someone with no live presence at this store). A specified `staff_id` failing either the qualification check or the live-entry check → `409 STAFF_NOT_QUALIFIED`. This is the one validation in this section that only ever surfaces here, at create time — `availability-slot-engine.md`'s read-only slots query never throws it (an unqualified or absent-here specified staff there is a `404`, its own §2 item 5).
 
 **Sequencing** — **items are re-sorted by `(sequence_order, service_name)` before this walk runs**, regardless of what order the caller's `items[]` array arrived in (`store-onboarding-v1-design.md` §7: the merchant's catalog order wins, Fresha parity; a customer adding services in any order ends up with the same execution order every time):
 
@@ -323,17 +325,21 @@ BEGIN
   5. Quota: is_test=false → BillingQuotaService.TryConsumeAsync(storeId), same
      transaction; failure → 409 QUOTA_EXHAUSTED (rollback). is_test=true → skip.
   6. Generate reference_code (8 chars; unique-violation → retry).
-  7. INSERT appointments (status from auto_confirm/payment_required; pending
-     sets expires_at = now() + pending_hold_minutes; occupies_capacity = OR
-     across items' service.occupies_capacity; channel = 'public_web' or
-     'staff_manual' per the calling endpoint, §1 decision 12; sms/email_
-     marketing_consent from the request, default false, consent_text_version/
-     consent_at set together whenever either consent boolean is true, §1
-     decision 13; normalized_contact_phone = normalize_phone(contact.phone)
-     — always the phone on the request, regardless of whether customer_id
-     also resolved, §6.3; utm_source = the request's utm_source verbatim on
-     §3.1, NULL when absent; forced NULL unconditionally on §3.2 regardless
-     of request content (§1 decision 14) — never branched on, purely recorded)
+  7. INSERT appointments (status from auto_confirm/payment_required, OR
+     'pending' unconditionally when channel='public_web' AND customer_notes
+     IS NOT NULL (§1 decision 15, Part C) — whichever condition fires, the
+     result is 'pending'; pending (from any cause) sets expires_at = now() +
+     pending_hold_minutes; occupies_capacity = OR across items' service.
+     occupies_capacity; channel = 'public_web' or 'staff_manual' per the
+     calling endpoint, §1 decision 12; sms/email_marketing_consent from the
+     request, default false, consent_text_version/consent_at set together
+     whenever either consent boolean is true, §1 decision 13;
+     normalized_contact_phone = normalize_phone(contact.phone) — always the
+     phone on the request, regardless of whether customer_id also resolved,
+     §6.3; utm_source = the request's utm_source verbatim on §3.1, NULL when
+     absent; forced NULL unconditionally on §3.2 regardless of request content
+     (§1 decision 14) — never branched on, purely recorded; customer_notes =
+     the request's notes, trimmed, empty string normalized to NULL, §3.1/§3.2)
      + INSERT appointment_items (snapshots)
      + UPDATE idempotency_keys SET response_status=201, response_body=:body
        WHERE store_id=:store_id AND key=:key (if a key was supplied — the row
@@ -357,6 +363,7 @@ Order matters: lock first, re-validate before consuming quota — don't charge q
 - Cancelling doesn't refund quota; `occupied_range` becomes `NULL` automatically, releasing the slot.
 
 **Reschedule** (in-place `UPDATE starts_at/ends_at[/staff_id]`):
+- **Reschedule limit (NEW, 2026-10-03, Part D)**: on the **customer self-serve channel only**, `reschedule_seq >= booking_settings.max_reschedules` (default 3, `store-onboarding-v1-design.md` §4) → `409 RESCHEDULE_LIMIT_EXCEEDED`, copy: "This booking has been rescheduled {n} times — please call {store_phone} and we'll help you find a time." Checked **before** the §4 re-validation below (same "cheapest, most certain check first" ordering as every other guard in this section). The staff path is exempt, same convention as `cancel_threshold_hours` — a staff member rescheduling on the phone is human judgment, not abuse. The counter is a single, flat, **cross-channel** count: a staff-performed reschedule still increments `reschedule_seq` (it's the same occurrence counter the notification-dedup key depends on, §16), and a customer's later self-reschedule attempt is checked against that same cumulative count regardless of who performed the earlier ones. This is deliberate (Steven, 2026-10-03): the limit defends against operational churn — a booking being passed back and forth — not specifically "the customer being abusive," so it doesn't need a separate customer-only counter. Scope is per appointment row: a new booking always starts at `reschedule_seq = 0`.
 - Re-runs the full §4 validation (including capacity) against the new `(staff, start)`, **passing this appointment's own id as `excludeAppointmentId`** (§4) — without it, a new time overlapping the appointment's own current block would be rejected as a conflict with itself — then §7's sequencing.
 - Takes the same store-level advisory lock first (§6.2) — a reschedule and a new booking racing for the same slot are serialized by it exactly like two creates would be.
 - No new row, so no additional quota charge.
@@ -371,11 +378,14 @@ Order matters: lock first, re-validate before consuming quota — don't charge q
 - `completed`: sweeper, `UPDATE ... SET status='completed' WHERE status='confirmed' AND ends_at < now()`, idempotent; staff can also mark it early.
 - `expired`: sweeper, `UPDATE ... SET status='expired' WHERE status='pending' AND expires_at < now()`, idempotent.
 
-## 11. Nightly capacity audit
+## 11. Nightly capacity audit — bidirectional (2026-10-03, Part E)
 
 Store-level capacity correctness depends entirely on every creation/reschedule path remembering to take the advisory lock (§6.2) — unlike the staff dimension, there's no data-level backstop like the exclusion constraint. A future path that bypasses this transaction (a bulk import tool, a direct-`INSERT` script) could silently push concurrency past `capacity` with nothing noticing.
 
-v1 accepts that risk but adds an after-the-fact audit, not a second real-time gate: a nightly job re-sweeps the last 7 days of actual concurrency per store (reusing the same occupancy criteria as §4/Step 5b) and records any interval where it ever exceeded `capacity`, notifying that store's `chain_admin`.
+v1 accepts that risk but adds an after-the-fact audit, not a second real-time gate, and the sweep now runs **both directions**:
+
+- **Backward sweep (unchanged):** re-sweeps the last 7 days of actual concurrency per store (reusing the same occupancy criteria as §4/Step 5b) and records any interval where it ever exceeded `capacity`, notifying that store's `chain_admin`. A past violation can only be investigated after the fact.
+- **Forward sweep (NEW):** from `now()` to the store's `advance_booking_days` horizon, same occupancy criteria (unexpired `pending` + `confirmed`), flags any **future** interval where concurrency would exceed `capacity` if every currently-held booking in it actually happens, and notifies that store's `chain_admin`. Rationale (Steven's): a future violation can still be fixed — call customers, add capacity — while a past one can only be investigated. The detection logic already exists for the backward sweep; this only widens the window it runs against. Recorded in the same `capacity_breaches` table (below), distinguished by `window_start`/`window_end` falling in the future relative to `detected_at` — no new table, no new column.
 
 ```sql
 CREATE TABLE store.capacity_breaches (
@@ -447,6 +457,7 @@ CREATE TABLE store.outbox (
 | 409 | `STAFF_NOT_QUALIFIED` | Requested staff can't perform every service in the basket (§7) — create-time only, never thrown by `availability-slot-engine.md`'s read-only slots query |
 | 409 | `QUOTA_EXHAUSTED` | Free-plan monthly quota exhausted (`groway-billing-workflow.md` §4.3 copy) |
 | 409 | `CANCEL_TOO_LATE` | Customer cancel/reschedule inside `cancel_threshold_hours` |
+| 409 | `RESCHEDULE_LIMIT_EXCEEDED` | Customer-channel reschedule with `reschedule_seq >= max_reschedules` (§10, Part D). Staff exempt. |
 | 409 | `PHONE_LIMIT` | This phone already has `max_upcoming_per_phone_per_chain` upcoming bookings chain-wide (§6.3). Public channel only. Copy: "You've reached the limit of 5 upcoming bookings for this phone number — please call {store_phone} and we'll book you in right away." (the escape door matters — staff entry isn't subject to this cap, §1 decision 10) |
 | 403 | `PHONE_BLOCKED` | This phone is on this store's blocklist (§9 step 1.5). Staff can override with a reason (§3.2); the public endpoint cannot |
 | 422 | `IDEMPOTENCY_KEY_REUSED` | Same key, different request body |
@@ -578,6 +589,10 @@ Concurrency (must pass under real parallel load, not just sequential simulation)
 25. Phone-cap's count query (§6.3) never issues a query against `customer.customers` — verifiable by inspection of the generated SQL, not just by test data.
 26. A public booking submitted with `utm_source: "instagram"` → the created row's `utm_source` is `"instagram"`, `channel` is still `public_web` (unaffected by decision 14). The same request with `utm_source` omitted → `utm_source` is `NULL`, everything else identical.
 27. A staff-created booking (§3.2) → `utm_source` is always `NULL`, regardless of what (if anything) the back-office client sends in that field.
+28. A public booking with `auto_confirm=true` and non-empty `notes` → created as `pending`, not `confirmed` (§1 decision 15); the same request with `notes` omitted or empty-string → `confirmed` as `auto_confirm` dictates. `notes` longer than 500 characters → `400`; a whitespace-only `notes` → stored as `NULL`, status unaffected by decision 15.
+29. A staff-manual booking (§3.2) with non-empty `notes` → status follows `auto_confirm`/`payment_required` exactly as if `notes` were absent — decision 15 never applies on this channel.
+30. Customer self-reschedule on an appointment with `reschedule_seq = max_reschedules` → `409 RESCHEDULE_LIMIT_EXCEEDED`, no change made. The same appointment rescheduled by staff → succeeds regardless of `reschedule_seq`, and still increments it. A customer self-reschedule immediately after that staff reschedule, now at `reschedule_seq = max_reschedules + 1` → still `409` (the limit was already exceeded before this attempt).
+31. A new booking's `reschedule_seq` starts at `0`; `max_reschedules=0` for a store that wants to disable self-serve rescheduling entirely → a customer's very first self-reschedule attempt is already `409`.
 
 ## 18. Deferred
 

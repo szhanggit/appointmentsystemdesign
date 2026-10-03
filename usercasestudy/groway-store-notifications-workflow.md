@@ -3,8 +3,9 @@
 **Architecture:** see `groway-v1-architecture.md`. Lives entirely inside the **Store Module**, `store` schema — no new module, no new infrastructure. The daily job reuses the same Kubernetes CronJob pattern already used for billing reminders (`groway-billing-workflow.md` §6).
 
 **Relationship to other documents:**
-- `groway-billing-workflow.md` — this document's only system-generated message type in V1 (§3) is produced from `store.blocked_booking_daily_counts`, a table owned and written by that document (§4). This document only reads it.
+- `groway-billing-workflow.md` — the daily blocked-booking digest (§3) is produced from `store.blocked_booking_daily_counts`, a table owned and written by that document (§4). This document only reads it.
 - `growayadmin-registration-workflow.md` — a Groway admin can author a manual message onto a chain's board (§4); this reuses the existing `AdminSession`/`/api/admin/*` pattern, no new capability flag needed.
+- `create-appointment-transaction-design.md` — §3b's `booking_pending_review` message is triggered by that document's `appointment.created` outbox event (§12 there) whenever a public-channel booking is forced to `pending` by non-empty `customer_notes` (its §1 decision 15).
 
 **Scope:** a general-purpose, chain-scoped message board (`store.messages`) — built generically now (per Steven's explicit request) even though V1 only populates it with one system-generated message type. Out of scope this version: a full Groway-admin compose UI for manual messages (the endpoint and schema exist; the UI doesn't have to).
 
@@ -73,6 +74,25 @@ No customer name, contact info, or booking detail — `store.blocked_booking_dai
 - In-app + email, same dual-channel pattern as §3's digest.
 - The `100%` message's CTA links directly to the billing self-service page (`groway-billing-workflow.md` §8: `start-trial`/`cancel`/`status`).
 - Idempotency (one send per threshold per billing period) is `groway-billing-workflow.md` §4.4's concern (`quota_warn_75/90/100_sent_at` on `billing_accounts`) — this document only renders and delivers what it's told to post.
+
+---
+
+## 3b. Booking needs review (new, 2026-10-03 Part C)
+
+A new booking on the **public channel** whose non-empty `customer_notes` forced it to `pending` (`create-appointment-transaction-design.md` §1 decision 15) needs a human look before it takes effect — this message is how the store finds out. Triggered from the create transaction's outbox consumer (`appointment.created` already carries `status` and the row's `customer_notes`, §12 there — no new outbox event needed, this is one more thing an existing event's consumer checks for).
+
+| `system_subtype` | Title | Fires when |
+|---|---|---|
+| `booking_pending_review` | "New booking needs review" | `channel='public_web'` **and** `customer_notes IS NOT NULL` **and** the created `status='pending'` |
+
+Body: `New booking needs review — {customer_name} booked {service_summary} for {date_time} with a note: "{notes}". Tap to review and confirm.`
+
+**Fires only for this one case — deliberately narrow:**
+- A staff-manual booking with notes does **not** fire this — the staff member entering it already knows (`staff-manual-booking-calendar-design.md` §6 item 6; decision 15 never applies to that channel in the first place).
+- An ordinary `auto_confirm=true` public booking with no notes does **not** fire this — nothing needs a look, and firing one message per booking would drown out the signal this exists to carry.
+- An `auto_confirm=false` store's ordinary pending booking (no notes) does **not** fire this either — that store already has its own "pending queue" UI (`staff-manual-booking-calendar-design.md` §2) for exactly that case; this message is specifically for the notes-forced-pending case a store wouldn't otherwise know to look for.
+
+In-app + email, same dual-channel pattern as §3/§3a; whichever channel this document's existing store-facing notifications treat as highest-urgency applies here too — this is a same-day, needs-action message, not a daily digest.
 
 ---
 
@@ -157,7 +177,7 @@ CREATE TABLE store.messages (
     -- so a new system-generated message kind (§3a, §4a) never requires widening message_type's enum.
     system_subtype        VARCHAR(30) CHECK (system_subtype IN (
         'blocked_booking_digest', 'quota_warning_75', 'quota_warning_90',
-        'quota_warning_100', 'admin_impersonation'
+        'quota_warning_100', 'admin_impersonation', 'booking_pending_review'
     )),
     title                 VARCHAR(200) NOT NULL,
     body                  TEXT NOT NULL,
@@ -191,6 +211,13 @@ VALUES ('cc111111-1111-1111-1111-111111111111', 'admin_manual',
         'Thanks for being an early Groway partner!',
         'Reach out any time if you need anything.',
         'a2222222-2222-2222-2222-222222222222', '2026-09-15 09:00:00-04');
+
+-- A notes-forced-pending public booking at Selah Head Spa's King West store (§3b).
+INSERT INTO store.messages (chain_id, message_type, system_subtype, title, body, created_at)
+VALUES ('cc111111-1111-1111-1111-111111111111', 'system', 'booking_pending_review',
+        'New booking needs review',
+        'New booking needs review — Anna Lee booked Signature Head Spa for Oct 5, 2:00 PM with a note: "Please use unscented products, I have a sensitivity." Tap to review and confirm.',
+        '2026-10-03 14:02:00-04');
 ```
 
 ---

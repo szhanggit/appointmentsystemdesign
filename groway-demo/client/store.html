@@ -6,7 +6,6 @@
 <title>Store — Groway</title>
 <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/theme.css">
-<style>.gallery-scroll{overflow-x:auto;scrollbar-width:thin}.gallery-scroll img{height:150px;object-fit:cover;flex:none}</style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-teal-dark">
@@ -22,86 +21,68 @@
     </div>
   </div>
 </nav>
-
-<img id="banner" class="w-100" style="height:300px;object-fit:cover" alt="Store banner">
-<div class="container py-4" style="max-width:900px">
-  <nav aria-label="breadcrumb"><ol class="breadcrumb small">
-    <li class="breadcrumb-item"><a href="map.html">Discover</a></li>
-    <li class="breadcrumb-item active" id="crumb"></li>
-  </ol></nav>
-
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-    <div>
-      <h1 class="font-display mb-1" id="name"></h1>
-      <div class="text-muted small mb-2" id="chain"></div>
-      <div class="mb-2" id="ratings"></div>
-      <div class="small" id="contact"></div>
+<div class="container py-4" style="max-width:860px">
+  <a href="chain.html" class="small text-muted">&larr; Selah Head Spa chain</a>
+  <div class="row g-4 mt-1 mb-4">
+    <div class="col-md-5"><img id="sphoto" class="img-fluid rounded" alt="Store"></div>
+    <div class="col-md-7">
+      <h2 class="font-display mb-1" id="sname"></h2>
+      <p class="text-muted small mb-1" id="saddr"></p>
+      <p class="text-muted small mb-1" id="sphone"></p>
+      <p class="text-muted small mb-3" id="shours"></p>
+      <p id="sabout"></p>
+      <a href="#" id="booknow" class="btn btn-primary">Book now</a>
     </div>
-    <div id="openBadge"></div>
   </div>
-  <div class="gold-rule my-3"></div>
 
-  <h4 class="font-display">About</h4>
-  <p id="about" style="white-space:pre-line"></p>
+  <h4 class="font-display mb-3">Services</h4>
+  <div id="cats"></div>
 
-  <h4 class="font-display mt-4">Gallery</h4>
-  <div class="d-flex gap-2 gallery-scroll py-1" id="gallery"></div>
-
-  <h4 class="font-display mt-4">Services</h4>
-  <div id="services"></div>
-
-  <h4 class="font-display mt-4">Team</h4>
+  <h4 class="font-display mt-5 mb-3">Our team</h4>
   <div class="row g-3" id="team"></div>
-  <div style="height:90px"></div>
-</div>
 
-<div class="fixed-bottom bg-white border-top p-3">
-  <div class="container d-flex justify-content-between align-items-center" style="max-width:900px">
-    <div><span class="text-muted small">Starting from</span><br><strong class="fs-5" id="fromPrice"></strong></div>
-    <a href="book-1-service.html" id="bookNow" class="btn btn-primary btn-lg px-5">Book now</a>
+  <h4 class="font-display mt-5 mb-3">Store policies</h4>
+  <div class="card bg-light"><div class="card-body">
+    <p class="mb-0 small" id="policies"></p>
+  </div></div>
+</div>
+<footer class="bg-teal-dark text-white py-4 mt-5">
+  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span class="font-display">Groway</span><span class="small opacity-75">Investor demo — fictional data.</span>
   </div>
-</div>
-
+</footer>
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
 <script>
-const id = new URLSearchParams(location.search).get("id") || "selah";
-const s = DEMO.stores.find(x => x.id === id) || DEMO.stores[0];
-const staffByName = n => DEMO.staff.find(t => t.name.toLowerCase() === n.toLowerCase());
-$(function () {
-  document.title = s.name + " — Groway";
-  $("#banner").attr("src", "../assets/img/" + s.photos[0]);
-  $("#crumb").text(s.name); $("#name").text(s.name); $("#chain").text(s.chain);
-  $("#ratings").html(`<span class="text-gold">★</span> <strong>${s.rating}</strong> <span class="text-muted">(${s.reviews} reviews)</span>
-    <span class="text-muted mx-1">·</span><span class="text-muted">via Google ${s.rating} (${s.googleReviews})</span>`);
-  $("#contact").html(`${s.address}<br><a href="tel:${s.phone}">${s.phone}</a> · <span class="text-muted">${s.hours}</span>`);
-  $("#openBadge").html(s.openNow ? `<span class="badge bg-success fs-6">Open now</span>` : `<span class="badge bg-secondary fs-6">Closed</span>`);
-  $("#about").text(s.about);
-  $("#fromPrice").text("$" + s.priceFrom + "+");
-  $("#bookNow").attr("href", "book-1-service.html");
-  s.photos.forEach(p => $("#gallery").append(`<img src="../assets/img/${p}" class="rounded" alt="Gallery photo">`));
-  const cats = [...new Set(DEMO.services.map(x => x.cat))];
-  cats.forEach(c => {
-    const rows = DEMO.services.filter(x => x.cat === c);
-    $("#services").append(`<h6 class="mt-3 text-uppercase detail-label">${c}</h6>`);
-    rows.forEach(sv => {
-      $("#services").append(`<div class="card mb-2"><div class="card-body d-flex justify-content-between align-items-center py-2">
-        <div><div class="fw-semibold">${sv.name}</div>
-        <div class="small text-muted">${sv.mins} mins · with ${sv.staff.join(", ")}</div></div>
-        <div class="text-end"><div class="fw-bold">$${sv.price}</div>
-        <a href="book-1-service.html?service=${sv.id}" class="btn btn-outline-primary btn-sm mt-1">Book</a></div>
-      </div></div>`);
+$(function(){
+  const q = new URLSearchParams(location.search);
+  const storeId = q.get("store") || "store-bayview";
+  const s = DEMO.stores.find(x=>x.id===storeId) || DEMO.stores[0];
+  $("#sname").text(s.name); $("#saddr").text(s.address);
+  $("#sphone").text(s.phone); $("#shours").text(s.hours); $("#sabout").text(s.about);
+  $("#sphoto").attr("src", "../"+s.photos[0]);
+  $("#booknow").attr("href", "book-1-service.html?store="+s.id);
+  $("#policies").text(DEMO.policies.en);
+  // Services grouped by category, in sequence_order (menu display order = combo execution order)
+  const cats=[...new Set(DEMO.services.map(x=>x.cat))];
+  cats.forEach(c=>{
+    $("#cats").append(`<h6 class="mt-4 text-uppercase detail-label">${c}</h6><div class="list-group mb-2" id="g-${c.replace(/\W+/g,'')}"></div>`);
+    DEMO.services.filter(x=>x.cat===c).sort((a,b)=>a.seq-b.seq).forEach(sv=>{
+      $(`#g-${c.replace(/\W+/g,'')}`).append(`<div class="list-group-item d-flex justify-content-between align-items-center">
+        <span><span class="fw-semibold">${sv.name}</span><br><span class="small text-muted">${sv.mins} mins</span></span>
+        <span class="d-flex align-items-center gap-3"><span class="fw-bold">$${sv.price}</span>
+        <a class="btn btn-sm btn-outline-primary" href="book-1-service.html?store=${s.id}&service_id=${sv.id}">Book</a></span></div>`);
     });
   });
-  const team = [...new Set(DEMO.services.flatMap(x => x.staff))].map(staffByName).filter(Boolean);
-  team.forEach(t => {
-    $("#team").append(`<div class="col-6 col-md-3"><a href="staff.html?id=${t.id}" class="card card-hover text-decoration-none text-dark h-100">
-      <div class="card-body text-center">
-        <img src="../assets/img/${t.avatar}" class="avatar-lg mb-2" alt="${t.name}">
-        <div class="fw-semibold">${t.name}</div><div class="small text-muted">${t.title}</div>
-        <div class="small text-gold">★ ${t.completed.toLocaleString()} served</div>
-      </div></a></div>`);
+  // Team strip — only staff ACTIVE at this store (inactive assignment = treated as nonexistent)
+  DEMO.staff.filter(p=>p.active[s.id]).forEach(p=>{
+    $("#team").append(`<div class="col-6 col-md-3"><a href="staff-profile.html?store=${s.id}&staff=${p.id}" class="text-decoration-none text-dark">
+      <div class="card card-hover text-center h-100"><div class="card-body">
+        <img src="../${p.avatar}" class="avatar-lg mb-2" alt="${p.name}">
+        <div class="fw-semibold">${p.name}</div>
+        <div class="small text-muted">${p.title}</div>
+      </div></div></a></div>`);
   });
 });
 </script>

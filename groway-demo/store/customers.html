@@ -1,171 +1,187 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Customers — Selah Head Spa · Groway Business</title>
+<title>Customers — Selah Back Office</title>
 <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/theme.css">
 <style>
-  .sidebar { width: 232px; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
-  .sidebar .nav-link { color: rgba(255,255,255,.72); border-radius: .5rem; padding: .55rem .8rem; font-size: .92rem; }
-  .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.08); }
-  .sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,.14); font-weight: 600; }
-  .offcanvas { --bs-offcanvas-width: 400px; }
-  tbody tr { cursor: pointer; }
+  .sidebar-nav .list-group-item{background:transparent;border:0;color:rgba(255,255,255,.75);border-radius:.5rem;margin-bottom:2px}
+  .sidebar-nav .list-group-item:hover{background:rgba(255,255,255,.08);color:#fff}
+  .sidebar-nav .list-group-item.active{background:rgba(185,138,47,.22);color:#fff;font-weight:600}
+  .avatar{width:44px;height:44px;object-fit:cover;border-radius:50%;background:#e9e2d2;display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:#6b6252}
 </style>
 </head>
 <body>
-<div class="demo-bar text-center py-1">Groway demo — Store back office · Selah Head Spa · <span class="text-muted">static prototype, no backend</span></div>
+<div class="demo-bar px-3 py-1 text-center">Static investor demo — no real data · Store back office</div>
 <div class="d-flex">
-  <aside class="sidebar bg-teal-dark text-white d-flex flex-column flex-shrink-0">
-    <div class="p-3 border-bottom border-light border-opacity-10">
-      <div class="font-display fs-5 fw-bold">SELAH HEAD SPA</div>
-      <div class="text-white-50 small">Groway Business</div>
+  <nav class="bg-teal-dark text-white p-3 d-flex flex-column" style="width:248px;min-height:100vh;position:sticky;top:0;height:100vh">
+    <div class="font-display fs-5">Selah Head Spa</div>
+    <div class="small text-white-50 mb-1">Back office</div>
+    <span class="badge bg-gold text-dark align-self-start mb-3">Bayview · Store admin</span>
+    <div class="list-group list-group-flush sidebar-nav">
+      <a href="dashboard.html" class="list-group-item">Dashboard</a>
+      <a href="staff.html" class="list-group-item">Team</a>
+      <a href="services.html" class="list-group-item">Services</a>
+      <a href="customers.html" class="list-group-item active">Customers</a>
+      <a href="reports.html" class="list-group-item">Reports</a>
+      <a href="settings.html" class="list-group-item">Settings</a>
     </div>
-    <nav class="nav flex-column p-2 gap-1">
-      <a class="nav-link" href="dashboard.html">&#128197; Appointments</a>
-      <a class="nav-link active" href="customers.html">&#128100; Customers</a>
-      <a class="nav-link" href="staff.html">&#128101; Staff</a>
-      <a class="nav-link" href="services.html">&#128134; Services</a>
-      <a class="nav-link" href="reports.html">&#128202; Reports</a>
-      <a class="nav-link" href="settings.html">&#9881; Settings</a>
-    </nav>
-    <div class="mt-auto p-3 small text-white-50 border-top border-light border-opacity-10">
-      <div>Mei Lin · Store admin</div>
-      <a href="../index.html" class="text-gold text-decoration-none">← Back to Groway</a>
+    <div class="mt-auto pt-3 border-top border-white-25">
+      <a href="../client/store.html?store=store-bayview" class="btn btn-sm btn-outline-light w-100 mb-2">View storefront</a>
+      <a href="../index.html" class="btn btn-sm btn-link text-white-50 w-100">Log out</a>
     </div>
-  </aside>
+  </nav>
+  <main class="flex-grow-1 p-4" style="max-width:1180px">
+    <h1 class="font-display mb-0">Customers</h1>
+    <div class="gold-rule mb-3"></div>
 
-  <main class="flex-grow-1 p-4" style="min-width:0">
-    <div class="d-flex align-items-center mb-3 gap-3">
-      <h4 class="font-display fw-bold mb-0">Customers</h4>
-      <span class="badge bg-primary rounded-pill" id="custCount"></span>
-      <div class="ms-auto input-group" style="width:280px">
-        <input class="form-control" id="searchBox" placeholder="Search name / phone">
+    <div class="row g-3">
+      <div class="col-lg-5">
+        <div class="card mb-3">
+          <div class="card-body">
+            <h5 class="card-title">Find customer</h5>
+            <div class="input-group">
+              <input id="phoneSearch" class="form-control" placeholder="Search by phone, e.g. 4165550134">
+              <button id="searchBtn" class="btn btn-primary">Search</button>
+            </div>
+            <div class="small text-muted mt-1">Try <a href="#" id="tryKevin">4165550134</a> — Kevin's guest booking.</div>
+            <div id="searchResult" class="mt-3"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Customer records</h5>
+            <div id="custList"></div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="bg-white border rounded">
-      <table class="table table-hover mb-0">
-        <thead class="table-light"><tr>
-          <th>Name</th><th>Phone</th><th>Visits</th><th>Last visit</th><th>Total spent</th><th></th>
-        </tr></thead>
-        <tbody id="custRows"></tbody>
-      </table>
+      <div class="col-lg-7">
+        <div class="card border-warning">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Guest bookings awaiting claim <span class="badge bg-warning text-dark" id="guestCount">1</span></h5>
+          </div>
+          <div class="card-body" id="guestCard"></div>
+        </div>
+        <div class="alert alert-light border small mt-3">
+          Guests can book without an account. When a guest later identifies themselves (same phone),
+          the store links the guest booking to their customer record — <strong>idempotent</strong>:
+          linking twice creates nothing new.
+        </div>
+      </div>
     </div>
   </main>
 </div>
 
-<div class="offcanvas offcanvas-end" tabindex="-1" id="custPanel">
-  <div class="offcanvas-header border-bottom">
-    <h6 class="offcanvas-title font-display fw-bold" id="custTitle"></h6>
-    <button class="btn-close" data-bs-dismiss="offcanvas"></button>
-  </div>
-  <div class="offcanvas-body" id="custBody"></div>
-  <div class="offcanvas-footer border-top p-3">
-    <button class="btn btn-sm btn-outline-primary w-100 mb-2" id="linkGuest">Link guest booking</button>
-    <label class="detail-label">Notes</label>
-    <textarea class="form-control form-control-sm mb-2" id="custNotes" rows="3" placeholder="Allergies, preferences…"></textarea>
-    <button class="btn btn-sm btn-primary w-100" id="saveNotes">Save notes</button>
-  </div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="toast" class="toast" role="status"><div class="toast-body" id="toastBody"></div></div>
 </div>
-
-<div class="modal fade" id="claimModal" tabindex="-1">
-  <div class="modal-dialog"><div class="modal-content">
-    <div class="modal-header"><h6 class="modal-title font-display fw-bold">Link guest booking</h6>
-      <button class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body" id="claimBody"></div>
-  </div></div>
-</div>
-
-<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
 
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
 <script>
-function toast(msg){ const t=$(`<div class="toast align-items-center"><div class="d-flex"><div class="toast-body">${msg}</div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
-  $("#toasts").append(t); new bootstrap.Toast(t[0],{delay:2600}).show(); }
-
-const EXTRA = [
-  { customer:"Hannah Park", phone:"(416) 555-0140", visits:14, last:"Sep 28, 2026", spent:1180 },
-  { customer:"Ivy Zhao", phone:"(647) 555-0133", visits:9, last:"Sep 25, 2026", spent:720 },
-  { customer:"Rachel Kim", phone:"(416) 555-0161", visits:6, last:"Sep 20, 2026", spent:410 },
-  { customer:"Kevin Liu", phone:"(647) 555-0149", visits:0, last:"—", spent:0, isNew:true }
+(function(){
+  var ok = window.DEMO && DEMO.chain && DEMO.staff && DEMO.services && DEMO.quota;
+  if (ok) return;
+  window.DEMO = {
+    chain:{id:"chain-selah",name:"Selah Head Spa",tagline:"A calm-luxury head spa ritual, now in two neighbourhoods.",hero:"assets/img/hero-spa.jpg"},
+    stores:[
+      {id:"store-bayview",name:"Selah Head Spa — Bayview",address:"8120 Bayview Ave, Richmond Hill, ON",phone:"(905) 555-0142",hours:"Mon–Sat 10:00–20:00, Sun 11:00–18:00"},
+      {id:"store-yorkville",name:"Selah Head Spa — Yorkville",address:"128 Cumberland St, Toronto, ON",phone:"(416) 555-0198",hours:"Mon–Sat 10:00–21:00, Sun closed"}],
+    staff:[
+      {id:"anna",name:"Anna Chen",title:"Senior Scalp Therapist",avatar:"../assets/img/avatar-47.jpg",languages:["English","Mandarin"],bio:"10 years in scalp therapy.",active:{"store-bayview":true,"store-yorkville":true}},
+      {id:"mei",name:"Mei Wang",title:"Head Spa Specialist",avatar:"../assets/img/avatar-17.jpg",languages:["Mandarin"],bio:"Warm, meticulous head-spa ritualist.",active:{"store-bayview":true,"store-yorkville":false}},
+      {id:"jordan",name:"Lily Zhang",title:"Aromatherapist",avatar:"../assets/img/avatar-33.jpg",languages:["English","Mandarin"],bio:"Aromatherapy and scalp care.",active:{"store-bayview":false,"store-yorkville":true}},
+      {id:"sofia",name:"Grace Liu",title:"Scalp Therapist",avatar:"../assets/img/avatar-44.jpg",languages:["English"],bio:"Deep-cleansing scalp specialist.",active:{"store-bayview":true,"store-yorkville":true}}],
+    services:[
+      {id:"svc-royal",name:"Deluxe Royal Head Spa",cat:"Head Spa",mins:90,price:129,seq:1,staff:["anna","mei","sofia"]},
+      {id:"svc-aroma",name:"Aromatherapy Scalp Treatment",cat:"Head Spa",mins:60,price:89,seq:2,staff:["anna","jordan"]},
+      {id:"svc-facial",name:"Glow Facial",cat:"Facial",mins:45,price:75,seq:3,staff:["mei","sofia"]},
+      {id:"svc-detox",name:"Scalp Detox Treatment",cat:"Head Spa",mins:45,price:69,seq:4,staff:["anna","sofia"]},
+      {id:"svc-shoulder",name:"Shoulder & Neck Massage",cat:"Massage",mins:30,price:49,seq:5,staff:["anna","mei","jordan","sofia"]}],
+    policies:{en:"Cancellation: free up to 4 hours before your appointment. Late cancellations and no-shows may be charged 50% of the service price.",zh:"取消政策：预约开始前4小时可免费取消。迟到取消或爽约可能收取服务价格50%的费用。"},
+    quota:{plan:"Free",used:73,limit:100}
+  };
+})();
+</script>
+<script>
+var CLAIM_KEY = "groway_claim_k7q2m9xa";
+var GUEST = { ref:"K7Q2-M9XA", name:"Kevin Liu", phone:"(416) 555-0134", digits:"4165550134",
+  service:"Deluxe Royal Head Spa", when:"Sat, Oct 3 · 10:00 AM", staff:"Anna Chen" };
+var CUSTOMERS = [
+  {name:"Sophia Li", phone:"(905) 555-0111", visits:6, consentSms:true, consentEmail:true},
+  {name:"Daniel Wu", phone:"(416) 555-0177", visits:3, consentSms:true, consentEmail:false},
+  {name:"Olivia Zhang", phone:"(647) 555-0160", visits:2, consentSms:false, consentEmail:true}
 ];
-function customers(){
-  const m = {};
-  DEMO.appointments.forEach(a=>{
-    if(a.customer==="Walk-In") return;
-    if(a.guest && !a.linkedTo) return;   // guest booking w/o record: not a customer yet
-    const k = a.phone;
-    m[k] = m[k]||{customer:a.customer,phone:a.phone,visits:0,last:"Oct 2, 2026",spent:0};
-    m[k].visits++; m[k].spent += a.price;
+function isLinked(){ return localStorage.getItem(CLAIM_KEY)==="1"; }
+function showToast(msg){
+  $("#toastBody").text(msg);
+  new bootstrap.Toast($("#toast")[0]).show();
+}
+function renderCustomers(){
+  var list = CUSTOMERS.slice();
+  if (isLinked()) list.unshift({name:"Kevin Liu", phone:"(416) 555-0134", visits:1, consentSms:false, consentEmail:false, fresh:true});
+  $("#custList").html(list.map(function(c){
+    return '<div class="d-flex align-items-center mb-2"><span class="avatar me-2">'+c.name[0]+'</span>'+
+      '<div><div><strong>'+c.name+'</strong> '+(c.fresh?'<span class="badge bg-success">just linked</span>':"")+
+      '<br><span class="small text-muted">'+c.phone+" · "+c.visits+" visit"+(c.visits>1?"s":"")+"</span></div>"+
+      '<div class="small text-muted">SMS marketing: '+(c.consentSms?"✓":"—")+" · Email marketing: "+(c.consentEmail?"✓":"—")+"</div></div></div>";
+  }).join(""));
+}
+function renderGuest(){
+  if (isLinked()){
+    $("#guestCount").text("0");
+    $("#guestCard").html(
+      '<div class="d-flex justify-content-between align-items-center">'+
+      '<div><strong>'+GUEST.ref+'</strong> — '+GUEST.name+' · '+GUEST.service+'<br>'+
+      '<span class="small text-muted">'+GUEST.when+' with '+GUEST.staff+'</span></div>'+
+      '<span class="badge bg-success fs-6">Linked ✓</span></div>'+
+      '<button id="linkBtn" class="btn btn-outline-primary btn-sm mt-3">Link guest booking</button>'+
+      '<div class="small text-muted mt-2">Booking is already linked to Kevin Liu — clicking again is a safe no-op.</div>');
+  } else {
+    $("#guestCount").text("1");
+    $("#guestCard").html(
+      '<div class="d-flex justify-content-between align-items-center">'+
+      '<div><strong>'+GUEST.ref+'</strong> — '+GUEST.name+' · '+GUEST.phone+'<br>'+
+      '<span>'+GUEST.service+' · '+GUEST.when+' with '+GUEST.staff+'</span></div>'+
+      '<span class="badge bg-warning text-dark fs-6">Guest — unclaimed</span></div>'+
+      '<button id="linkBtn" class="btn btn-primary btn-sm mt-3">Link guest booking</button>');
+  }
+}
+function doSearch(){
+  var q = $("#phoneSearch").val().replace(/\D/g,"");
+  var box = $("#searchResult");
+  if (q === GUEST.digits){
+    if (isLinked()){
+      box.html('<div class="alert alert-success mb-0"><strong>Kevin Liu</strong> — customer record found. '+
+        'Guest booking <strong>'+GUEST.ref+'</strong> is <strong>already linked</strong> (idempotent — no duplicate created).</div>');
+    } else {
+      box.html('<div class="alert alert-warning mb-0"><strong>Guest booking found:</strong> '+GUEST.ref+' — '+GUEST.service+
+        ', '+GUEST.when+'. <button class="btn btn-sm btn-primary ms-2" id="linkBtn2">Link guest booking</button></div>');
+    }
+  } else if (q.length >= 7){
+    box.html('<div class="alert alert-light border mb-0">No guest booking matches this phone.</div>');
+  } else {
+    box.html('<div class="alert alert-light border mb-0">Enter a phone number to search.</div>');
+  }
+}
+$(function(){
+  renderCustomers(); renderGuest();
+  $("#searchBtn").click(doSearch);
+  $("#phoneSearch").on("keydown", function(e){ if(e.key==="Enter") doSearch(); });
+  $("#tryKevin").click(function(e){ e.preventDefault(); $("#phoneSearch").val("4165550134"); doSearch(); });
+  $(document).on("click","#linkBtn, #linkBtn2",function(){
+    if (isLinked()){
+      showToast("Already linked — guest booking "+GUEST.ref+" is already on Kevin Liu's record. No duplicate created.");
+      return;
+    }
+    localStorage.setItem(CLAIM_KEY,"1");
+    renderCustomers(); renderGuest();
+    showToast("Guest booking "+GUEST.ref+" linked to Kevin Liu ✓");
   });
-  EXTRA.forEach(e=>{ const k=e.phone;
-    if(m[k]){ m[k].visits+=e.visits; m[k].spent+=e.spent; if(e.isNew) m[k].isNew=true; }
-    else m[k]=Object.assign({},e);
-  });
-  return Object.values(m).sort((a,b)=>b.spent-a.spent);
-}
-let current = null;
-function render(){
-  const q = $("#searchBox").val().toLowerCase();
-  const list = customers().filter(c=>(c.customer+c.phone).toLowerCase().includes(q));
-  $("#custCount").text(list.length+" customers");
-  $("#custRows").html(list.map((c,i)=>`<tr data-i="${customers().indexOf(c)}">
-    <td class="fw-bold">${c.customer}</td><td class="text-muted">${c.phone}</td>
-    <td><span class="badge bg-light text-dark border">${c.visits}</span></td>
-    <td class="small">${c.last}</td><td class="fw-bold">$${c.spent}.00</td>
-    <td class="text-end"><span class="text-primary small">View →</span></td></tr>`).join(""));
-}
-$(document).on("click","#custRows tr",function(){
-  current = customers()[+$(this).data("i")];
-  const hist = DEMO.appointments.filter(a=>a.customer===current.customer && (!a.guest || a.linkedTo===current.customer));
-  $("#custTitle").text(current.customer);
-  $("#custBody").html(`
-    <div class="detail-label mb-1">Contact</div>
-    <div class="small mb-3">${current.phone}</div>
-    <div class="row text-center mb-3">
-      <div class="col-4"><div class="stat-num">${current.visits}</div><div class="detail-label">Visits</div></div>
-      <div class="col-4"><div class="stat-num">$${current.spent}</div><div class="detail-label">Spent</div></div>
-      <div class="col-4"><div class="stat-num">${current.last.split(",")[0]}</div><div class="detail-label">Last visit</div></div>
-    </div>
-    <div class="detail-label mb-2">Booking history</div>
-    ${hist.length? hist.map(a=>`<div class="border rounded p-2 mb-2 small">
-      <div class="d-flex justify-content-between"><strong>${a.service}</strong><span class="badge bg-${STATUS_COLORS[a.status]}">${a.status}</span></div>
-      <div class="text-muted">Oct 2, 2026 · ${a.start} — with ${a.staff.join(", ")} · $${a.price}.00</div></div>`).join("")
-      : `<div class="text-muted small">No bookings on the demo day — history lives in the full product.</div>`}`);
-  $("#custNotes").val("");
-  new bootstrap.Offcanvas($("#custPanel")[0]).show();
 });
-$("#searchBox").on("input", render);
-/* Claim flow — mirrors POST /api/store/customers/{id}/claim {appointment_id}:
-   only unlinked guest bookings (customer_id IS NULL); already-linked → 409. */
-function linkable(){ return DEMO.appointments.filter(a=>a.guest && !a.linkedTo && a.phone===current.phone); }
-$("#linkGuest").click(()=>{
-  if(!current) return;
-  const list = linkable();
-  $("#claimBody").html(list.length ? list.map(a=>`
-    <div class="border rounded p-3 mb-2" id="claim-${a.id}">
-      <div class="d-flex justify-content-between align-items-center">
-        <div><strong>${a.service}</strong>
-          <div class="small text-muted">${a.start} · ${a.phone} · <span class="badge bg-info">Guest — no record</span></div></div>
-        <button class="btn btn-sm btn-primary" onclick="doClaim('${a.id}')">Link to ${current.customer}</button>
-      </div></div>`).join("")
-    : `<p class="text-muted small mb-0">No unlinked guest bookings for this phone number.</p>`);
-  new bootstrap.Modal($("#claimModal")[0]).show();
-});
-function doClaim(id){
-  const a = DEMO.appointments.find(x=>x.id===id);
-  if(!a || a.linkedTo){ toast("Already linked (409)"); return; }  // idempotency: never double-link
-  a.linkedTo = current.customer;   // appointments.customer_id = id ; guest_* snapshot untouched
-  $(`#claim-${id}`).html(`<div class="text-success small">✓ Booking ${id} linked to ${current.customer}. The guest snapshot is kept for audit.</div>`);
-  toast(`Booking ${id} linked to ${current.customer}`);
-  render();
-}
-$("#saveNotes").click(()=>toast("Notes saved"));
-render();
 </script>
 </body>
 </html>

@@ -1,150 +1,260 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Staff — Selah Head Spa · Groway Business</title>
+<title>Team — Selah Back Office</title>
 <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
 <link rel="stylesheet" href="../assets/css/theme.css">
 <style>
-  .sidebar { width: 232px; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
-  .sidebar .nav-link { color: rgba(255,255,255,.72); border-radius: .5rem; padding: .55rem .8rem; font-size: .92rem; }
-  .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.08); }
-  .sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,.14); font-weight: 600; }
-  .staff-card { cursor: pointer; }
-  .lang-chip { border:1px solid #d8d2c4; border-radius:999px; padding:.3rem .8rem; font-size:.82rem; cursor:pointer; background:#fff; }
-  .lang-chip.on { background:#14655a; color:#fff; border-color:#14655a; }
+  .sidebar-nav .list-group-item{background:transparent;border:0;color:rgba(255,255,255,.75);border-radius:.5rem;margin-bottom:2px}
+  .sidebar-nav .list-group-item:hover{background:rgba(255,255,255,.08);color:#fff}
+  .sidebar-nav .list-group-item.active{background:rgba(185,138,47,.22);color:#fff;font-weight:600}
+  .avatar{width:44px;height:44px;object-fit:cover;border-radius:50%}
+  .shift{display:block;border-radius:.4rem;padding:.25rem .5rem;font-size:.75rem;margin-bottom:.3rem;color:#fff;line-height:1.3}
+  .shift.bayview{background:#14655a}.shift.yorkville{background:#b98a2f}
+  .day-col{background:#fff;border:1px solid #e7e0cf;border-radius:.6rem;min-height:120px;padding:.5rem}
+  .day-col.today{border:2px solid #b98a2f}
+  .day-name{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#8a8172;font-weight:600}
+  .staff-chip.active{background:#0d3f39;color:#fff;border-color:#0d3f39}
 </style>
 </head>
 <body>
-<div class="demo-bar text-center py-1">Groway demo — Store back office · Selah Head Spa · <span class="text-muted">static prototype, no backend</span></div>
+<div class="demo-bar px-3 py-1 text-center">Static investor demo — no real data · Store back office</div>
 <div class="d-flex">
-  <aside class="sidebar bg-teal-dark text-white d-flex flex-column flex-shrink-0">
-    <div class="p-3 border-bottom border-light border-opacity-10">
-      <div class="font-display fs-5 fw-bold">SELAH HEAD SPA</div>
-      <div class="text-white-50 small">Groway Business</div>
+  <nav class="bg-teal-dark text-white p-3 d-flex flex-column" style="width:248px;min-height:100vh;position:sticky;top:0;height:100vh">
+    <div class="font-display fs-5">Selah Head Spa</div>
+    <div class="small text-white-50 mb-1">Back office</div>
+    <span class="badge bg-gold text-dark align-self-start mb-3">Bayview · Store admin</span>
+    <div class="list-group list-group-flush sidebar-nav">
+      <a href="dashboard.html" class="list-group-item">Dashboard</a>
+      <a href="staff.html" class="list-group-item active">Team</a>
+      <a href="services.html" class="list-group-item">Services</a>
+      <a href="customers.html" class="list-group-item">Customers</a>
+      <a href="reports.html" class="list-group-item">Reports</a>
+      <a href="settings.html" class="list-group-item">Settings</a>
     </div>
-    <nav class="nav flex-column p-2 gap-1">
-      <a class="nav-link" href="dashboard.html">&#128197; Appointments</a>
-      <a class="nav-link" href="customers.html">&#128100; Customers</a>
-      <a class="nav-link active" href="staff.html">&#128101; Staff</a>
-      <a class="nav-link" href="services.html">&#128134; Services</a>
-      <a class="nav-link" href="reports.html">&#128202; Reports</a>
-      <a class="nav-link" href="settings.html">&#9881; Settings</a>
-    </nav>
-    <div class="mt-auto p-3 small text-white-50 border-top border-light border-opacity-10">
-      <div>Mei Lin · Store admin</div>
-      <a href="../index.html" class="text-gold text-decoration-none">← Back to Groway</a>
+    <div class="mt-auto pt-3 border-top border-white-25">
+      <a href="../client/store.html?store=store-bayview" class="btn btn-sm btn-outline-light w-100 mb-2">View storefront</a>
+      <a href="../index.html" class="btn btn-sm btn-link text-white-50 w-100">Log out</a>
     </div>
-  </aside>
+  </nav>
+  <main class="flex-grow-1 p-4" style="max-width:1180px">
+    <h1 class="font-display mb-0">Team</h1>
+    <div class="gold-rule mb-3"></div>
+    <div class="alert alert-light border small mb-4">
+      <strong>Assignment-level status.</strong> Active / Inactive is a property of the
+      <em>staff ↔ store relationship</em>, not of the person. Deactivating someone here removes them
+      from <strong>Bayview only</strong> — their assignment at any other store is untouched, and their
+      past appointment history is kept. Deactivation is blocked while they have upcoming confirmed
+      bookings at this store (<code>409 STAFF_HAS_UPCOMING_APPOINTMENTS</code>).
+    </div>
 
-  <main class="flex-grow-1 p-4" style="min-width:0">
-    <div class="d-flex align-items-center mb-3">
-      <h4 class="font-display fw-bold mb-0">Staff</h4>
-      <span class="badge bg-primary rounded-pill ms-2" id="staffCount"></span>
-      <button class="btn btn-primary btn-sm ms-auto" id="inviteBtn">+ Invite staff</button>
+    <div class="card mb-4">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light"><tr>
+              <th>Staff</th><th>Title</th><th>Languages</th>
+              <th>Status at Bayview</th><th>Other stores</th><th style="width:220px">Actions</th>
+            </tr></thead>
+            <tbody id="teamRows"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
-    <div class="row g-3" id="roster"></div>
+
+    <h2 class="font-display fs-4 mb-1">Schedules</h2>
+    <p class="small text-muted mb-3"><strong>One timetable per person</strong> — each shift block is tagged with its store.
+      No per-store schedule tabs; a person can't be in two places at once.</p>
+    <div class="mb-3" id="staffChips"></div>
+    <div class="mb-2">
+      <span class="badge me-2" style="background:#14655a">Bayview</span>
+      <span class="badge" style="background:#b98a2f">Yorkville</span>
+    </div>
+    <div class="row g-2" id="weekGrid"></div>
   </main>
 </div>
 
-<!-- editor modal -->
-<div class="modal fade" id="staffModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
+<!-- Deactivate confirm modal -->
+<div class="modal fade" id="deactModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header"><h6 class="modal-title font-display fw-bold" id="editorTitle">Edit staff profile</h6>
-        <button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-header">
+        <h5 class="modal-title">Deactivate at Bayview only</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
       <div class="modal-body">
-        <div class="row g-3">
-          <div class="col-4 text-center">
-            <img id="edPhoto" class="avatar-lg mb-2" src="" alt="">
-            <div><button class="btn btn-sm btn-outline-secondary" id="changePhoto">Change photo</button></div>
-            <div class="detail-label mt-3 mb-1 text-start">Portfolio</div>
-            <div class="d-flex flex-wrap gap-2" id="edPortfolio"></div>
-          </div>
-          <div class="col-8">
-            <label class="detail-label">Name</label>
-            <input class="form-control form-control-sm mb-2" id="edName">
-            <label class="detail-label">Title <span class="text-muted">(admin only)</span></label>
-            <input class="form-control form-control-sm mb-2" id="edTitle">
-            <label class="detail-label">Languages spoken</label>
-            <div class="d-flex flex-wrap gap-2 mb-3" id="edLangs"></div>
-            <label class="detail-label">Bio (English)</label>
-            <textarea class="form-control form-control-sm mb-2" id="edBio" rows="4"></textarea>
-            <div class="small text-muted">Edits by staff go to <em>pending</em> — a store admin publishes them.</div>
-          </div>
-        </div>
+        <p>Deactivate <strong id="deactName"></strong> at <strong>Selah Head Spa — Bayview</strong>?</p>
+        <ul class="small text-muted mb-0">
+          <li>This ends <em>this store assignment only</em> — any assignment at Yorkville is untouched.</li>
+          <li>They disappear from Bayview's bookable staff and public team page immediately.</li>
+          <li>Past appointments stay in history; nothing is deleted. Reactivation restores everything.</li>
+        </ul>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn btn-sm btn-primary" id="saveStaff">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="deactConfirm">Deactivate at Bayview</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- invite modal -->
-<div class="modal fade" id="inviteModal" tabindex="-1">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
-    <div class="modal-content p-3">
-      <h6 class="font-display fw-bold mb-3">Invite staff</h6>
-      <label class="detail-label">Name</label><input class="form-control form-control-sm mb-2" placeholder="Full name">
-      <label class="detail-label">Phone</label><input class="form-control form-control-sm mb-2" placeholder="(416) 555-0100">
-      <label class="detail-label">Role</label>
-      <select class="form-select form-select-sm mb-3"><option>Therapist</option><option>Receptionist</option><option>Manager</option></select>
-      <button class="btn btn-primary btn-sm w-100" id="sendInvite">Send invitation</button>
-    </div>
-  </div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="toast" class="toast" role="status"><div class="toast-body" id="toastBody"></div></div>
 </div>
-
-<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
 
 <script src="../assets/vendor/jquery.min.js"></script>
 <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/demo-data.js"></script>
 <script>
-function toast(msg){ const t=$(`<div class="toast align-items-center"><div class="d-flex"><div class="toast-body">${msg}</div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
-  $("#toasts").append(t); new bootstrap.Toast(t[0],{delay:2600}).show(); }
+(function(){
+  var ok = window.DEMO && DEMO.chain && DEMO.staff && DEMO.services && DEMO.quota;
+  if (ok) return;
+  window.DEMO = {
+    chain:{id:"chain-selah",name:"Selah Head Spa",tagline:"A calm-luxury head spa ritual, now in two neighbourhoods.",hero:"assets/img/hero-spa.jpg"},
+    stores:[
+      {id:"store-bayview",name:"Selah Head Spa — Bayview",address:"8120 Bayview Ave, Richmond Hill, ON",phone:"(905) 555-0142",hours:"Mon–Sat 10:00–20:00, Sun 11:00–18:00"},
+      {id:"store-yorkville",name:"Selah Head Spa — Yorkville",address:"128 Cumberland St, Toronto, ON",phone:"(416) 555-0198",hours:"Mon–Sat 10:00–21:00, Sun closed"}],
+    staff:[
+      {id:"anna",name:"Anna Chen",title:"Senior Scalp Therapist",avatar:"../assets/img/avatar-47.jpg",languages:["English","Mandarin"],bio:"10 years in scalp therapy.",active:{"store-bayview":true,"store-yorkville":true}},
+      {id:"mei",name:"Mei Wang",title:"Head Spa Specialist",avatar:"../assets/img/avatar-17.jpg",languages:["Mandarin"],bio:"Warm, meticulous head-spa ritualist.",active:{"store-bayview":true,"store-yorkville":false}},
+      {id:"jordan",name:"Lily Zhang",title:"Aromatherapist",avatar:"../assets/img/avatar-33.jpg",languages:["English","Mandarin"],bio:"Aromatherapy and scalp care.",active:{"store-bayview":false,"store-yorkville":true}},
+      {id:"sofia",name:"Grace Liu",title:"Scalp Therapist",avatar:"../assets/img/avatar-44.jpg",languages:["English"],bio:"Deep-cleansing scalp specialist.",active:{"store-bayview":true,"store-yorkville":true}}],
+    services:[
+      {id:"svc-royal",name:"Deluxe Royal Head Spa",cat:"Head Spa",mins:90,price:129,seq:1,staff:["anna","mei","sofia"]},
+      {id:"svc-aroma",name:"Aromatherapy Scalp Treatment",cat:"Head Spa",mins:60,price:89,seq:2,staff:["anna","jordan"]},
+      {id:"svc-facial",name:"Glow Facial",cat:"Facial",mins:45,price:75,seq:3,staff:["mei","sofia"]},
+      {id:"svc-detox",name:"Scalp Detox Treatment",cat:"Head Spa",mins:45,price:69,seq:4,staff:["anna","sofia"]},
+      {id:"svc-shoulder",name:"Shoulder & Neck Massage",cat:"Massage",mins:30,price:49,seq:5,staff:["anna","mei","jordan","sofia"]}],
+    policies:{en:"Cancellation: free up to 4 hours before your appointment. Late cancellations and no-shows may be charged 50% of the service price.",zh:"取消政策：预约开始前4小时可免费取消。迟到取消或爽约可能收取服务价格50%的费用。"},
+    quota:{plan:"Free",used:73,limit:100}
+  };
+})();
+</script>
+<script>
+var STORE_ID = "store-bayview";
+/* One timetable per person — each block tagged with its store (Batch 2 Change 2). dow: 1=Mon..7=Sun */
+var SCHEDULE = {
+  anna:[{dow:1,start:"09:00",end:"12:00",store:"store-bayview"},{dow:1,start:"13:00",end:"17:00",store:"store-yorkville"},
+        {dow:2,start:"10:00",end:"18:00",store:"store-bayview"},{dow:3,start:"10:00",end:"18:00",store:"store-yorkville"},
+        {dow:4,start:"09:00",end:"17:00",store:"store-bayview"},{dow:5,start:"10:00",end:"18:00",store:"store-yorkville"},
+        {dow:6,start:"09:00",end:"15:00",store:"store-bayview"}],
+  mei:[{dow:1,start:"10:00",end:"18:00",store:"store-bayview"},{dow:2,start:"10:00",end:"18:00",store:"store-bayview"},
+       {dow:3,start:"10:00",end:"18:00",store:"store-bayview"},{dow:4,start:"10:00",end:"18:00",store:"store-bayview"},
+       {dow:5,start:"10:00",end:"18:00",store:"store-bayview"},{dow:6,start:"09:00",end:"14:00",store:"store-bayview"}],
+  jordan:[{dow:1,start:"11:00",end:"19:00",store:"store-yorkville"},{dow:2,start:"11:00",end:"19:00",store:"store-yorkville"},
+        {dow:3,start:"11:00",end:"19:00",store:"store-yorkville"},{dow:4,start:"11:00",end:"19:00",store:"store-yorkville"},
+        {dow:5,start:"11:00",end:"19:00",store:"store-yorkville"},{dow:6,start:"10:00",end:"16:00",store:"store-yorkville"}],
+  sofia:[{dow:2,start:"10:00",end:"18:00",store:"store-bayview"},{dow:3,start:"10:00",end:"18:00",store:"store-bayview"},
+         {dow:4,start:"10:00",end:"18:00",store:"store-bayview"},{dow:5,start:"10:00",end:"18:00",store:"store-bayview"},
+         {dow:6,start:"09:00",end:"17:00",store:"store-bayview"}]
+};
+/* Anna has upcoming confirmed bookings at Bayview → deactivate blocked (409) */
+var UPCOMING = { anna: 2 };
 
-const LANGS = ["English","Mandarin","Cantonese","French","Korean","Spanish"];
-function todayCount(name){ return DEMO.appointments.filter(a=>a.staff.includes(name)).length; }
-
-function render(){
-  $("#staffCount").text(DEMO.staff.length+" team members");
-  $("#roster").html(DEMO.staff.map(s=>`
-    <div class="col-md-4 col-lg-3">
-      <div class="card staff-card card-hover h-100" data-id="${s.id}">
-        <div class="card-body text-center">
-          <img src="../assets/img/${s.avatar}" class="rounded-circle mb-2" width="64" height="64" style="object-fit:cover" alt="${s.name}">
-          <div class="fw-bold">${s.name}</div>
-          <div class="small text-muted mb-2">${s.title}</div>
-          <div class="d-flex justify-content-center gap-3 mb-2">
-            <div><div class="fw-bold">${todayCount(s.name)}</div><div class="detail-label">Today</div></div>
-            <div><div class="fw-bold">${s.completed.toLocaleString()}</div><div class="detail-label">Completed</div></div>
-          </div>
-          <div>${s.langs.map(l=>`<span class="badge bg-light text-dark border me-1">${l}</span>`).join("")}</div>
-        </div>
-      </div>
-    </div>`).join(""));
+function getActive(staffId, storeId){
+  var ov = {};
+  try { ov = JSON.parse(localStorage.getItem("groway_staff_active")||"{}"); } catch(e){}
+  if (ov[staffId] && storeId in ov[staffId]) return !!ov[staffId][storeId];
+  var s = DEMO.staff.find(function(x){return x.id===staffId;});
+  return !!(s && s.active && s.active[storeId]);
 }
-let cur = null;
-$(document).on("click",".staff-card",function(){
-  cur = DEMO.staff.find(s=>s.id===$(this).data("id"));
-  $("#editorTitle").text(`Edit profile — ${cur.name}`);
-  $("#edPhoto").attr("src","../assets/img/"+cur.avatar);
-  $("#edName").val(cur.name); $("#edTitle").val(cur.title); $("#edBio").val(cur.bio);
-  $("#edLangs").html(LANGS.map(l=>`<span class="lang-chip ${cur.langs.includes(l)?"on":""}">${l}</span>`).join(""));
-  $("#edPortfolio").html(cur.portfolio.length
-    ? cur.portfolio.map(p=>`<img src="../assets/img/${p}" width="72" height="72" class="rounded" style="object-fit:cover">`).join("")
-    : `<span class="small text-muted">No portfolio photos yet</span>`);
-  new bootstrap.Modal($("#staffModal")[0]).show();
+function setActive(staffId, storeId, val){
+  var ov = {};
+  try { ov = JSON.parse(localStorage.getItem("groway_staff_active")||"{}"); } catch(e){}
+  ov[staffId] = ov[staffId] || {}; ov[staffId][storeId] = !!val;
+  localStorage.setItem("groway_staff_active", JSON.stringify(ov));
+}
+function otherStores(s){
+  return DEMO.stores.filter(function(st){return st.id!==STORE_ID;}).map(function(st){
+    var on = getActive(s.id, st.id);
+    var short = st.id==="store-yorkville" ? "Yorkville" : st.name;
+    return '<span class="badge '+(on?"bg-success":"bg-secondary")+' me-1">'+short+": "+(on?"Active":"—")+"</span>";
+  }).join("") || '<span class="text-muted">—</span>';
+}
+function avatarSrc(a){
+  if (!a) return "";
+  if (a.indexOf("assets/img/") === 0) return "../" + a; /* brief-contract form */
+  if (a.indexOf("../") === 0) return a;                  /* already page-relative */
+  return "../assets/img/" + a;                           /* bare filename (old convention) */
+}
+function showToast(msg){
+  $("#toastBody").text(msg);
+  new bootstrap.Toast($("#toast")[0]).show();
+}
+
+function renderTeam(){
+  var rows = DEMO.staff.map(function(s){
+    var active = getActive(s.id, STORE_ID);
+    var statusBadge = active
+      ? '<span class="badge bg-success">Active at Bayview</span>'
+      : '<span class="badge bg-secondary">Inactive at Bayview</span>';
+    var action;
+    if (active && UPCOMING[s.id]) {
+      action = '<span data-bs-toggle="tooltip" data-bs-placement="top" title="Blocked — '+UPCOMING[s.id]+
+        ' upcoming confirmed bookings at Bayview (409 STAFF_HAS_UPCOMING_APPOINTMENTS). Cancel or reassign them first.">'+
+        '<button class="btn btn-sm btn-outline-danger" disabled>Deactivate at this store</button></span>';
+    } else if (active) {
+      action = '<button class="btn btn-sm btn-outline-danger" data-deact="'+s.id+'">Deactivate at this store</button>';
+    } else {
+      action = '<button class="btn btn-sm btn-outline-success" data-react="'+s.id+'">Reactivate at this store</button>';
+    }
+    return "<tr><td><img class='avatar me-2' src='"+avatarSrc(s.avatar)+"' alt=''><strong>"+s.name+"</strong></td>"+
+      "<td>"+s.title+"</td><td class='small'>"+s.languages.join(", ")+"</td>"+
+      "<td>"+statusBadge+"</td><td>"+otherStores(s)+"</td><td>"+action+"</td></tr>";
+  }).join("");
+  $("#teamRows").html(rows);
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el){ new bootstrap.Tooltip(el); });
+}
+
+function renderChips(sel){
+  $("#staffChips").html(DEMO.staff.map(function(s){
+    return '<button class="chip staff-chip me-2 mb-2'+(s.id===sel?" active":"")+'" data-staff="'+s.id+'">'+s.name+"</button>";
+  }).join(""));
+}
+function renderWeek(staffId){
+  var days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  var todayDow = 5; /* Friday, Oct 2 2026 */
+  var blocks = SCHEDULE[staffId]||[];
+  $("#weekGrid").html(days.map(function(d,i){
+    var dow = i+1;
+    var list = blocks.filter(function(b){return b.dow===dow;}).map(function(b){
+      var cls = b.store==="store-bayview" ? "bayview" : "yorkville";
+      var label = b.store==="store-bayview" ? "Bayview" : "Yorkville";
+      return '<span class="shift '+cls+'">'+b.start+"–"+b.end+" @ "+label+"</span>";
+    }).join("") || '<span class="text-muted small">Off</span>';
+    return '<div class="col-6 col-md"><div class="day-col'+(dow===todayDow?" today":"")+'">'+
+      '<div class="day-name mb-1">'+d+(dow===todayDow?" · today":"")+"</div>"+list+"</div></div>";
+  }).join(""));
+}
+
+var pendingDeact = null, curStaff = "anna";
+$(function(){
+  renderTeam(); renderChips(curStaff); renderWeek(curStaff);
+  $(document).on("click","[data-staff]",function(){ curStaff=$(this).data("staff"); renderChips(curStaff); renderWeek(curStaff); });
+  $(document).on("click","[data-deact]",function(){
+    pendingDeact = $(this).data("deact");
+    var s = DEMO.staff.find(function(x){return x.id===pendingDeact;});
+    $("#deactName").text(s.name);
+    new bootstrap.Modal($("#deactModal")[0]).show();
+  });
+  $("#deactConfirm").click(function(){
+    if (!pendingDeact) return;
+    setActive(pendingDeact, STORE_ID, false);
+    bootstrap.Modal.getInstance($("#deactModal")[0]).hide();
+    var s = DEMO.staff.find(function(x){return x.id===pendingDeact;});
+    showToast(s.name+" deactivated at Bayview only — Yorkville assignment untouched.");
+    pendingDeact = null; renderTeam();
+  });
+  $(document).on("click","[data-react]",function(){
+    var id = $(this).data("react");
+    setActive(id, STORE_ID, true);
+    var s = DEMO.staff.find(function(x){return x.id===id;});
+    showToast(s.name+" reactivated at Bayview.");
+    renderTeam();
+  });
 });
-$(document).on("click",".lang-chip",function(){ $(this).toggleClass("on"); });
-$("#changePhoto").click(()=>toast("Photo upload — presigned S3 URL in the full product"));
-$("#saveStaff").click(()=>{ bootstrap.Modal.getInstance($("#staffModal")[0]).hide(); toast(`Profile saved — bio pending admin review`); });
-$("#inviteBtn").click(()=>new bootstrap.Modal($("#inviteModal")[0]).show());
-$("#sendInvite").click(()=>{ bootstrap.Modal.getInstance($("#inviteModal")[0]).hide(); toast("Invitation sent by SMS"); });
-render();
 </script>
 </body>
 </html>
