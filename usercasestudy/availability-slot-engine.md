@@ -77,7 +77,7 @@ GET /api/store/staff?store_id=&service_ids[]=      (multi-item form, same 2-5/de
 2. 1–5 services requested (`400` outside that range); no duplicate `service_id` in the basket (`400`). Each one belongs to this store, `status='active'`, not soft-deleted — else `404` (cross-store non-existence convention).
 3. Each service is bookable (`store-onboarding-v1-design.md` §7.6: active + not deleted + ≥1 assignment has it assigned + a `from` service has ≥1 live option) — else `409 SERVICE_NOT_BOOKABLE`, naming the first offending service.
 4. `date` is valid: `today(store_tz) ≤ date ≤ today + advance_booking_days` — past date → `400 DATE_IN_PAST`; too far → `400 DATE_TOO_FAR`.
-5. If `staff_id` is given: that person exists and has an assignment at this store (no assignment → `404`). **Not** being qualified for every requested service is **not** a precondition failure here — it just means that person's candidate set is empty (§4), producing an ordinary `200` with an empty `slots` array. The hard `409 STAFF_NOT_QUALIFIED` only exists at create time (`create-appointment-transaction-design.md` §7); this read-only endpoint never throws it — "exists but can't do this combo" gets the same empty-array treatment as "exists but fully booked," not a special error.
+5. If `staff_id` is given: that person exists and has an **active** assignment at this store (no active assignment → `404`; 2026-10-02, Batch 2 F1 — a deactivated assignment is treated as nonexistent here, same as no assignment at all, read through `store.active_staff_assignments`). **Not** being qualified for every requested service is **not** a precondition failure here — it just means that person's candidate set is empty (§4), producing an ordinary `200` with an empty `slots` array. The hard `409 STAFF_NOT_QUALIFIED` only exists at create time (`create-appointment-transaction-design.md` §7); this read-only endpoint never throws it — "exists but can't do this combo" gets the same empty-array treatment as "exists but fully booked," not a special error. "Exists but deactivated here" is different from both — it's a `404`, not an empty array, because the relationship itself no longer exists for operational purposes.
 
 ## 3. Duration and buffer (multi-service: see `create-appointment-transaction-design.md` §7)
 
@@ -93,7 +93,7 @@ Total occupied block for a candidate start `s`: `[s - Bb_first, s + D_total + Ba
 
 Let `T` be the target date (store timezone), `dow(T)` its day of week. Computed **independently per candidate assignment**, then merged.
 
-Candidate set = assignments at this store satisfying "bookable" (`staff-schedule-entry-workflow.md` §6) **and qualified for every requested service** — the intersection of staff-service assignments across the whole basket, not just any one item (a single-item basket's "intersection" is trivially that one service's own qualified set). In specified-staff mode, only that person's assignment at this store, and only if it's in that intersection — otherwise the candidate set is empty for them (§2 item 5).
+Candidate set = **active** assignments (`store.active_staff_assignments`, 2026-10-02) at this store satisfying "bookable" (`staff-schedule-entry-workflow.md` §6) **and qualified for every requested service** — the intersection of staff-service assignments across the whole basket, not just any one item (a single-item basket's "intersection" is trivially that one service's own qualified set). In specified-staff mode, only that person's assignment at this store, and only if it's in that intersection — otherwise the candidate set is empty for them (§2 item 5).
 
 **Occupancy criteria — defined once here, referenced by both Step 5 and Step 5b, never restated.** (An earlier version of this document stated this separately in each step; Step 5b's copy drifted from Step 5's and fell out of sync with the `pending`-counts-too decision below. Defining it once removes the ability for that to happen again.) An appointment occupies time when:
 - its `status` is one that still holds the slot — `confirmed`, or `pending` with `expires_at IS NULL OR expires_at > now()` (an expired, unconfirmed hold is already released — this engine checks live, it doesn't wait for a sweeper to catch up);
@@ -107,7 +107,7 @@ Step 5b additionally requires `occupies_capacity = true` (also a header snapshot
 ### Steps
 
 1. **Store open interval `O`**: `business_hours WHERE store_id AND day_of_week = dow(T) AND open_time IS NOT NULL` → `[open_time, close_time]`. Empty (closed, or hours never set) → return empty `slots` immediately.
-2. **Staff working interval `W`**: `staff_schedules WHERE staff_store_assignment_id AND day_of_week = dow(T)` → all `[start_time, end_time]` rows.
+2. **Staff working interval `W`**: `staff_schedules WHERE staff_id AND store_id = <the store being queried> AND day_of_week = dow(T)` → all `[start_time, end_time]` rows (2026-10-02, Batch 2 Change 2 — `staff_schedules` is now one timetable per person, each entry tagged with its own `store_id`, not keyed on the assignment; this step reads the slice tagged with the store currently being queried).
 3. **Base availability `A0 = O ∩ W`** (interval-set intersection).
 4. **Subtract time off**: `staff_time_offs WHERE staff_id` intersecting `tstzrange(store-midnight(T), store-midnight(T+1))` (converted to UTC for comparison) — subtract the intersecting portion from `A0`. **Person-level**: this staff member's time off at *any* store blocks them here too; no need to know what else they have booked elsewhere, the row already covers it.
 5. **Subtract existing occupied blocks**: every `store.appointments` row `WHERE staff_id` (**not** also filtered to this `store_id` — 2026-10-02 fix, see note below) meeting the **occupancy criteria** above, overlapping `T`. Subtract each one's interval from `A0`.
@@ -140,7 +140,7 @@ function getSlots(store, services[], date, staffId?):   # services[] has 1-5 ent
     assigns = bookableAssignments(store, sortedServices, staffId?)   # intersection across every service, §4
     slotsByStart = {}
     for a in assigns:
-        W = staffSchedules(a.id, dow(date))
+        W = staffSchedules(a.staff_id, a.store_id, dow(date))   # staff_id+store_id keyed, not assignment id (2026-10-02, Batch 2 Q6)
         A = intersect(O, W)
         A = subtract(A, timeOffsIntersecting(a.staff_id, date))     # Step 4, person-level
         A = subtract(A, occupiedBlocks(a.staff_id, date)) # Step 5: occupancy criteria above, filtered WHERE staff_id = a.staff_id only — no store_id (2026-10-02 fix, see Step 5's note)

@@ -112,11 +112,14 @@ RETURNS BOOLEAN AS $$
     FROM store.services sv
     JOIN store.staff_services ss           ON ss.service_id = sv.id
     JOIN store.staff_store_assignments ssa ON ssa.id = ss.staff_store_assignment_id
-    JOIN store.staff st                    ON st.id = ssa.staff_id
     WHERE sv.id = p_service_id
       AND sv.deleted_at IS NULL
       AND sv.status = 'active'
-      AND st.status = 'active'
+      AND ssa.status = 'active'  -- 2026-10-02, Batch 2 F6: store.staff.status is gone;
+                                  -- the staff-level check moved to the assignment's own
+                                  -- status (the relationship being suspended, not the
+                                  -- person) - dropped the JOIN store.staff st this used
+                                  -- to need, since st.status was the only reason it existed
       AND ssa.store_id = sv.store_id  -- the assignment must be AT this service's store;
                                       -- service/assignment same-store is app-level only
                                       -- (store-onboarding-v1-design.md §7.6), not DB-enforced
@@ -158,7 +161,7 @@ Definition: the lowest price among services that currently pass `service_is_book
 
 1. **Service catalog changes** — create/update/delete/restore a service or option, or change `price_type`/`price_cents` (`store-onboarding-v1-design.md` §7.2/§7.3).
 2. **Staff ↔ service assignment changes** — the full-replace `PUT` endpoints (`store-onboarding-v1-design.md` §7.5).
-3. **Staff status changes** — `store.staff.status` flips to/from `inactive`, or a `staff_store_assignments` row is added/removed for this store (`growayshop-staff-invite-workflow.md`).
+3. **Staff status changes** — a `staff_store_assignments.status` flips to/from `inactive` (2026-10-02, Batch 2 Q5 — moved from the now-dropped `store.staff.status`), or a `staff_store_assignments` row is added/removed for this store (`growayshop-staff-invite-workflow.md`).
 
 **Not** triggered by `staff_schedules`/`staff_time_offs` changes — `price_from_cents` answers "what does this store sell," not "is someone free right now." A fully-booked-out store still has a `price_from`.
 
