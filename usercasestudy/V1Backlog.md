@@ -138,6 +138,11 @@ version. Expect this section to be rewritten once V1 pilot data exists.
   calc but no staff-facing login found; COSReady has none. Retention play: staff care
   most about "what do I take home" — transparency keeps them. Needs: staff auth
   (exists in V1), per-store stats (V1.1 ruling), a commission model (V2).
+  Design intent (Steven, 2026-10-02): **chain-level login** — one login, a
+  membership list across the chain's stores, and a store switcher; every action is
+  scoped to the currently selected store (default = last-selected, mirroring
+  chain_admin's is_primary default). Per-store permissions come from the
+  assignment's descriptive role at each store.
 - No action: phone number as identity anchor — V1 already normalizes E.164 and counts
   per phone; the AI front desk's caller-ID → customer lookup rides on this for free.
 
