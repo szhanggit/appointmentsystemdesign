@@ -53,6 +53,14 @@ deleted here — a backlog that still lists shipped features is a lie.
 - Photo moderation queue UI (the staff-profile R1/R8 staging gate exists in v1;
   the Groway-side review UI is backlog).
 - Chain-wide aggregate stats.
+- Test appointments (`appointments.is_test` + 🧪 badge + quota exemption) — DEFERRED
+  from the V1 build (2026-10-03, Steven). Competitor check: none of Fresha / Vagaro /
+  Mindbody / Booker / Square / GlossGenius has a test-appointment concept — they train
+  on live accounts and don't meter bookings, so they never needed one. V1 training
+  story: practice bookings on the live store (they consume quota; acceptable at
+  100/mo) or train pre-launch. Design stays in the docs; the V1 build skips the
+  column, the badge, and the exemption. Revisit post-pilot if training demonstrably
+  burns quota.
 
 ## Platform & accounts
 
