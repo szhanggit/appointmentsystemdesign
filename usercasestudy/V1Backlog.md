@@ -203,3 +203,4 @@ data exists.
 - **[V3] Conversation logs & model lineage** — every AI touchpoint logs model version,
   prompt version, I/O summary, cost. Needed for debugging, cost control, and (for voice)
   potential compliance. V3 infra; V1/V2 just don't prohibit it.
+- **[V3] Thin revenue-per-staff report** — NEW 2026-10-04 (Steven). Sums completed-appointment service price snapshots per staff per period (revenue only — no commission-model rules, no pay-period logic). The full commission/earnings model (rates, pay periods) stays V2b under the staff self-service portal. All source data exists in V1 (`appointments` + item price snapshots); this is a small reporting build, no new capture needed. Rationale: pilot visibility into what each technician sold, without waiting for the full payroll feature.
