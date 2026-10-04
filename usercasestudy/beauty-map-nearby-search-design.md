@@ -9,7 +9,7 @@ Baseline: Mapbox is the chosen map provider (account `growaydev`, v1 uses the de
 1. **Two query modes, one PostGIS core.** Map-driven `bbox` mode (viewport) is primary; `radius` mode ("near me" list) is secondary. Both hit the same predicate builder — two endpoints would drift.
 2. **Public, no login, IP rate-limited.** Same posture as the public booking flow: discovery must be frictionless. The abuse surface is read-only.
 3. **`GEOGRAPHY`, not `GEOMETRY`.** Distances in meters, no projection math, correct across the Toronto area out of the box.
-4. **Test stores are invisible** (`store.stores.is_test = true`, `beauty-map-postgis-schema-design.md` §2d) — a store-level flag, not the booking-level `appointments.is_test`, because a demo store with zero bookings still needs to be excluded, and a real store with test bookings on it must not be.
+4. ~~Test stores are invisible...~~ — **removed 2026-10-03 (Steven, #6).** `store.stores.is_test` doesn't exist; there is no store-level test concept in V1 (competitor check: none of Fresha/Vagaro/Mindbody/Booker/Square/GlossGenius has one). Every `active`, geolocated store is visible on the map regardless of whether it has test appointments on it — the appointment-level flag (itself deferred from the V1 build, #18) was never a map-visibility concern.
 5. **Inactive / unlocated stores are invisible.** `status <> 'active'` or `NULL` coordinates → excluded. A store that hasn't finished onboarding doesn't exist on the map.
 6. **Result cap, not deep pagination.** Map clients don't paginate; the response is capped (200) and the client clusters. A list-mode client uses `limit`/`offset` within the cap.
 
@@ -76,7 +76,6 @@ SELECT s.id, s.name, s.latitude, s.longitude,
        COALESCE(s.formatted_address, s.address_line1 || ', ' || s.city) AS address_display
 FROM store.stores s
 WHERE s.status = 'active'
-  AND s.is_test = false
   AND s.geo IS NOT NULL
   AND s.geo && ST_MakeEnvelope(:min_lng, :min_lat, :max_lng, :max_lat, 4326)::geography
   AND <filter predicates>            -- beauty-map-filtering-design.md §3
@@ -98,10 +97,10 @@ LIMIT 200;
 
 ## 5. Test cases
 
-1. Viewport over downtown → only `active`, non-`is_test`, geolocated stores returned.
+1. Viewport over downtown → only `active`, geolocated stores returned.
 2. `radius_km=5` around a point → results sorted by `distance_m` ascending; a store 5.1 km away is excluded.
 3. `bbox` with min ≥ max → `400 INVALID_BBOX`.
-4. A store with `is_test = true` 100 m away → not returned, even though it has normal, non-test appointments.
+4. ~~A store with `is_test = true`...~~ — removed 2026-10-03; no store-level test flag exists (#6).
 5. A store with `NULL` geo → not returned, no error.
 6. 250 stores in viewport → 200 returned (cap), no pagination error.
 7. A store whose only service in "Facial" has no bookable staff → "facial" absent from its `categories` array, even though the store itself still has a category named "Facial" in its own back-office.

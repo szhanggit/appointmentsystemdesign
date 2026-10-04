@@ -25,18 +25,19 @@
 | Stores accessible | **Every store in the chain** | Exactly one (their own store) | One or many, switchable |
 | Sees a store's whole calendar | Yes, any store in the chain | Yes, own store | Yes |
 | Can make/manage bookings | *(future feature)* | *(future feature)* | No |
-| Can manage time off (`staff_time_offs`) | Yes — any staff in the chain (`staff-schedule-entry-workflow.md` §1) | Yes — any staff at their store | Yes — **own only**, self-service preferred (§3.4 there) |
-| Can manage staff schedules (`staff_schedules`) | Yes — any staff in the chain | Yes — any staff at their store | Yes — **own only**, at each store they work (same authorization shape as time off — `staff-schedule-entry-workflow.md` §1) |
-| Can invite `staff` | Yes, any store in the chain | Yes, own store only | No |
+| Can manage time off (`staff_time_offs`) | Yes — any staff in the chain (`staff-schedule-entry-workflow.md` §1) | Yes — any staff at their store | **No — no staff self-service in V1** (principle #1, 2026-10-03; all staff time-data entry is `store_admin`/`chain_admin`-only, `staff-schedule-entry-workflow.md` §0/§1) |
+| Can manage staff schedules (`staff_schedules`) | Yes — any staff in the chain | Yes — any staff at their store | **No — no staff self-service in V1** (same, principle #1) |
+| Can invite `staff` | Yes, any store in the chain | Yes, own store only | N/A — `staff` has no login in V1, nothing to invite with (principle #1) |
 | Can create a new `store_admin` | Yes — **optionally**, when adding a new store (§6.2, revised) or any time afterward for an existing store with none; no ongoing management power over the account once created | No | No |
 | Can add a new store to the chain | Yes, self-service (§6.2) — now the primary expansion path (§6.0), not a secondary one | No | No |
 | Billing self-service (start-trial / cancel / status) | **Yes — the only role that can** (`groway-billing-workflow.md`) | No — a store has no billing concept of its own | No |
 | Change the chain's `allowed_countries` (§6.7) | **Yes — the only role that can** | No (read-only, §6.7) | No |
 | Edit a store's address (§6.8) | Yes, any store in the chain | Yes, own store only | No |
-| Can deactivate/reactivate a `chain_admin` or `store_admin` | No — **only a Groway admin can** (`growayadmin-registration-workflow.md`) | No | No |
-| Who creates this account | Self-registration (§6.0, primary path); Groway admin (§6.1, exception/large-customer path) | Groway admin (§6.1) or `chain_admin` (§6.2) | Groway admin, `chain_admin`, or `store_admin` (`growayshop-staff-invite-workflow.md`) |
-| Password reset | Self-service, like a customer | Self-service, like a customer | Self-service, like a customer |
-| How many per chain | **Exactly one, ever** | One per store | Any number |
+| Can deactivate a `store_admin`, or reset their password | **Yes (2026-10-03 — reverses the 2026-09-29 rule, §6.9)** | No (can't act on itself this way) | No |
+| Can deactivate/reactivate a `chain_admin` | No — **only a Groway admin can** (`growayadmin-registration-workflow.md`) | No | No |
+| Who creates this account | Self-registration (§6.0, primary path); Groway admin (§6.1, exception/large-customer path) | Groway admin (§6.1) or `chain_admin` (§6.2) | N/A — no account to create in V1 (principle #1); the roster row is `growayshop-staff-invite-workflow.md`'s concern |
+| Password reset | Self-service, like a customer | Self-service (forgot-password) **or** `chain_admin`-triggered reset-link (§6.9, 2026-10-03) | N/A — no login in V1 |
+| How many per chain | **Exactly one, ever** | One per store | Any number of roster rows (not logins — principle #1) |
 
 Each `store.store_users` row has exactly one `app_role` — a person needing two roles needs two accounts, though in practice this is rarely necessary since `chain_admin` already has every `store_admin` capability (just applied across the whole chain instead of one store). Self-service registration (§6.0) leans on exactly this fact: the first store's `store_admin_id` points at the same row as the chain's `chain_admin_id` rather than minting a second account for the same person.
 
@@ -458,7 +459,7 @@ sequenceDiagram
     SM-->>CA: 201 Created { storeId, storeAdminStoreUserId: <id or null> }
 ```
 
-**`chain_admin` can create this `store_admin`, but gains no ongoing authority over it** (§1) — `created_by_store_user_id` records who set the account up, purely for audit; deactivating or resetting it afterward is Groway-admin-only, same as any other `store_admin` (`growayadmin-registration-workflow.md`). This is a deliberate asymmetry: creation is a narrow, one-time act bundled into "adding a store," not a general management capability.
+**`chain_admin` can create this `store_admin`, and — as of 2026-10-03 — also has ongoing authority over it** (§1, §6.9 — reverses this section's earlier "no ongoing authority" framing): `created_by_store_user_id` records who set the account up, for audit; deactivating or resetting its password afterward is now `chain_admin`-capable, not Groway-admin-only (§6.9). What stays a one-time, narrow act is *creation* specifically bundled into "adding a store" — the asymmetry that remains is "Groway alone still creates/manages `chain_admin` accounts," not "`chain_admin` can't manage what it creates."
 
 **Why `storeAdminEmail` became optional:** the old rule — a new store always gets a freshly-created `store_admin` at the moment it's added — was a holdover from when a Groway admin handled every store addition by hand and already had a real person's email in front of them (from the intake email). Self-service "add a store" is now the primary expansion path (§6.0, §1), usually run by a solo owner who doesn't have a second person to name yet. Forcing the field would either block the flow on a hiring decision or produce a throwaway email just to satisfy the form — worse than an honest `NULL`. A `chain_admin` can designate a `store_admin` for an existing store at any later point through the same creation call shape (not a separate endpoint — implementation detail, not designed further here), whenever a real person is actually ready to take it on.
 
@@ -608,6 +609,68 @@ sequenceDiagram
 ```
 
 **404, not 403, for out-of-scope stores** — deliberately: a caller outside their scope shouldn't be able to distinguish "this store doesn't exist" from "this store exists but isn't yours" by the status code alone. This is a plain CRUD action with no business-policy baggage (unlike deactivating a store, §8 item 2) — it doesn't touch billing, doesn't affect existing appointments, and reuses §2.2's resolution logic exactly as store creation does.
+
+---
+
+### 6.9 `chain_admin` manages `store_admin` accounts (NEW, 2026-10-03 — reverses the 2026-09-29 decision)
+
+**Ruling (Steven):** `chain_admin` can deactivate a `store_admin` account and trigger a password reset for it. Only a Groway admin manages `chain_admin` accounts. Clean hierarchy: Groway admin → `chain_admin` → `store_admin`, each managing the level directly below. Rationale: the chain owner hires and fires store managers — account lifecycle should follow the HR lifecycle, not wait on Groway. A terminated store manager with lingering system access is a bigger risk than a `chain_admin` misusing this button, and requiring Groway in the loop for every such action doesn't scale. Groway retains break-glass access through the existing impersonation flow (`groway-admin-impersonation-design.md`) regardless.
+
+```mermaid
+sequenceDiagram
+    actor CA as chain_admin
+    participant GW as Gateway
+    participant SM as Store Module
+    participant SCOG as Amazon Cognito (Store User Pool)
+    participant DB as PostgreSQL (store schema)
+    participant SQSQ as SQS (store-activity-log)
+
+    CA->>GW: POST /api/store/store-users/{storeUserId}/deactivate
+    GW->>SM: (in-process, StoreSession, caller.appRole must be chain_admin)
+    SM->>DB: SELECT su.id FROM store.store_users su<br/>JOIN store.stores s ON s.store_admin_id = su.id<br/>WHERE su.id = storeUserId AND su.app_role = 'store_admin' AND s.chain_id = <resolve caller's chain, §2.1>
+    alt not found (wrong role, or not this chain_admin's own chain)
+        SM-->>CA: 404 Not Found
+    else found
+        SM->>SCOG: AdminDisableUser(Username=email)
+        SM->>SCOG: AdminUserGlobalSignOut(Username=email)
+        SM->>DB: UPDATE store.store_users SET status='deactivated' WHERE id = storeUserId
+        SM->>SQSQ: SendMessage { event_type:'ACCOUNT_DEACTIVATED', actor_store_user_id:CA.id, target_store_user_id:storeUserId }
+        SM-->>CA: 200 OK
+    end
+```
+
+`POST /api/store/store-users/{storeUserId}/reactivate` is the exact mirror (`AdminEnableUser`, `status='active'`), same authorization shape and chain-scoping.
+
+**Password reset (NEW, 2026-10-03) — the emailed reset-link flow, not a temp-password hand-off.** `chain_admin` triggers it; the `store_admin` receives the same kind of reset-code email they'd get from self-service forgot-password (§6.5) — `chain_admin` never sees or sets a password directly, only causes the email to go out:
+
+```mermaid
+sequenceDiagram
+    actor CA as chain_admin
+    participant GW as Gateway
+    participant SM as Store Module
+    participant SCOG as Amazon Cognito
+    participant SQSQ as SQS (store-activity-log)
+
+    CA->>GW: POST /api/store/store-users/{storeUserId}/trigger-password-reset
+    GW->>SM: (in-process, StoreSession, caller.appRole must be chain_admin)
+    SM->>SM: Verify storeUserId resolves to a store_admin within caller's own chain (same scoping as deactivate, above) - else 404
+    SM->>SCOG: ForgotPassword(ClientId, SecretHash, Username=target's email)
+    SCOG-->>SCOG: Send a reset code to the target's own inbox
+    SM->>SQSQ: SendMessage { event_type:'PASSWORD_RESET_REQUESTED', actor_store_user_id:CA.id, target_store_user_id:storeUserId }
+    SM-->>CA: 200 OK "A password reset email was sent to {email}"
+```
+
+The target completes the reset via the existing `POST /api/store/auth/password/reset` endpoint (§6.5) exactly as if they'd requested it themselves — this call only triggers the email; it reuses §6.5's confirm step unchanged. **Why reset-link, not temp-password-and-force-change:** that other pattern (`AdminSetUserPassword` + `FORCE_CHANGE_PASSWORD`) exists specifically for inviting a brand-new account that has no email-based channel to them yet proven live — a `store_admin` resetting their *existing* account already has a working inbox, so the ordinary self-service channel is simpler and doesn't require `chain_admin` to ever handle a credential, even transiently. **The lapsed-employee edge case** (a terminated store manager whose email has since been deactivated/forwarded elsewhere) is handled by **deactivation**, not by racing to reset their password — once `status='deactivated'`, `AdminUserGlobalSignOut` has already ended every active session and `InitiateAuth` rejects the account outright (§6.4), regardless of whether anyone can still read that inbox. Reset-link therefore covers every legitimate scenario; a temp-password channel adds nothing deactivation doesn't already cover.
+
+**Scope, explicitly:** this section only ever targets `store_admin` accounts within the acting `chain_admin`'s own chain (`404` otherwise, same "don't confirm existence outside your scope" convention used everywhere in this project). A `chain_admin` cannot deactivate or reset another `chain_admin`, and cannot touch a `staff` account this way either (`staff` has no login to deactivate in V1, principle #1). Every action here is logged to `store.store_user_activity_log` with both the actor and the target — the audit trail this guardrail depends on.
+
+Endpoints added to §3's table:
+
+| Method & path | Caller | Purpose |
+|---|---|---|
+| `POST /api/store/store-users/{storeUserId}/deactivate` | `chain_admin`, own chain's `store_admin` only | Deactivate a `store_admin` account (§6.9) |
+| `POST /api/store/store-users/{storeUserId}/reactivate` | Same | Reactivate one |
+| `POST /api/store/store-users/{storeUserId}/trigger-password-reset` | Same | Trigger the standard reset-link email for a `store_admin` (§6.9) |
 
 ---
 

@@ -5,9 +5,9 @@
 **Relationship to other documents:**
 - `growayshop-registration-workflow.md` — creates the `billing_accounts` row at **chain creation time** (§7.1 there), anchored to `chain_id`. Login is **not affected by billing at all** — see §3 below for why.
 - `growayadmin-registration-workflow.md` — same `is_finance` capability as before: only such an admin may confirm a payment.
-- `groway-store-notifications-workflow.md` — a separate document that turns the blocked-booking counters defined here (§4) into a daily in-app message + email, sent to the chain's `chain_admin` only.
-- `store-onboarding-v1-design.md` — fixed reference for `store.stores`/`store.appointments`, **not modified**. One additive call is inserted at the start of the appointment-creation code path (§4); `store.appointments.is_test` (defined there) is read by that same call.
-- `beauty-map-postgis-schema-design.md` §2d adds `store.stores.is_test` (a whole demo store, independent of any individual booking's own flag) — §4.2's quota check reads this column too, at check time, alongside `appointments.is_test`.
+- `groway-store-notifications-workflow.md` — a separate document that turns each blocked-booking event into a real-time, escalating in-app toast (2026-10-03, #16 — replaces an earlier daily-digest design), sent to the chain's `chain_admin` and every `store_admin` in the chain.
+- `store-onboarding-v1-design.md` — fixed reference for `store.stores`/`store.appointments`, **not modified**. One additive call is inserted at the start of the appointment-creation code path (§4); `store.appointments.is_test` (defined there) is read by that same call — **deferred from the V1 build 2026-10-03** (Steven, `V1Backlog.md`; design retained, see §4.1).
+- `beauty-map-postgis-schema-design.md` — **2026-10-03: `store.stores.is_test` is dropped entirely** (Steven, #6) — no longer a dependency of this document. The store-level quota exemption that used to read it (§4.1/§4.2) is removed, not deferred.
 
 **Terminology (2026-09-28):** billing is anchored to the **chain** (`store.chains`), never to an individual **store** or to any specific account. A store has no billing concept of its own.
 
@@ -31,6 +31,25 @@ store.chains (1) ──chain_id (UNIQUE)──> store.billing_accounts (1)
 - **Neither plan limits the number of stores or staff.** A five-store chain can sit on Free (and will simply share one 100-appointment/month quota across all five, §4). Each store still gets exactly one operational `store_admin` (`growayshop-registration-workflow.md` §2).
 - **The only technical difference between the two plans is the appointment quota** (§4) and the feature rows already shown on the pricing page (member management, marketing tools) — nothing here introduces enforcement for those feature rows; they're a frontend/UI concern, not modeled in this document.
 - **A store has no billing concept of its own.** Every self-service billing action in this document is `chain_admin`-only (§3, §7) — a `store_admin` cannot see or touch billing state at all, even for their own store.
+
+---
+
+## 1a. Plan derivation — the single source for badges and feature gating (2026-10-03, Steven, #7/#17)
+
+```text
+derive_plan(chain_id):
+    ba = SELECT plan FROM store.billing_accounts WHERE chain_id = :chain_id
+    if ba.plan = 'free': return 'free'
+    has_ai = EXISTS(SELECT 1 FROM store.ai_addon_subscriptions
+                     WHERE billing_account_id = ba.id AND status = 'active')
+    return 'paid_ai' if has_ai else 'paid'
+```
+
+Never stored — recomputed at render/check time from `billing_accounts.plan` and `ai_addon_subscriptions.status` (the latter table already exists, §9.1, as a documented placeholder with no V1 writer — `derive_plan` is its first reader, but nothing in V1 ever sets a row to `status='active'`, so `'paid_ai'` is a correctly-wired, currently-unreachable outcome; only `'free'`/`'paid'` ever actually return in V1). Upgrade/downgrade is automatic because there's no stored UI state to update — a plan change takes effect the instant `billing_accounts.plan` changes.
+
+**Two consumers, same function, never two implementations:**
+- **Plan badges (#7):** back-office header/sidebar, the billing page, and the Groway admin chain/store list render `Free` (gray) / `Paid` (brand color) / `Paid + AI` (purple + ✨) from this exact return value. **Never shown on any customer-facing surface** — a business's plan tier is never badged to its own customers. Naming is `Free`/`Paid`/`Paid + AI` everywhere, English-only (#22); a future marketing rename changes in one place.
+- **Deposit/pre-auth feature gating (#17):** `payment-deposit-preauth-design.md` §1/§5 calls `derive_plan(chain_id) != 'free'` as its gate. See that document for the enforcement detail — deposit collection itself is V1.1+ backlog; only this gating rule is recorded now.
 
 ---
 
@@ -78,7 +97,7 @@ sequenceDiagram
 - **Free:** 100 appointments per calendar month, **shared across every store in the chain** (not 100 per store).
 - **Paid:** unlimited.
 - **An appointment counts the instant a row is inserted into `store.appointments`** — regardless of who created it (a customer self-booking, or staff entering a walk-in/phone booking) and regardless of what happens to it afterward (cancelled, no-show, rescheduled). Counting is by creation event, not by current status.
-- **Exception: `store.appointments.is_test = TRUE`** (staff-marked test bookings, `store-onboarding-v1-design.md` §5) **or the appointment's store has `store.stores.is_test = TRUE`** (a whole demo store, `beauty-map-postgis-schema-design.md` §2d) — either one never counts, in either direction: no quota consumed, no blocked-booking count triggered. A demo store's purpose is consequence-free trial and error; relying on every booking into it being manually flagged test is exactly the kind of "someone has to remember" chain this exemption exists to avoid. This only exempts billing quota — slot occupancy is unaffected (a test appointment, on a test store or not, still occupies real time, `availability-slot-engine.md` §4).
+- **~~Exception: `store.appointments.is_test = TRUE`... or the appointment's store has `store.stores.is_test = TRUE`~~ — deferred from the V1 build, 2026-10-03 (Steven, `V1Backlog.md`).** `store.stores.is_test` is dropped entirely (#6, no competitor — Fresha/Vagaro/Mindbody/Booker/Square/GlossGenius — has a test-store concept). `appointments.is_test` is kept in the design but its build is deferred: the V1 quota-check call skips both exemption checks and the column read. Design stays in the docs; the V1 build skips the column, the badge, and this exemption. Revisit post-pilot if training demonstrably burns quota. V1 training story: practice bookings on the live store (they consume quota; acceptable at 100/month) or train pre-launch.
 
 ### 4.2 Where the check lives
 
@@ -91,11 +110,8 @@ sequenceDiagram
     participant DB as PostgreSQL (store schema)
 
     C->>SM: (any code path that creates an appointment)
-    SM->>DB: SELECT is_test FROM store.stores WHERE id = storeId
-    alt appointment.isTest == true OR store.isTest == true
-        Note over SM: Skip quota entirely - neither consumed nor counted as blocked.<br/>store.isTest is read live here, never backfilled onto the appointment row.
-    else neither is test
-        SM->>SM: BillingQuotaService.TryConsumeAsync(storeId) [new, internal to Store Module]
+    Note over SM,DB: Deferred from the V1 build 2026-10-03 (Steven, V1Backlog): no is_test<br/>read happens here at all in V1 - every appointment, test or not, counts<br/>toward quota. Design retained above for when #18 revisits this post-pilot.
+    SM->>SM: BillingQuotaService.TryConsumeAsync(storeId) [new, internal to Store Module]
         SM->>DB: SELECT ba.id, ba.plan FROM store.stores s<br/>JOIN store.billing_accounts ba ON ba.chain_id = s.chain_id<br/>WHERE s.id = storeId
         alt plan = 'paid'
             SM->>DB: INSERT INTO store.billing_appointment_usage (billing_account_id, period_month, appointment_count)<br/>VALUES (ba.id, date_trunc('month', now()), 1)<br/>ON CONFLICT (billing_account_id, period_month)<br/>DO UPDATE SET appointment_count = billing_appointment_usage.appointment_count + 1
@@ -110,7 +126,6 @@ sequenceDiagram
                 SM-->>C: 409 Conflict "This business has reached its monthly booking limit. Please contact them directly to book."
             end
         end
-    end
 ```
 
 **This has to be one statement, not read-then-write.** An earlier version of this diagram did `SELECT appointment_count` first, then decided whether to `INSERT`/`UPDATE` based on that value in application code — under concurrent requests near the boundary, two requests can both read `99`, both decide "allowed," and both increment, landing on `101`. The `INSERT ... ON CONFLICT DO UPDATE ... WHERE ... RETURNING` form above makes the read, the threshold check, and the write a single atomic operation: Postgres evaluates the `WHERE` clause and applies the update under the same row lock, so two concurrent callers hitting the same row are serialized by Postgres itself, and only one of them can ever be the one that pushes the count past 99. No advisory lock is needed — the conditional upsert already gives the same guarantee with one round trip instead of a separate lock/unlock step.
@@ -124,7 +139,7 @@ sequenceDiagram
 
 ### 4.4 Proactive usage warnings — 75% / 90% / 100%, before the block ever happens
 
-§4.3 is reactive (a daily digest of bookings already turned away). This is the before-the-fact counterpart, specifically to avoid the block itself being a surprise — matching COSReady's own three-tier pattern (background in `beauty-map-*`-adjacent competitive notes, not reproduced here). Runs only in the `plan='free'` branch above, right after a successful quota consume (`plan='paid'` has no cap, so there's nothing to warn about).
+§4.3 is reactive (a real-time toast per bookings already turned away, 2026-10-03 #16). This is the before-the-fact counterpart, specifically to avoid the block itself being a surprise — matching COSReady's own three-tier pattern (background in `beauty-map-*`-adjacent competitive notes, not reproduced here). Runs only in the `plan='free'` branch above, right after a successful quota consume (`plan='paid'` has no cap, so there's nothing to warn about).
 
 - Idempotency guard: three columns on `billing_accounts` — `quota_warn_75_sent_at`, `quota_warn_90_sent_at`, `quota_warn_100_sent_at`. A threshold fires once per billing period: `sent_at IS NULL OR sent_at < period_month` (reusing `billing_appointment_usage.period_month`, the first of the current month — no separate "cycle start" column, and deliberately no reset job to clear these at month-end; a reset job that silently fails is a worse failure mode than a comparison that doesn't need resetting at all).
 - `appointment_count` just incremented past `75`/`90`/`100` (of the 100-unit cap) → post the corresponding `quota_warning_75`/`_90`/`_100` message (`groway-store-notifications-workflow.md` §3a), addressed to `chain_admin`, in-app + email.
@@ -135,6 +150,10 @@ sequenceDiagram
 
 ## 5. Manual payment confirmation — one endpoint for both "first time going Paid" and "renewing"
 
+**Pricing rule (2026-10-03, Steven, #3): paid pricing is per store, not per chain.** `monthly_amount_cents = 49_00 × (count of stores in this chain)` — a 1-store chain owes CA$49.00/month, a 5-store chain owes CA$245.00/month. The billing account and invoice stay chain-level (§1, unchanged) — only the dollar amount scales with store count. The free 100-appointment/month quota stays chain-shared, untouched by this rule. This is the per-store price point from `pricing-tiers-v1.md`, made explicit here as the actual derivation.
+
+**The expected amount is server-derived, never admin-typed.** `confirm-payment` no longer accepts an `amountCents` the admin enters — it computes `expectedAmountCents` itself from the chain's current store count at confirmation time, and that's what gets written to `monthly_amount_cents` and the `payments` row. "Manual" in "V1 billing is manual" describes the *confirm action* (a human clicks confirm after verifying money actually arrived) — not a human doing the multiplication. The Groway-admin confirm UI displays the derived expected amount (e.g. "Expected: $245.00 — 5 stores × $49.00") so the finance admin can sanity-check it against whatever payment reference they're reconciling, but the number itself is never freehand-entered.
+
 ```mermaid
 sequenceDiagram
     actor F as Groway admin (is_finance = true)
@@ -143,18 +162,20 @@ sequenceDiagram
     participant SM as Store Module
     participant DB as PostgreSQL (store schema)
 
-    F->>GW: POST /api/admin/billing-accounts/{id}/confirm-payment<br/>{ amountCents, currency, paymentMethod, externalReference }
+    F->>GW: POST /api/admin/billing-accounts/{id}/confirm-payment<br/>{ currency, paymentMethod, externalReference }
     GW->>AM: (AdminSession validated)
     AM-->>AM: Reject unless caller.is_finance == true
     AM->>SM: IStoreUserService.ConfirmBillingPaymentAsync(billingAccountId, request, callerContext) (in-process)
-    SM->>DB: SELECT current_period_end FROM store.billing_accounts WHERE id = billingAccountId
-    SM->>DB: INSERT INTO store.payments<br/>(billing_account_id, amount_cents, currency, status='confirmed_manual',<br/>payment_method, external_reference,<br/>period_start=COALESCE(current_period_end, now()), period_end=GREATEST(now(), COALESCE(current_period_end, now())) + interval '1 month',<br/>recorded_by_admin_id=F.id)
-    SM->>DB: UPDATE store.billing_accounts<br/>SET plan='paid', monthly_amount_cents = COALESCE(monthly_amount_cents, amountCents),<br/>current_period_end = GREATEST(now(), COALESCE(current_period_end, now())) + interval '1 month',<br/>payment_reminder_sent_at=NULL, plan_downgrade_reason=NULL<br/>WHERE id = billingAccountId
-    SM-->>AM: 200 OK
+    SM->>DB: SELECT current_period_end, chain_id FROM store.billing_accounts WHERE id = billingAccountId
+    SM->>DB: SELECT COUNT(*) FROM store.stores WHERE chain_id = <resolved chain_id>
+    SM->>SM: expectedAmountCents = 4900 × storeCount (2026-10-03, #3 - per-store pricing, derived here, never client-supplied)
+    SM->>DB: INSERT INTO store.payments<br/>(billing_account_id, amount_cents=expectedAmountCents, currency, status='confirmed_manual',<br/>payment_method, external_reference,<br/>period_start=COALESCE(current_period_end, now()), period_end=GREATEST(now(), COALESCE(current_period_end, now())) + interval '1 month',<br/>recorded_by_admin_id=F.id)
+    SM->>DB: UPDATE store.billing_accounts<br/>SET plan='paid', monthly_amount_cents = expectedAmountCents,<br/>current_period_end = GREATEST(now(), COALESCE(current_period_end, now())) + interval '1 month',<br/>payment_reminder_sent_at=NULL, plan_downgrade_reason=NULL<br/>WHERE id = billingAccountId
+    SM-->>AM: 200 OK { amountChargedCents: expectedAmountCents }
     AM-->>F: 200 OK
 ```
 
-This one endpoint covers every case that used to need separate handling: a Free chain paying to go Paid directly, a chain finishing its self-service trial and confirming payment before it lapses, a chain that already lapsed back to Free (§6.2) coming back later, and ordinary month-to-month renewal indefinitely. `GREATEST(now(), ...)` keeps the same meaning throughout: renewing early doesn't lose already-paid time; renewing late doesn't grant free days.
+This one endpoint covers every case that used to need separate handling: a Free chain paying to go Paid directly, a chain finishing its self-service trial and confirming payment before it lapses, a chain that already lapsed back to Free (§6.2) coming back later, and ordinary month-to-month renewal indefinitely. `GREATEST(now(), ...)` keeps the same meaning throughout: renewing early doesn't lose already-paid time; renewing late doesn't grant free days. `monthly_amount_cents` is now **always overwritten** on every confirm (not `COALESCE`'d) — the whole point of deriving it live is that it reflects the chain's *current* store count, which can have changed since the last billing period; a chain that added a 6th store since its last payment gets the new, correct amount the next time payment is confirmed, with no separate "recalculate" step.
 
 ---
 
@@ -225,7 +246,7 @@ There is no "locked out" state, so cancelling is no longer a scarier action than
 |---|---|---|
 | `POST /api/store/billing/start-trial` | `chain_admin` only | One-time, chain-wide 30-day Paid trial (§3) |
 | `GET /api/store/billing/status` | `chain_admin` only | Current plan, trial/period dates, this month's appointment usage — powers the in-app quota banner |
-| `POST /api/admin/billing-accounts/{id}/confirm-payment` | Groway admin, `is_finance = true` | Confirm a payment; go/stay Paid for another month (§5) |
+| `POST /api/admin/billing-accounts/{id}/confirm-payment` | Groway admin, `is_finance = true` | Confirm a payment; go/stay Paid for another month. Amount is server-derived from store count, never client-supplied (§5, 2026-10-03 #3) |
 | `POST /api/store/billing-account/cancel` | `chain_admin` only | Immediately downgrade to Free (§7) |
 
 Login (`POST /api/store/auth/login`) is completely unchanged — billing state never affects it, for any app role.
@@ -308,7 +329,7 @@ ALTER TABLE admin.admins ADD COLUMN is_finance BOOLEAN NOT NULL DEFAULT FALSE;
 
 ### 9.1 AI add-on services — placeholder only, no functionality in V1
 
-Same "build the shape now, wire it up later" principle as the payment-processor fields above. No AI feature exists yet; this table exists only so a future AI add-on doesn't need a schema migration to bill for itself.
+Same "build the shape now, wire it up later" principle as the payment-processor fields above. No AI feature exists yet; this table exists only so a future AI add-on doesn't need a schema migration to bill for itself. **2026-10-03 update:** `derive_plan()` (§1a) reads `status='active'` here as part of the "Paid + AI" badge condition — this table now has exactly one reader, but still zero writers in V1, so that branch never actually fires.
 
 ```sql
 CREATE TABLE store.ai_addon_subscriptions (
@@ -332,17 +353,19 @@ Nothing reads or writes this table anywhere else in this version — no endpoint
 ## 10. Test data
 
 ```sql
--- Selah Head Spa's billing account - one row for the whole chain (both stores),
--- used the self-service trial once via its chain_admin, now an ordinary Paid
--- customer, one payment recorded by Maria Ops (is_finance).
+-- Selah Head Spa's billing account - one row for the whole chain (both stores:
+-- King West + Yorkville), used the self-service trial once via its chain_admin,
+-- now an ordinary Paid customer. monthly_amount_cents = 2 stores x $49.00 = $98.00
+-- (2026-10-03, #3 - per-store derivation, not an arbitrary admin-typed figure),
+-- one payment recorded by Maria Ops (is_finance).
 INSERT INTO store.billing_accounts (id, chain_id, plan, trial_used_at, trial_started_at, current_period_end, monthly_amount_cents, currency, payment_reminder_sent_at, created_at)
 VALUES ('bb111111-1111-1111-1111-111111111111',
         'cc111111-1111-1111-1111-111111111111',  -- the chain, from growayshop-registration-workflow.md test data
         'paid', '2026-08-20 10:00:00-04', '2026-08-20 10:00:00-04', '2026-10-20 10:00:00-04',
-        9900, 'CAD', NULL, '2026-08-20 10:00:00-04');
+        9800, 'CAD', NULL, '2026-08-20 10:00:00-04');
 
 INSERT INTO store.payments (billing_account_id, amount_cents, currency, status, payment_method, external_reference, period_start, period_end, recorded_by_admin_id)
-VALUES ('bb111111-1111-1111-1111-111111111111', 9900, 'CAD', 'confirmed_manual', 'bank_transfer', 'ETR-20260920-001',
+VALUES ('bb111111-1111-1111-1111-111111111111', 9800, 'CAD', 'confirmed_manual', 'bank_transfer', 'ETR-20260920-001',
         '2026-09-20 10:00:00-04', '2026-10-20 10:00:00-04', 'a2222222-2222-2222-2222-222222222222');
 
 -- A second, unrelated, hypothetical chain (no real store.chains/stores rows
@@ -361,7 +384,7 @@ INSERT INTO store.blocked_booking_daily_counts (billing_account_id, day, blocked
 VALUES ('bb222222-2222-2222-2222-222222222222', '2026-09-28', 7);
 ```
 
-*The second chain (`bb222222...`) demonstrates the full soft-downgrade lifecycle: trial used once, never converted to Paid, auto-reverted to Free, now pooling its 100/month quota across its stores and already turning away customers (7 blocked today) — this is the exact scenario `groway-store-notifications-workflow.md`'s daily digest is built to surface, and it will reach exactly one person: that chain's `chain_admin`.*
+*The second chain (`bb222222...`) demonstrates the full soft-downgrade lifecycle: trial used once, never converted to Paid, auto-reverted to Free, now pooling its 100/month quota across its stores and already turning away customers (7 blocked today) — this is the exact scenario `groway-store-notifications-workflow.md`'s quota-blocked toast (2026-10-03, #16) is built to surface, and it reaches both that chain's `chain_admin` and every `store_admin` in the chain.*
 
 ---
 

@@ -10,7 +10,7 @@ Baseline: SMS via Twilio, email via SES (both already the chosen channels elsewh
 2. **Confirmation goes out by SMS + Email; reminders go out by SMS only.** SMS has the highest open rate; confirmation also needs a durable record (email), reminders just need to be seen.
 3. **Quiet hours 21:00–08:00 (store timezone): no reminder SMS.** A reminder lands at 08:00 on the next poll instead of being skipped — a 3am reminder is pointless, but skipping it entirely means no reminder at all. Action-triggered messages (confirm/cancel/reschedule) are exempt — the customer just asked for it.
 4. **Scheduling is a 5-minute poller, not a distributed scheduled-message system.** No scheduled-message infrastructure exists yet; a poller plus a "sent" flag is naturally idempotent and survives restarts.
-5. **Bilingual templates (en/zh)**, by customer language preference, falling back to the store default.
+5. ~~Bilingual templates (en/zh), by customer language preference, falling back to the store default~~ — **removed 2026-10-03 (#22): English-only templates.** V1 is a pure-English system — no i18n framework, no translated content, no other UI languages anywhere in the product. `customer.customers.language` and `booking_settings.notification_lang` are both dropped (§5 below); every SMS/email template ships in English only.
 6. **Cost is logged per message**, borne by the partner — no store-level cost allocation in v1.
 7. **SMS STOP opt-out**: once opted out, SMS stops and falls back to email automatically; if neither channel is available, the send is logged only.
 
@@ -68,44 +68,38 @@ Template key format `{event}.{channel}`. Variables: `{store_name}` `{store_phone
 
 `{manage_link}` points to the self-serve lookup page (`customer-my-bookings-design.md` §4), pre-filled with this booking's `reference_code` via query param — e.g. `{booking_domain}/bookings?ref={reference_code}`. The phone-match check still runs on that page (§2 of that document); the link only saves re-typing the code, it does not bypass the ownership check.
 
-Language: `customer.language ?? booking_settings.notification_lang` (default `en`; v1 supports `en`/`zh` only).
+~~Language: `customer.language ?? booking_settings.notification_lang`...~~ — removed 2026-10-03 (#22). No language resolution happens here; every template is English.
 
+-- 2026-10-03 (#22): every template is English-only; the zh variants previously
+-- listed here are removed, not translated elsewhere - V1 has no i18n framework.
 ```
 # booking.confirmed.sms
-en: Hi {name}, your booking at {store_name} is confirmed: {service_summary} with {staff_name} on {date} at {time}. Ref {reference_code}. Manage or reschedule: {manage_link}. Reply STOP to opt out.
-zh: {name}您好，您在{store_name}的预约已确认：{date}{time}，{service_summary}（{staff_name}），预约号{reference_code}。改期/取消：{manage_link}。回复 STOP 退订。
+Hi {name}, your booking at {store_name} is confirmed: {service_summary} with {staff_name} on {date} at {time}. Ref {reference_code}. Manage or reschedule: {manage_link}. Reply STOP to opt out.
 
 # booking.confirmed.email (subject)
-en: Booking confirmed — {store_name}, {date} {time}
-zh: 预约确认 — {store_name} {date} {time}
+Booking confirmed — {store_name}, {date} {time}
 
 # reminder.24h.sms
-en: Reminder: {store_name} tomorrow {time}, {service_summary} with {staff_name}. Ref {reference_code}. Need to change? {manage_link}
-zh: 提醒：您明天{time}在{store_name}有预约，{service_summary}（{staff_name}），预约号{reference_code}。改期：{manage_link}
+Reminder: {store_name} tomorrow {time}, {service_summary} with {staff_name}. Ref {reference_code}. Need to change? {manage_link}
 
 # reminder.2h.sms
-en: See you soon! {store_name} today at {time}, {service_summary}. Ref {reference_code}.
-zh: 期待您的光临！今天{time}，{store_name}，{service_summary}。预约号{reference_code}。
+See you soon! {store_name} today at {time}, {service_summary}. Ref {reference_code}.
 
 # booking.cancelled.sms
-en: Your booking {reference_code} at {store_name} on {date} {time} has been cancelled. Hope to see you another time! {store_phone}
-zh: 您{date}{time}在{store_name}的预约（{reference_code}）已取消，期待下次光临！{store_phone}
+Your booking {reference_code} at {store_name} on {date} {time} has been cancelled. Hope to see you another time! {store_phone}
 
 # booking.rescheduled.sms
-en: Your booking has been moved to {date} {time} at {store_name}, {service_summary} with {staff_name}. New ref {reference_code}. Questions? {store_phone}
-zh: 您的预约已改至{date}{time}，{store_name}，{service_summary}（{staff_name}），预约号{reference_code}。疑问请致电{store_phone}。
+Your booking has been moved to {date} {time} at {store_name}, {service_summary} with {staff_name}. New ref {reference_code}. Questions? {store_phone}
 
 # booking.pending.sms (auto_confirm=false stores, or payment_required pending payment)
-en: Hi {name}, we received your booking request at {store_name} ({date} {time}). We'll confirm shortly. Ref {reference_code}. Manage: {manage_link}
-zh: {name}您好，我们已收到您在{store_name}的预约请求（{date}{time}），稍后为您确认。预约号{reference_code}。管理预约：{manage_link}
+Hi {name}, we received your booking request at {store_name} ({date} {time}). We'll confirm shortly. Ref {reference_code}. Manage: {manage_link}
 
 # booking.expired.sms
-en: Hi {name}, your held slot at {store_name} ({date} {time}) has expired. Rebook anytime — we'd love to see you! {store_phone}
-zh: {name}您好，您在{store_name}预留的时间（{date}{time}）已过期，欢迎重新预约！{store_phone}
+Hi {name}, your held slot at {store_name} ({date} {time}) has expired. Rebook anytime — we'd love to see you! {store_phone}
 ```
 
 - `{service_summary}`: single service = its name; multiple services = "A + B" (v1 shows the first two + "…" to avoid overlength).
-- `{date}`/`{time}` format in store timezone (`Oct 5` / `10月5日`, `2:30 PM` / `下午2:30`).
+- `{date}`/`{time}` format in store timezone (`Oct 5`, `2:30 PM`).
 
 ## 7. Failure & retry
 
@@ -155,8 +149,8 @@ ALTER TABLE store.appointments
 
 ALTER TABLE store.booking_settings
   ADD COLUMN reminder_24h_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-  ADD COLUMN reminder_2h_enabled  BOOLEAN NOT NULL DEFAULT TRUE,
-  ADD COLUMN notification_lang    VARCHAR(5) NOT NULL DEFAULT 'en';
+  ADD COLUMN reminder_2h_enabled  BOOLEAN NOT NULL DEFAULT TRUE;
+  -- notification_lang DROPPED 2026-10-03 (#22, English-only V1)
 
 CREATE TABLE store.customer_sms_opt_out (
   phone        TEXT PRIMARY KEY,

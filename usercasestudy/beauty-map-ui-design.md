@@ -41,6 +41,7 @@ Baseline: mobile-first, Mapbox GL JS, bilingual en/zh (same i18n framework as th
 - Services grouped by the store's **own** categories (not taxonomy slugs — taxonomy is a map-discovery concept only, §6) with live "from $X" pricing (shared component with booking Step 1).
 - Sticky bottom CTA: [Book] → `/book/{store_id}` (the public booking flow takes over).
 - Unknown / inactive `store_id` → generic 404 ("Online booking isn't available for this store"), same rule as the booking flow.
+- **Store preview, admin-session (NEW, 2026-10-03, #19).** A "Preview store page" button in back office (on store settings + the setup checklist, `store-onboarding-v1-design.md` §2a) opens this exact URL in a new tab — the real public page, not a simulated renderer. For a not-yet-`active` store, that store's own `store_admin`/`chain_admin` (session-based, no token) see the page rendered with a **"Preview mode" ribbon** instead of the generic 404 an outside visitor would get — everyone else still gets the ordinary 404, existence never leaked outside the caller's own scope.
 
 ## 6. Store-side: category taxonomy mapping
 
@@ -55,14 +56,14 @@ Lives on the existing category management screen in the back office (`store-onbo
 - Store settings section. Address field = the Mapbox Search Box autocomplete from `growayshop-registration-workflow.md` §2.2 (unchanged).
 - Map with a draggable pin initialized at the geocoded position; dragging updates lat/lng; [Save] writes through the existing store-update endpoint → the `trg_stores_geo_sync` trigger rebuilds `geo` (`beauty-map-postgis-schema-design.md` §2).
 - Save confirms with the resolved address + coordinates shown ("Pin set to 8120 Bayview Ave — 43.8563, -79.3378").
-- The store-level `is_test` toggle (`beauty-map-postgis-schema-design.md` §2d) lives on the general store settings page, not here — it's a `store_admin`-facing switch on the existing store-update endpoint, not a new page or a map-specific concept.
+- ~~The store-level `is_test` toggle...~~ — removed 2026-10-03; no such toggle exists (#6). There is no setting on this page or any other that hides an otherwise-`active` store from the map.
 
 ## 8. Test cases
 
 1. A store with no bookable service in any taxonomy-mapped category → no chips shown on its preview card, but its detail page shows its own categories/services normally.
 2. Opening a pre-existing store's category list for the first time post-launch → unmapped categories show the nudge banner; mapping one via the dropdown clears it for that category.
 3. No rating element appears anywhere in the customer-facing flow (pages 1, 3, 4) or the filter drawer (page 2).
-4. Toggling a store to `is_test=true` in settings → it disappears from the public map on the next query, with no change to its normal booking behavior.
+4. ~~Toggling a store to `is_test=true`...~~ — removed 2026-10-03; no such setting exists (#6).
 5. Dragging the pin on page 7 and saving → the map home page (page 1) shows the store at the new position on the next load.
 
 ## 9. Deferred (V1.1)

@@ -9,7 +9,7 @@
 3. **Rating is cached columns, not a reviews table, in v1 — and ships empty.** `avg_rating`/`rating_count` exist on `store.stores` so V1.1's review-writing feature needs no migration, but v1 has no writer path for them at all. Importing Google ratings is a ToS risk; hand-entering them is fabricating data — both are worse than an honest "no ratings yet." The columns exist now purely to avoid a later migration; populating them is out of scope here.
 4. **`price_from_cents` is a cached column, recomputed on bookability-affecting writes (§4).** Filter queries run on every map pan — joining to services live would be the wrong trade at that frequency. A single recompute function (§4) keeps every write path consistent.
 5. **GIST index on `geo`.** The `&&` / `<->` / `ST_DWithin` operators the nearby-search query uses all resolve through it.
-6. **A store-level `is_test` column, separate from `appointments.is_test`.** A booking-level flag can't express "this whole store is a demo" — a demo store with zero bookings would still leak onto the public map, and a real store that happens to have test bookings on it wouldn't. Store-level `is_test` is toggled by `store_admin` in store settings (default `false`), via the existing store-update endpoint — no new endpoint.
+6. ~~A store-level `is_test` column, separate from `appointments.is_test`~~ — **dropped entirely, 2026-10-03 (Steven, #6).** Competitor check (Fresha, Vagaro, Mindbody, Booker, Square Appointments, GlossGenius): none has a test-store concept — most train on live accounts or free trials; Square's sandbox is developer-only. The appointment-level flag already covers training; the store-level flag's marginal value (convenience + map invisibility) didn't justify its abuse surface (a real store flipping this to hide from the public map indefinitely). This supersedes the earlier "back-office-only test stores" and "Groway-admin-only flag, one-per-chain" mitigation ideas — both are moot once the flag itself is gone.
 7. **Service bookability gets one shared SQL function**, not three independent copies of the same `WHERE` logic. `store-onboarding-v1-design.md` §7.6 already defines "bookable" as derived (never a stored flag): `deleted_at IS NULL AND status='active' AND EXISTS(≥1 active staff assignment)`. `price_from_cents` (this document), the category filter (`beauty-map-filtering-design.md`), and the nearby-search response's `categories` array (`beauty-map-nearby-search-design.md`) all now call the same function — a service that's actually unbookable can't show up as "available" in one place and not another.
 8. **Category filtering needs a shared taxonomy, which store-scoped categories can't provide.** `service_categories` is per-store free text (§7 of the onboarding doc) — two stores naming their category "Head Spa" have no common key, and free text (bilingual, typo-prone) can't be a filter key. A small platform-wide taxonomy (11 seed categories, §3) is a narrow, deliberate exception to "shared catalog is v2" (`store-onboarding-v1-design.md` §9.5) — store-owned categories, names, and prices are untouched; the taxonomy exists only for cross-store discovery.
 
@@ -57,9 +57,9 @@ ALTER TABLE store.stores
   ADD COLUMN price_from_cents INT;
 -- NULL when the store has no currently-bookable service (see §4's definition).
 
--- 2d. Store-level test flag (decision 6) — independent of appointments.is_test
-ALTER TABLE store.stores
-  ADD COLUMN is_test BOOLEAN NOT NULL DEFAULT false;
+-- 2d. ~~Store-level test flag~~ — DROPPED 2026-10-03 (decision 6, #6). This
+-- column does not exist in V1. If it was ever added to a running database,
+-- `DROP COLUMN is_test` is the migration; nothing else in this document reads it.
 ```
 
 - Categories for filtering come from the taxonomy introduced in §3, mapped from the existing per-store catalog (§7 of the onboarding doc) — no change to how a store's own categories/names/prices work.
@@ -69,26 +69,29 @@ ALTER TABLE store.stores
 ```sql
 CREATE SCHEMA IF NOT EXISTS platform;
 
+-- name_zh DROPPED 2026-10-03 (#22, V1 is English-only — no i18n framework,
+-- no translated content anywhere in the product). BCP-47 codes elsewhere
+-- (platform.spoken_languages) stay, since those are data, not display
+-- strings — this table only ever had a display string, so it's gone outright.
 CREATE TABLE platform.category_taxonomy (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slug       VARCHAR(50) NOT NULL UNIQUE,
   name_en    VARCHAR(64) NOT NULL,
-  name_zh    VARCHAR(64) NOT NULL,
   sort_order INT NOT NULL DEFAULT 0
 );
 
-INSERT INTO platform.category_taxonomy (slug, name_en, name_zh, sort_order) VALUES
-  ('head-spa',       'Head Spa',          '头疗',      10),
-  ('facial',         'Facial',            '面部护理',  20),
-  ('massage',        'Massage',           '按摩',      30),
-  ('nails',          'Nails',             '美甲',      40),
-  ('hair',           'Hair',              '美发',      50),
-  ('lashes-brows',   'Lashes & Brows',    '睫毛/眉毛', 60),
-  ('waxing',         'Waxing',            '脱毛',      70),
-  ('skincare',       'Skincare',          '护肤',      80),
-  ('barbering',      'Barbering',         '理发',      90),
-  ('wellness',       'Wellness',          '养生',     100),
-  ('med-aesthetics', 'Medical Aesthetics', '医美',     110);  -- the partner's med-aesthetics clinic is a confirmed plan (2026-09-29), not a hypothetical — seeded now so it isn't a post-launch taxonomy addition
+INSERT INTO platform.category_taxonomy (slug, name_en, sort_order) VALUES
+  ('head-spa',       'Head Spa',           10),
+  ('facial',         'Facial',             20),
+  ('massage',        'Massage',            30),
+  ('nails',          'Nails',              40),
+  ('hair',           'Hair',               50),
+  ('lashes-brows',   'Lashes & Brows',     60),
+  ('waxing',         'Waxing',             70),
+  ('skincare',       'Skincare',           80),
+  ('barbering',      'Barbering',          90),
+  ('wellness',       'Wellness',          100),
+  ('med-aesthetics', 'Medical Aesthetics', 110);  -- the partner's med-aesthetics clinic is a confirmed plan (2026-09-29), not a hypothetical — seeded now so it isn't a post-launch taxonomy addition
 
 ALTER TABLE store.service_categories
   ADD COLUMN taxonomy_id UUID REFERENCES platform.category_taxonomy(id);
@@ -176,7 +179,7 @@ Definition: the lowest price among services that currently pass `service_is_book
 3. Set lat/lng to `NULL` → `geo` becomes `NULL`, the store silently drops off the map query.
 4. `EXPLAIN` on the nearby query shows a GIST index scan, not a sequential scan.
 5. Remove a service's only assigned staff member's live entries at this store → `service_is_bookable()` flips to `false` → the next write on that path recomputes `price_from_cents` and it excludes that service.
-6. Mark a store `is_test=true` → it still has normal appointment-booking behavior, but is excluded from the public map query (`beauty-map-nearby-search-design.md` §3).
+6. ~~Mark a store `is_test=true`...~~ — removed 2026-10-03; `stores.is_test` doesn't exist (decision 6, #6).
 7. A category created with no `taxonomy_id` → store's own UI shows it normally; map category filter never matches it.
 
 ## 8. Deferred

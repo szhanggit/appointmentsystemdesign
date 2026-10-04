@@ -57,7 +57,24 @@ Groway admin or chain_admin manually flips status to 'active' when ready
 Generate each store's public booking link → hand off to the chain
 ```
 
-Both paths land on the exact same schema and the same `pending → active → suspended` lifecycle (`store.stores.status`) — they differ only in *who* drives the flow and *what* flips `pending` to `active` (automatic on self-serve email verification; a manual decision by a Groway admin or `chain_admin` on the assisted path). That transition is orthogonal to (not a stand-in for) the derived operational-readiness condition in `staff-schedule-entry-workflow.md` §2.3 (business hours filled in, ≥1 bookable staff assignment, ≥1 bookable service). A store only accepts real customer bookings when **both** hold: `status='active'` AND that derived condition is true. `active` with an incomplete setup still can't be booked (the UI nudges on what's missing); `suspended` is an unconditional kill switch regardless of how complete the setup is — an emergency close doesn't require touching schedules or the catalog.
+Both paths land on the exact same schema and the same `pending → active → suspended` lifecycle (`store.stores.status`) — they differ only in *who* drives the flow and *what* flips `pending` to `active` (automatic on self-serve email verification; a manual decision by a Groway admin or `chain_admin` on the assisted path). That transition is orthogonal to (not a stand-in for) the derived operational-readiness condition in `staff-schedule-entry-workflow.md` §2.3 (business hours filled in, ≥1 bookable staff, ≥1 bookable service). A store only accepts real customer bookings when **both** hold: `status='active'` AND that derived condition is true. `active` with an incomplete setup still can't be booked (the UI nudges on what's missing); `suspended` is an unconditional kill switch regardless of how complete the setup is — an emergency close doesn't require touching schedules or the catalog.
+
+### 2a. Setup checklist — the readiness gate made visible (NEW, 2026-10-03, Steven, #19)
+
+A dashboard card makes the store-onboarding-v1-design.md §2/staff-schedule-entry-workflow.md §2.3 readiness condition legible instead of a silent gate a store owner has to discover by trial and error. **Fully derived, nothing stored** — every item below evaluates live from existing data on render, same philosophy as the readiness condition itself:
+
+1. Basic information (store name, address, phone) — `store.stores` fields non-empty.
+2. Business hours — all 7 days set, open or explicitly closed (`business_hours`).
+3. ≥1 service — `service_is_bookable()` returns true for at least one (`beauty-map-postgis-schema-design.md` §4).
+4. ≥1 staff member with live timetable entries at the store — per P2 (`staff-schedule-entry-workflow.md` §0): "works at store B" is live schedule entries tagged B, never a status flag.
+5. ≥1 staff↔service qualification — `staff_services` has a row pairing a staffed person with a bookable service at this store.
+6. ≥1 local service category mapped to `platform.category_taxonomy` — **discoverability, not bookability**: an unmapped category works fine in the store's own booking flow (the taxonomy join is nullable by design, `beauty-map-postgis-schema-design.md` §3), it just means the store is invisible in map category search. Checklist copy says so explicitly ("Affects map discoverability"), deep-linking to the per-category mapping UI (`beauty-map-ui-design.md` §6).
+
+**Dashboard card**: progress bar + "Setup progress n/6," each item deep-linking to its own settings page. **Collapsible but not dismissible while incomplete** — reappears on every dashboard load until all 6 are green; this is deliberate, since a half-set-up store silently sitting unbookable is exactly the failure mode this checklist exists to prevent.
+
+**Below the checklist, a "Recommended checks" row** — booking settings, deposit setup (paid-only, `payment-deposit-preauth-design.md` §5/#17) — not blocking, not counted toward the 6/6, but surfaced as the answer to "why can't my store take bookings yet?" once the hard gate is satisfied.
+
+**One-time toast**: when the self-serve creation wizard first lands on the dashboard, a single "New store created" toast points at the checklist — not repeated on subsequent visits (the persistent card itself is the ongoing reminder, the toast is just the first-time orientation).
 
 ---
 

@@ -13,6 +13,7 @@ Baseline: provider is **Stripe** (2.9% + CA$0.30 per domestic card transaction i
 3. **Cancellation policy: cancelling inside the free window auto-refunds; a late cancel or no-show keeps the deposit** (`late_cancel_refund`, default `false`). The point of a deposit is no-show protection, which only works if the default is "no refund"; the checkout page must say so explicitly.
 4. **A provider abstraction (`IPaymentProvider`) is built in v1**, with Stripe as its first implementation — so adding a country-specific method later doesn't touch booking code.
 5. **Refunds go through a store-side button in v1** (`store_admin`+), not the Stripe dashboard directly — keeping every refund inside Groway's audit ledger; a refund that bypasses it is a blind spot.
+6. **Deposits are paid-plan-only, forever — a standing product rule recorded now, 2026-10-03 (Steven, #17).** The free tier never has payment features. The line: GATED (paid-only) = anything moving money through the platform — online deposit collection, card pre-authorization, no-show charges via Stripe. NOT gated = bookkeeping without money movement — price display, marking cash/counter-card as received (both stay free-tier, unaffected by this document). Rationale: gating bookkeeping would cripple the free tier's core utility; the monetizable, cost-incurring part is online money movement specifically. Enforcement is `derive_plan(chain_id) != 'free'` (`groway-billing-workflow.md` §1a) — see §5 below for where this is checked. This rule is recorded now even though deposit collection itself remains backlog (§2) — when this document's "v1" actually ships, the gate is already specified, not an afterthought.
 
 ## 2. Scope
 
@@ -52,7 +53,7 @@ CREATE TABLE store.payment_provider_accounts (
 3. **Customer picks at checkout**: the Payment Element renders the store's enabled methods as tabs.
 4. Not purely country-automatic (a customer may distrust a given method) and not unrestricted customer choice (the store needs to retain control).
 
-## 5. Deposit configuration (`booking_settings` additions)
+## 5. Deposit configuration (`booking_settings` additions) — plan-gated (2026-10-03, #17)
 
 | Field | Meaning |
 |---|---|
@@ -63,6 +64,8 @@ CREATE TABLE store.payment_provider_accounts (
 | `late_cancel_refund` | Whether a late cancel refunds the deposit, default `false` |
 | `payment_methods_enabled` | §4's opt-in list |
 
+- **Free-plan gating.** A free-plan chain (`derive_plan(chain_id) == 'free'`) cannot configure any of the fields above — the settings section is replaced with an upgrade nudge: "Deposits are a Paid feature. [Upgrade]". Every deposit/pre-auth API endpoint (capture, refund, configuration write) checked against `derive_plan(chain_id)` independently returns `403` for a free-plan chain — the UI nudge is a courtesy, not the enforcement; the server never trusts the client to have hidden the form.
+- **Downgrade (paid → free).** Already-collected deposits/pre-auths are untouched — money already moved, nothing reverses automatically. New deposit collection is disabled the moment the chain drops to free (the same `403` as above). Deposit settings become read-only: a downgraded chain can see its prior configuration but cannot edit it until it upgrades again.
 - Deposit is always ≤ order total; a `free`-priced order with `payment_required` skips Stripe entirely (nothing to charge).
 - Checkout copy must state: "Deposit CA$X. Cancelling more than Y hours before start is refunded automatically; within Y hours or a no-show forfeits it." (`Y` = `cancel_threshold_hours`.)
 

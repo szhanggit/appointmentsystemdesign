@@ -2,10 +2,12 @@
 
 **Status:** builds directly on `store-onboarding-v1-design.md` (schema) and `availability-slot-engine.md` (slot computation, including the store-level capacity filter in its Step 5b). This document owns the single "create an appointment" action end to end — request/response contracts, the status state machine, slot re-validation, double-booking prevention, store-level capacity enforcement, idempotency, and quota integration.
 
+**`is_test` — deferred from the V1 build, 2026-10-03 (Steven, `V1Backlog.md`); design retained, build skips the column, the badge, and the exemption.** Competitor check (Fresha/Vagaro/Mindbody/Booker/Square/GlossGenius): none has a test-appointment concept. V1 training story: practice bookings on the live store (they consume quota; acceptable at 100/month) or train pre-launch. Every `is_test` mention below (field, occupancy rule, quota skip) describes the retained design, not something the V1 build executes — revisit post-pilot if training demonstrably burns quota.
+
 Baseline facts (established elsewhere, referenced here, not re-argued):
 - `store.appointments` is single-person, single-block: the header carries `staff_id` + `starts_at/ends_at`; multiple services ride as `appointment_items`, performed back-to-back by that same person (`store-onboarding-v1-design.md` §4).
 - Occupancy is read from the header; buffers come from the header's own snapshot, never recomputed from the service (`availability-slot-engine.md` §4).
-- Quota: `BillingQuotaService.TryConsumeAsync(storeId)`, an atomic conditional upsert; `is_test` skips quota (`groway-billing-workflow.md` §4.2).
+- Quota: `BillingQuotaService.TryConsumeAsync(storeId)`, an atomic conditional upsert; `is_test` skips quota in the retained design — **deferred from the V1 build**, see above (`groway-billing-workflow.md` §4.2).
 - Authorization: `storeId ∈ caller.AuthorizedStoreIds`; a cross-store resource is `404`, never `403`.
 - Times: the API uses store-local `YYYY-MM-DDTHH:mm:ss`; internal comparisons run in UTC.
 
@@ -339,7 +341,12 @@ BEGIN
      §6.3; utm_source = the request's utm_source verbatim on §3.1, NULL when
      absent; forced NULL unconditionally on §3.2 regardless of request content
      (§1 decision 14) — never branched on, purely recorded; customer_notes =
-     the request's notes, trimmed, empty string normalized to NULL, §3.1/§3.2)
+     the request's notes, trimmed, empty string normalized to NULL, §3.1/§3.2;
+     staff_specified = channel='public_web' AND request.staff_id IS NOT NULL,
+     NEW 2026-10-03 #12 — unconditionally false on §3.2, regardless of whether
+     a specific staff_id was passed there, since this signal is specifically
+     about the CUSTOMER's own explicit choice, not any staff_id's mere
+     presence on the request)
      + INSERT appointment_items (snapshots)
      + UPDATE idempotency_keys SET response_status=201, response_body=:body
        WHERE store_id=:store_id AND key=:key (if a key was supplied — the row
@@ -514,6 +521,17 @@ ALTER TABLE store.appointments
   -- design.md §5); channel itself is untouched and stays purely code-path-
   -- derived (decision 12) - this column is the only attribution signal.
   ADD COLUMN utm_source TEXT,
+  -- Most-requested-technician signal (NEW, 2026-10-03, #12/#20). TRUE only
+  -- when a public-channel create carried an explicit customer-chosen
+  -- staff_id (a Step-2 pick or a ?staff_id= deep link from the staff profile)
+  -- - FALSE for "any available" (server-resolved) and for staff-manual
+  -- bookings. Derived at INSERT from the request (staff_id IS NOT NULL on
+  -- the public create, §3.1) - no client change needed, the information was
+  -- already in the request, it just was never persisted before this. Read by
+  -- staff-profile-design.md §5's chain-wide "most requested" stat - only
+  -- status='completed' rows count there, this column just records the fact,
+  -- it doesn't itself gate anything.
+  ADD COLUMN staff_specified BOOLEAN NOT NULL DEFAULT false,
   ALTER COLUMN customer_id DROP NOT NULL;
   -- occupied_range and no_double_booking are defined once, in §6.1 — not restated here.
 
