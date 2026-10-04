@@ -113,33 +113,54 @@ a direction ("does this close off the AI future?"). Anything here that needs sch
 gets a reservation line in the section above; behavior stays undesigned until its
 version. Expect this section to be rewritten once V1 pilot data exists.
 
-### V2 — monetization & retention (the business grows up)
+### V2 — re-sequenced 2026-10-04 (Steven): foundation → AI core → market test, then backfill or kill
+
+**The sequencing bet.** V1 is the foundation (打地基) — non-negotiable, must be solid. After V1 + pilot data, the next thing built is the AI core, not the V2 monetization list. Rationale: whether the AI can attract merchants is the project's existential question — the riskiest assumption. V2's deposits / memberships / portal / reviews are optimizations on a business that only matters if the AI bet lands. If the AI core pulls merchants → backfill V2b's detail items. If it can't → the project terminates. This is "riskiest assumption first," not "most features first."
+
+**The pilot-data gate still stands.** Zero AI design until V1 pilot data exists (unchanged). What changes is only what comes *after* the gate: AI enablers first, pure monetization later.
+
+**Kill criteria are set before the AI build starts, not by feel at the end.** The exit line gives the date (2027-03-28); the bar needs numbers decided upfront — e.g. N pilot merchants live, $X measurable AI-attributed revenue ("earned you $X last month") by that date. If the bar isn't met, the project terminates rather than drifting into backfilling V2b on hope.
 
 > 2026-10-02: `appointments.channel`, booking-time marketing/AI-outreach consent,
 > and `stores.policies_text` were approved into V1 scope — build checklist lives in
 > the V1 groundwork brief (local file, handed to Claude Code separately).
 
-- **[V2] Structured cancellation reasons** — AI gap-filling triggers on
+#### V2a — AI enablers (pulled forward, built right after the pilot)
+
+Only the items the AI core actually needs. Original entries preserved verbatim, retagged:
+
+- **[V2a] Structured cancellation reasons** — AI gap-filling triggers on
   `appointment.cancelled` and needs the why: `customer_cancelled`, `no_show`,
   `staff_cancelled`, `rescheduled_away`. V1: the event carries `cancelled_by`
   (customer/staff/system) only — no reason-code column (2026-10-02 ruling: a
   VARCHAR no V1 UI populates stays NULL forever; the taxonomy is a V2 addition
   with its own capture UI). V2: the gap-fill consumer.
-- **[V2] Waitlist, shaped for AI** — not a dumb notification list. Each entry needs:
+
+- **[V2a] Waitlist, shaped for AI** — not a dumb notification list. Each entry needs:
   desired service(s), acceptable time windows, staff preference (or any), contact
   channel, expiry. Build it in V2 as "a list of phone numbers" and V3 AI gap-filling
   remodels it. (Already listed under Store operations — this is the shape constraint.)
-- **[V2] Customer identity resolution** — AI recall lives or dies on "quiet 60+ days per
+
+- **[V2a] Customer identity resolution** — AI recall lives or dies on "quiet 60+ days per
   real human." Guest bookings fragment identity (same phone, several guest rows). V2
   needs: hardened claim flow + a staff dedup/merge tool. The `customer_linked` event
   (reserved above) is the seam.
-- **[V2] Full review system** — already listed under Customers. Feeds the AI front desk
+
+- **[V2a] Customer profiles** — NEW, promoted from the V1.1 backlog (Customers section). Recall needs a profile to win back to; identity resolution needs a record to resolve into.
+
+#### V2b — pure monetization & maturation (deferred until the AI core proves market pull)
+
+None of these block the AI. They get built only if the market test passes:
+
+- **[V2b] Full review system** — already listed under Customers. Feeds the AI front desk
   ("what do people say about…") and social proof. No new thought.
-- **[V2] Member accounts, packages/memberships/gift cards, coupons, tips, reports &
+
+- **[V2b] Member accounts, packages/memberships/gift cards, coupons, tips, reports &
   analytics, phone OTP step-up, keyword search, NEW badge, price bands, server-side
   clustering, admin console + impersonation UI, photo-moderation queue UI, chain-wide
   aggregate stats** — already listed under their headings. No new thought.
-- **[V2] Staff self-service portal (Fresha parity)** — each staff member gets their
+
+- **[V2b] Staff self-service portal (Fresha parity)** — each staff member gets their
   own login: sees their own schedule/shifts, their performance, and their
   commission/earnings summary. 2026-10-02 research: Fresha has this (own login +
   workspace, per-sale commission calc, pay-period summaries); byChronos has commission
@@ -151,6 +172,7 @@ version. Expect this section to be rewritten once V1 pilot data exists.
   scoped to the currently selected store (default = last-selected, mirroring
   chain_admin's is_primary default). Per-store permissions come from the
   assignment's descriptive role at each store.
+
 - No action: phone number as identity anchor — V1 already normalizes E.164 and counts
   per phone; the AI front desk's caller-ID → customer lookup rides on this for free.
 
@@ -159,6 +181,8 @@ version. Expect this section to be rewritten once V1 pilot data exists.
 V3 is the three exit-line criteria — AI 前台 + AI 填空位 + AI 召回 — built + deployed
 + **measured**, by 2027-03-28. Direction only; the design gets written after V1 pilot
 data exists.
+
+> 2026-10-04 (Steven) — thinnest market-test slice first: the exit line still requires all three (front desk + gap-fill + recall, built + deployed + measured), but the market test doesn't wait for the full set. The thinnest cut is AI front desk answering calls 24/7 → bookings, plus one measurable revenue number ("earned you $X last month"). Complete the set after the slice proves pull.
 
 - **[V3] AI front desk** — answers calls/messages 24/7, books into the calendar through
   the same agent-callable APIs (idempotency keys are already V1). Needs: the V2
