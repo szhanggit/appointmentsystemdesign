@@ -116,7 +116,7 @@ From pixel inspection of official screenshots:
 - [ ] Click empty slot opens the booking modal with that staff member and start time prefilled.
 - [ ] Click block opens the details drawer: notes pinned at top (verbatim, highlighted), then time/staff/service/price, then actions (Confirm / Reschedule / Cancel / No-show / Complete per permissions).
 - [ ] **[SPEC-DELTA]** Drag-and-drop reschedule: dragging a block to another time and/or staff column shows a semi-transparent ghost following the pointer; on drop, a confirm dialog (old → new) appears; success moves the block, 409 keeps it in place with the error shown. (Overrides spec §1.1/§12.1 per Steven 2026-10-03 — applied, see §1 decision 1 and §8a.)
-- [ ] Badges: 🧪 on every test appointment (design retained, deferred from the V1 build); 💬 on every appointment with non-empty notes; pending-review appointments (public + notes + still pending) render bright red per batch #10; badges never overlap block text.
+- [ ] Badges: ~~🧪 on every test appointment (design retained, deferred from the V1 build)~~ — removed 2026-10-05, no longer part of this checklist (`is_test` was removed entirely, #18 superseded); 💬 on every appointment with non-empty notes; pending-review appointments (public + notes + still pending) render bright red per batch #10; badges never overlap block text.
 
 ### P1 — workflow parity
 - [ ] View switcher in toolbar: Day / Week(grid). Week grid shows 7 day-columns; switching views preserves the selected date.

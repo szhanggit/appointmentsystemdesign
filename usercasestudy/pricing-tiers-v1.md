@@ -46,7 +46,7 @@
 ## 计费口径（现在定死，以后不扯皮）
 
 - **1 个预约** = 预约记录插入的那一刻即计数一次，按自然月统计。之后无论取消（`cancelled`）还是爽约（`no-show`），都照样计入——空位曾被占用。
-- **不计入**：测试预约（staff 标记为测试）。
+- ~~不计入：测试预约（staff 标记为测试）~~ —— **2026-10-05（Steven）整体移除**：`appointments.is_test` 这个字段本身已经不存在了，不是"暂不开发"，是彻底拿掉——没有一家主流竞品（Fresha/Vagaro/Mindbody/Booker/Square/GlossGenius）有"测试预约"这个概念，为培训练手单单独维护一套"不计额度"的分支，成本（额度豁免分支、占用规则特例、日历角标、未来每份报表都要多判断一次）配不上收益。**现在所有预约，不管是不是练手单，都一样计入额度**——这件事从 2026-10-03 起就已经是系统的真实行为了，今天只是把文档和设计说法对齐成"移除"而不是"暂不开发"。
 - **额度按连锁账单账号汇总**：同一连锁名下所有门店的预约量加总计算，不按门店拆分（如某连锁有 N 家店，免费版的 100 次是 N 家店的总和）。
 - 超额当月：免费版超 100 后，新预约不可创建（温柔拦截 + 升级提示），而不是事后账单——小连锁最怕 surprise bill。
 - 防薅：同一连锁/同一地址限 1 个免费账户；升级/降级按月结算。
@@ -56,6 +56,8 @@
 1. **免费版**：有。免费档是既定策略。
 2. **免费额度 100 预约/月**：已定为 100，不是 50。单人连锁月均 90–110 单，100 是天然分水岭；2 人以上的店必超，超了就转化。
 3. **合伙人自有门店永久免费**：产品归合伙人所有，自己的店用自己的产品不收费。AI、短信、电话等第三方直接成本走合伙人 AWS 账号账单（其信用卡已绑定；Steven 需要 IAM 权限来配置），不计入 CA$2,000/月开发资助。Steven 在本项目中定位为雇员（非创始人），目标是抬高收入下线、不谋求股权与上线收益。
+
+   **2026-10-05 carve-out（Steven）：** 为了端到端测试账单全流程，合伙人自有门店（含 Selah Head Spa）走跟外部商户完全相同的试用 → 到期提醒 → 手动 confirm-payment → 付费版流程（按真实门店数 × CA$49/月计费），作为账单系统的常驻金丝雀——不是摆设，而是持续被真实跑一遍整条流程的那一条。费用在公司自己的账户体系内循环，不实际花钱，但经济实质依然是"自己的产品不收费"。**代码层面没有任何特殊分支**——没有白名单表，没有 `is_owned` 开关，自有连锁一样受上面"试用政策"节新三条件的约束，不享有任何豁免。
 4. **单一付费档**：Studio/Growth 合并为一个"付费版"，CA$49/月（试运行建议价），门店/员工/预约均无限制*。现阶段简单优先，细分等有数据后再说。
 5. **试用政策**：付费版首月免费试用 1 个月（细则见"试用政策"节）。
 6. **一家店一个管理员账号**：每家门店恰好一个 `store_admin`（operational admin）。`chain_admin` 是一个独立的账户类型（不是某家店 `store_admin` 兼任），一条连锁唯一一个，拥有跨店视图 + 账单管理。**（2026-10-03 修订，reverses the 2026-09-29 decision）** `chain_admin` CAN now manage `store_admin` accounts directly — deactivate them, reset their passwords — no Groway admin needed. Rationale: account lifecycle should follow the HR lifecycle (the chain owner hires/fires store managers); a terminated manager with lingering access is a bigger risk than a `chain_admin` misusing the button, and requiring Groway in the loop doesn't scale. Every such action is logged in the admin activity history; Groway retains break-glass access via the existing impersonation flow. Only `chain_admin` accounts themselves remain Groway-admin-managed. 员工（`staff`）可跨店。
@@ -74,12 +76,18 @@ Shown in: back-office header/sidebar, the billing page, and the Groway admin cha
 
 `ai_addon_subscriptions` is **documented, not built** in V1 — its shape is undefined until the AI layer gets real design work (zero AI design docs exist by policy until V1 pilot data exists, `V1Backlog.md`). The badge's third tier is correctly specified but unreachable in V1 — only Free/Paid ever actually render.
 
-## 试用政策（已定，2026-09-28）
+## 试用政策（2026-10-05 修订：资格收紧）
 
-- 付费版首月免费 1 个月，每连锁限一次。
+- 付费版首月免费 1 个月，每连锁限一次；**但现在只有"新链"才能开**——必须同时满足三条：建链 ≤30 天、从未持有过付费版、从未开过试用。三条缺一不可。
+- **老免费用户升级：没有试用**，直接走手动 confirm-payment（详见 `groway-billing-workflow.md` §5）——不管这家店注册了多久、一直是免费版，只要不是"建链 30 天以内的新链"，就不再给试用，直接进付费确认流程。
 - 试用无需信用卡；到期提醒：付费订阅，或降回免费版。不搞 surprise bill。
-- AI 按量服务不免费试用（有真实第三方成本）；试用期内含小额体验额度（如 50 次 AI 触达），让连锁看到"填了几个空位"，敞口封死。
+- AI 按量服务不免费试用（有真实第三方成本）；试用期内含小额体验额度（如 50 次 AI 触达），让连锁看到"填了几个空位"，敞口封死。（**AI 这条政策本次零改动，一字未动**——10 月 4 日晚曾短暂讨论过"AI 也全部免费试用"，10 月 5 日早上已明确收回，维持 9 月 28 日原样。）
 - 试用期产生的短信/电话/AI 第三方成本，走合伙人 AWS 账号账单，Steven 不经手。
+
+**为什么要收紧（Rationale，2026-10-05，Steven）：**
+1. 免费版本身就已经是"试用"了——试用是获客工具，用来换一个从没评估过付费版的新连锁愿意试一次，不是给已经在免费版上用了很久、只是还没转化的老用户的"二次优惠"。
+2. 这套设计本来就没有自动扣费、没有"到期悄悄降级再突然来一张账单"这种套路——试用从头到尾都是纯赠送，收紧之后依然如此，只是把这份赠送更精准地花在真正需要评估的新连锁身上。
+3. 零 pilot 影响：产品还没正式上线，现在还没有真正意义上的"老免费用户"——这条规则是为将来稳定运营的状态提前定下来的，现在改成本最低，以后真要再调，成本也最低。
 
 ## 待定问题
 

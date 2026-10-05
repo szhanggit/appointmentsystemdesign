@@ -186,4 +186,4 @@ Failing either keeps them out of `GET /slots` entirely at that store. The back o
 ## 9. Open questions
 
 1. Exactly how `?confirm=true` interacts with a chain-wide time-off side effect spanning many future appointments across several stores at once isn't worked through in detail — the mechanism (§5.2) generalizes, but the UX for "this affects 12 appointments across 2 stores" hasn't been designed.
-2. Everything `store-onboarding-v1-design.md` and `availability-slot-engine.md` already leave open (multi-service sequencing, `auto_confirm=false`/pending status, `is_test` occupancy) is inherited here unresolved, since this document assumes an appointment-creation mechanism that doesn't exist yet.
+2. Everything `store-onboarding-v1-design.md` and `availability-slot-engine.md` already leave open (multi-service sequencing, `auto_confirm=false`/pending status, ~~`is_test` occupancy~~ — moot 2026-10-05, `is_test` removed entirely) is inherited here unresolved, since this document assumes an appointment-creation mechanism that doesn't exist yet.

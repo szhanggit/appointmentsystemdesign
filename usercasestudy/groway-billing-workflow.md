@@ -6,8 +6,8 @@
 - `growayshop-registration-workflow.md` — creates the `billing_accounts` row at **chain creation time** (§7.1 there), anchored to `chain_id`. Login is **not affected by billing at all** — see §3 below for why.
 - `growayadmin-registration-workflow.md` — same `is_finance` capability as before: only such an admin may confirm a payment.
 - `groway-store-notifications-workflow.md` — a separate document that turns each blocked-booking event into a real-time, escalating in-app toast (2026-10-03, #16 — replaces an earlier daily-digest design), sent to the chain's `chain_admin` and every `store_admin` in the chain.
-- `store-onboarding-v1-design.md` — fixed reference for `store.stores`/`store.appointments`, **not modified**. One additive call is inserted at the start of the appointment-creation code path (§4); `store.appointments.is_test` (defined there) is read by that same call — **deferred from the V1 build 2026-10-03** (Steven, `V1Backlog.md`; design retained, see §4.1).
-- `beauty-map-postgis-schema-design.md` — **2026-10-03: `store.stores.is_test` is dropped entirely** (Steven, #6) — no longer a dependency of this document. The store-level quota exemption that used to read it (§4.1/§4.2) is removed, not deferred.
+- `store-onboarding-v1-design.md` — fixed reference for `store.stores`/`store.appointments`, **not modified**. One additive call is inserted at the start of the appointment-creation code path (§4) — a plain quota check that reads no `is_test` column, because none exists: `store.appointments.is_test` **was removed entirely 2026-10-05 (Steven)** — not deferred, as an earlier revision of this line said; see §4.1.
+- `beauty-map-postgis-schema-design.md` — **2026-10-03: `store.stores.is_test` is dropped entirely** (Steven, #6) — no longer a dependency of this document. The store-level quota exemption that used to read it (§4.1/§4.2) is removed, not deferred. (The appointment-level `is_test` flag discussed in the bullet above is a separate, second mechanism, also now removed — see §4.1.)
 
 **Terminology (2026-09-28):** billing is anchored to the **chain** (`store.chains`), never to an individual **store** or to any specific account. A store has no billing concept of its own.
 
@@ -59,7 +59,7 @@ Never stored — recomputed at render/check time from `billing_accounts.plan` an
 
 ---
 
-## 3. Self-service Paid trial — one-time, chain-wide, soft downgrade at the end, `chain_admin`-only
+## 3. Self-service Paid trial — one-time, chain-wide, soft downgrade at the end, `chain_admin`-only, **eligibility tightened 2026-10-05**
 
 ```mermaid
 sequenceDiagram
@@ -72,10 +72,12 @@ sequenceDiagram
     CA->>GW: POST /api/store/billing/start-trial
     GW->>SM: (in-process, StoreSession, caller.appRole must be 'chain_admin')
     SM->>SM: Resolve caller's chain (growayshop-registration-workflow.md §2.1)
-    SM->>DB: SELECT id, trial_used_at FROM store.billing_accounts WHERE chain_id = <resolved chain_id>
+    SM->>DB: SELECT ba.id, ba.trial_used_at, c.created_at AS chain_created_at,<br/>NOT EXISTS (SELECT 1 FROM store.payments p WHERE p.billing_account_id = ba.id<br/>AND p.status IN ('confirmed_manual','paid')) AS never_held_paid<br/>FROM store.billing_accounts ba JOIN store.chains c ON c.id = ba.chain_id<br/>WHERE ba.chain_id = <resolved chain_id>
     alt trial_used_at IS NOT NULL
         SM-->>CA: 409 Conflict "Trial already used. Contact sales@groway.com to go Paid."
-    else never used
+    else chain_created_at < now() - interval '30 days' OR NOT never_held_paid
+        SM-->>CA: 409 Conflict "Your chain isn't eligible for a trial. Contact sales@groway.com to go Paid."
+    else eligible: new chain, never held paid, never trialed
         SM->>DB: UPDATE store.billing_accounts<br/>SET plan='paid', trial_used_at=now(), trial_started_at=now(),<br/>current_period_end=now()+interval '30 days', payment_reminder_sent_at=NULL,<br/>plan_downgrade_reason=NULL<br/>WHERE chain_id = <resolved chain_id>
         SM->>SQSQ: SendMessage { event_type:'TRIAL_STARTED' }
         SM-->>CA: 200 OK { plan:'paid', trialEndsAt }
@@ -84,9 +86,20 @@ sequenceDiagram
 
 **Why `chain_admin`-only:** billing is a chain-wide concern, and `chain_admin` is the one account that exists specifically to act at that scope. A `store_admin` managing one store's day-to-day operations has no reason to be able to trigger a chain-wide plan change — and since a store has no billing concept of its own (§1), there is no "start a trial for just my store" to design in the first place.
 
-**Why one flag (`trial_used_at`) is enough:** the trial can only ever be triggered once per chain, for the lifetime of that `billing_account` — checked before anything else happens. This does **not** mean the chain can never go Paid again after the trial lapses — only that they can't self-serve into a *second free trial*; going Paid a second time (or after ever lapsing) always goes through the manual `confirm-payment` path (§5). Resetting `trial_used_at` for a genuine exception is a direct, manual action by a Groway admin — not a designed endpoint, deliberately.
+**Eligibility now requires three conditions at once, all checked before the one-shot flag even matters (2026-10-05, Steven):** the chain was created ≤30 days ago, it has never held `plan='paid'`, and it has never used a trial (`trial_used_at IS NULL`). An existing Free chain that's simply been running for a while — the thing this endpoint originally let through — no longer qualifies: **old Free users upgrading go straight to manual `confirm-payment` (§5), no trial, full stop.** This isn't a restriction invented from nothing — Free itself is already evaluation (§2); a 1-month trial stacked on top of an already-indefinite free evaluation was never buying a chain that's been on the platform for months and simply hasn't converted anything it didn't already have. The trial is an acquisition tool for genuinely new chains, not a retention discount for existing ones.
 
-**Why this is chain-wide:** the trial flips `plan` on the one `billing_account` row that covers every store in the chain — every location gets unlimited quota the instant the trial starts, and every location reverts together when it ends (§6.2).
+**Why two distinct `409`s, not one shared message:** a chain whose trial is already spent (`TRIAL_ALREADY_USED`) and a chain that was never eligible for one in the first place (`TRIAL_NOT_ELIGIBLE` — too old, or has held Paid before) are different situations needing different framing: the first already got real trial value and is being asked to pay now; the second may never have tried Paid at all and shouldn't be told "already used" when they weren't. Both land on the same downstream action (contact `sales@groway.com` to go Paid directly) — only the diagnosis differs.
+
+**Why `NOT EXISTS` against `store.payments`, not a new column:** `start-trial` never writes to `store.payments` — only `confirm-payment` (§5) ever inserts a row there, and it's the *only* way `plan` ever becomes `'paid'` outside of a trial. So "never held Paid" and "never had a successful payment" are the same fact, already fully derivable from the existing table — a dedicated `ever_paid_at` column would be a second, redundant source of the same truth that needs keeping in sync on every payment, for zero new information. `billing_accounts.plan`'s current value is deliberately not used for this check either — it only ever reflects the *current* state, not history, so it would wrongly admit a chain that paid once and was later manually downgraded back to Free (§6.2b, §7).
+
+**Why one flag (`trial_used_at`) is still enough for the one-shot rule:** the trial can only ever be triggered once per chain, for the lifetime of that `billing_account` — checked before anything else happens, same as before today's change. This does **not** mean the chain can never go Paid again after the trial lapses — only that they can't self-serve into a *second free trial*; going Paid a second time (or after ever lapsing) always goes through the manual `confirm-payment` path (§5). Resetting `trial_used_at` for a genuine exception is a direct, manual action by a Groway admin — not a designed endpoint, deliberately. The two new eligibility conditions above are additive to this flag, not a replacement for it — they gate who can ever reach the flag's "never used" branch in the first place.
+
+**Why this is chain-wide:** the trial flips `plan` on the one `billing_account` row that covers every store in the chain — every location gets unlimited quota the instant the trial starts, and every location reverts together when it ends (§6.2a).
+
+**Rationale (2026-10-05, Steven):**
+1. Free itself is already evaluation; the trial is an acquisition tool, not a retention discount — it exists to get a genuinely new chain to try Paid, not to give an already-evaluating Free chain a second honeymoon.
+2. This design has no automatic charging, no soft-downgrade-then-surprise-bill — the trial is a pure, unconditional gift, and today's change only narrows *who* it's spent on, to chains that genuinely need to evaluate Paid for the first time.
+3. Zero pilot impact: the product hasn't launched, so there are no existing Free users yet to grandfather — this rule is being set for steady-state before any real chain is affected by it, which is the cheapest possible time to set it, and will be the cheapest possible time to adjust it later if it turns out to be wrong.
 
 ---
 
@@ -97,7 +110,7 @@ sequenceDiagram
 - **Free:** 100 appointments per calendar month, **shared across every store in the chain** (not 100 per store).
 - **Paid:** unlimited.
 - **An appointment counts the instant a row is inserted into `store.appointments`** — regardless of who created it (a customer self-booking, or staff entering a walk-in/phone booking) and regardless of what happens to it afterward (cancelled, no-show, rescheduled). Counting is by creation event, not by current status.
-- **~~Exception: `store.appointments.is_test = TRUE`... or the appointment's store has `store.stores.is_test = TRUE`~~ — deferred from the V1 build, 2026-10-03 (Steven, `V1Backlog.md`).** `store.stores.is_test` is dropped entirely (#6, no competitor — Fresha/Vagaro/Mindbody/Booker/Square/GlossGenius — has a test-store concept). `appointments.is_test` is kept in the design but its build is deferred: the V1 quota-check call skips both exemption checks and the column read. Design stays in the docs; the V1 build skips the column, the badge, and this exemption. Revisit post-pilot if training demonstrably burns quota. V1 training story: practice bookings on the live store (they consume quota; acceptable at 100/month) or train pre-launch.
+- ~~Exception: `store.appointments.is_test = TRUE`... or the appointment's store has `store.stores.is_test = TRUE`~~ — **removed 2026-10-05 (Steven).** `store.stores.is_test` was dropped entirely 2026-10-03 (#6, no competitor — Fresha/Vagaro/Mindbody/Booker/Square/GlossGenius — has a test-store concept). `appointments.is_test` — previously retained-but-deferred (2026-10-03) — is now removed outright, not merely deferred: no competitor has a test-appointment concept either, the complexity was real (a quota-exemption branch, a slot-occupancy carve-out, a calendar badge, a future reporting-query branch — all to support a training-practice use case the 100/month pilot quota already tolerates), and if it's ever genuinely needed later, adding a boolean column plus one branch is half a day's work, with the full prior design preserved in git history. **Every appointment counts toward quota, no exemptions** — this was already V1's actual behavior since the 2026-10-03 deferral; today's change is a design/documentation change, not a behavior change.
 
 ### 4.2 Where the check lives
 
@@ -110,7 +123,7 @@ sequenceDiagram
     participant DB as PostgreSQL (store schema)
 
     C->>SM: (any code path that creates an appointment)
-    Note over SM,DB: Deferred from the V1 build 2026-10-03 (Steven, V1Backlog): no is_test<br/>read happens here at all in V1 - every appointment, test or not, counts<br/>toward quota. Design retained above for when #18 revisits this post-pilot.
+    Note over SM,DB: is_test removed entirely 2026-10-05 (Steven, #18 superseded) - the<br/>column doesn't exist, so there is nothing to read here. Every appointment,<br/>test or not, counts toward quota - unchanged from V1's actual behavior<br/>since the 2026-10-03 deferral; this note only updates why.
     SM->>SM: BillingQuotaService.TryConsumeAsync(storeId) [new, internal to Store Module]
         SM->>DB: SELECT ba.id, ba.plan FROM store.stores s<br/>JOIN store.billing_accounts ba ON ba.chain_id = s.chain_id<br/>WHERE s.id = storeId
         alt plan = 'paid'
@@ -143,7 +156,7 @@ sequenceDiagram
 
 - Idempotency guard: three columns on `billing_accounts` — `quota_warn_75_sent_at`, `quota_warn_90_sent_at`, `quota_warn_100_sent_at`. A threshold fires once per billing period: `sent_at IS NULL OR sent_at < period_month` (reusing `billing_appointment_usage.period_month`, the first of the current month — no separate "cycle start" column, and deliberately no reset job to clear these at month-end; a reset job that silently fails is a worse failure mode than a comparison that doesn't need resetting at all).
 - `appointment_count` just incremented past `75`/`90`/`100` (of the 100-unit cap) → post the corresponding `quota_warning_75`/`_90`/`_100` message (`groway-store-notifications-workflow.md` §3a), addressed to `chain_admin`, in-app + email.
-- The `100%` message's CTA goes directly to the billing self-service page (`start-trial`/`cancel`/`status`, §8) — the same page `chain_admin` already has access to.
+- **The `100%` message's CTA is eligibility-routed (2026-10-05, Steven — merges Item 1's trial-eligibility split with Item 5's cancel removal):** an eligible chain (new, never held Paid, never trialed — §3) sees **"Start trial,"** landing on `start-trial`; an ineligible chain (everyone else) sees **"Upgrade to Paid"** instead, landing directly on `confirm-payment` (§5) — never a trial link that would just `409` them. Neither button is `cancel`: that self-service endpoint no longer exists (§7) — a chain that just hit its quota ceiling has no reason to be shown a way to downgrade.
 - Never blocks the request that triggered it — this is a side effect of a successful consume, not a gate.
 
 ---
@@ -199,7 +212,11 @@ sequenceDiagram
 
 One job, one field (`payment_reminder_sent_at`) — a trial ending in 3 days and a monthly renewal due in 3 days are the same event from this job's point of view. `confirm-payment` (§5) resets the flag every time, so the next due date gets its own reminder. Exactly one recipient per chain now (`chain_admin`), since billing has exactly one accountable account per chain (§1) — no "could be more than one admin" branching needed, unlike an earlier version of this document.
 
-### 6.2 Revert to Free — the one place trial-lapse and non-renewal are literally the same code
+### 6.2 Revert to Free, split by cause (2026-10-05, Steven — supersedes "trial-lapse and non-renewal are literally the same code")
+
+~~The one place trial-lapse and non-renewal are literally the same code~~ — true through 2026-10-04, no longer true today: V1's one remaining automatic downgrade is reserved for an unconverted trial lapsing (6.2a); a paid renewal lapsing gets no automatic downgrade at all (6.2b, Item 5). Both run as part of the same daily CronJob as before — they're presented as two sub-sections because they now do genuinely different things, not two different jobs.
+
+#### 6.2a Trial lapses, never converted → auto-revert to Free (unchanged behavior, narrowed condition)
 
 ```mermaid
 sequenceDiagram
@@ -207,36 +224,49 @@ sequenceDiagram
     participant DB as PostgreSQL (store schema)
     participant SQSQ as SQS (store-activity-log)
 
-    CRON->>DB: SELECT id FROM store.billing_accounts WHERE plan='paid' AND current_period_end < now()
-    loop for each lapsed billing_account
+    CRON->>DB: SELECT ba.id FROM store.billing_accounts ba WHERE ba.plan='paid'<br/>AND ba.current_period_end < now() AND ba.trial_started_at IS NOT NULL<br/>AND NOT EXISTS (SELECT 1 FROM store.payments p<br/>WHERE p.billing_account_id = ba.id AND p.status IN ('confirmed_manual','paid'))
+    loop for each lapsed, never-converted trial
         CRON->>DB: UPDATE store.billing_accounts<br/>SET plan='free', plan_downgrade_reason='payment_lapsed', current_period_end=NULL<br/>WHERE id = ba.id
         CRON->>SQSQ: SendMessage { event_type:'PLAN_REVERTED_TO_FREE', billing_account_id:ba.id }
     end
 ```
 
-No login is touched, no Cognito call is made, no store/staff account is deactivated — the chain simply stops being unlimited and rejoins the shared 100/month pool (§4) starting the next appointment it tries to create. `plan_downgrade_reason='payment_lapsed'` distinguishes this from a voluntary cancel (§7's `'cancelled_by_user'`) for later reporting only; it has no behavioral effect.
+No login is touched, no Cognito call is made, no store/staff account is deactivated — the chain simply stops being unlimited and rejoins the shared 100/month pool (§4) starting the next appointment it tries to create. `plan_downgrade_reason='payment_lapsed'` distinguishes this from a voluntary cancel (§7's `'cancelled_by_user'`) for later reporting only; it has no behavioral effect. **This auto-revert is the one load-bearing piece of automation V1 keeps** — it's what makes "no credit card, decide at the end" (§3) actually safe to offer: without it, an un-decided trial would simply sit Paid forever, which isn't a trial at all.
+
+The `NOT EXISTS` clause (the same signal §3's eligibility check uses) is what distinguishes "this chain never paid — the trial simply ran out" from "this chain paid at least once and is now overdue on a *renewal*" — the latter is 6.2b's concern, not this job's, even though both kinds of row satisfy `plan='paid' AND current_period_end < now()` on their own.
+
+#### 6.2b Paid renewal lapses → no automatic downgrade; human follow-up (NEW, 2026-10-05, Steven)
+
+The complement of 6.2a's condition — `plan='paid' AND current_period_end < now()`, and *either* `trial_started_at IS NULL` (an old Free user who upgraded directly, no trial involved) *or* at least one successful payment already exists for this account (a chain that converted from trial, or paid directly, and is now simply late on a renewal) — gets **no plan flip at all**. `plan` stays `'paid'`, the chain keeps unlimited bookings, until a Groway admin manually resolves it.
+
+Instead, these overdue accounts become visible on the existing Groway-admin chain/store list (`pricing-tiers-v1.md`'s plan-badge surface) via a live, derived query (`plan='paid' AND current_period_end < now()`) — no new table, no new stored flag, no new SQS event; the same "derive it live, never store it" philosophy as the plan badge itself (§1a). A Groway admin works this list by hand: take the payment the normal way (§5's `confirm-payment`, which resets `current_period_end` forward as usual), or escalate to a manual cancel (§7) if the chain confirms they want to stop paying.
+
+**Rationale (2026-10-05, Steven):** V1 has no payment gateway — collection was always going to be a human calling someone; dunning was already manual in spirit even while the *downgrade* was automatic. Making the downgrade manual too just means the system never cuts off a paying customer's service over a renewal that's a few days late — a worse failure mode than a slightly-overdue invoice. A chain whose booking flow silently breaks mid-renewal doesn't read that as "billing hiccup" — it reads as "this product stopped working," which is a much harder thing to win back from than an apologetic phone call, and avoids misfiring against a normal customer who's simply running a few days behind on an otherwise-healthy renewal.
 
 ---
 
-## 7. Self-service cancel (voluntary, immediate downgrade — not a deactivation), `chain_admin`-only
+## 7. Cancelling Paid — human-handled in V1 (no self-service downgrade) (rewritten 2026-10-05, Steven)
 
-```mermaid
-sequenceDiagram
-    actor CA as chain_admin
-    participant GW as Gateway
-    participant SM as Store Module
-    participant DB as PostgreSQL (store schema)
-    participant SQSQ as SQS (store-activity-log)
+~~Self-service cancel (voluntary, immediate downgrade — not a deactivation), `chain_admin`-only~~ — **there is no self-service cancel endpoint in V1.** `POST /api/store/billing-account/cancel` and its sequence diagram are removed, not deferred (§8's endpoint table drops the row to match). **V1 provides no self-service downgrade, full stop** — this is a policy sentence, not a placeholder for a future one. The one piece of this section's original design that survives unchanged is its spirit: cancelling still isn't a scarier action than it needs to be.
 
-    CA->>GW: POST /api/store/billing-account/cancel
-    GW->>SM: (in-process, caller.appRole must be 'chain_admin')
-    SM->>SM: Resolve caller's chain (growayshop-registration-workflow.md §2.1)
-    SM->>DB: UPDATE store.billing_accounts<br/>SET plan='free', plan_downgrade_reason='cancelled_by_user',<br/>cancelled_at=now(), cancelled_by_store_user_id=CA.id, current_period_end=NULL<br/>WHERE chain_id = <resolved chain_id>
-    SM->>SQSQ: SendMessage { event_type:'BILLING_CANCELLED' }
-    SM-->>CA: 200 OK "You're back on the Free plan. Come back to Paid any time."
+**What happens instead:** the billing page's button for this reads **"Contact us to cancel,"** not "Cancel" — it opens a contact flow (email/chat to `sales@groway.com`, the same address §3's two `409` messages already point to), not an API call. A Groway admin who hears from the chain verifies the request is genuine, then manually runs:
+
+```sql
+UPDATE store.billing_accounts
+SET plan='free', plan_downgrade_reason='cancelled_by_user', cancelled_at=now()
+WHERE chain_id = <the chain in question>;
 ```
 
-There is no "locked out" state, so cancelling is no longer a scarier action than it needs to be — it just means "stop being Paid, right now," landing exactly on the same Free plan every chain starts on. Coming back is §5's `confirm-payment` endpoint; nothing else to design.
+This is **deliberately a manual action, not a designed endpoint** — the same posture as §3's "resetting `trial_used_at` for a one-off exception" precedent. It's immediate and crude on purpose: no period-end scheduling, no proration, no refund logic, no new code at all — just the same two state columns (`plan`, `plan_downgrade_reason`) a self-service endpoint would have set, now set by a human instead of an API call. `cancelled_at` is still recorded, for the same reporting reason it always was. **`cancelled_by_store_user_id` is dropped (2026-10-05, §9) — not repointed, removed.** Once the self-service endpoint is gone, nothing in V1 ever writes it; repointing it at whichever Groway admin processed the request isn't possible either, since V1 deliberately has no admin-identity FK anywhere in this schema (`store.payments.recorded_by_admin_id`, §9, is FK-less for the exact same reason).
+
+There is no automatic refund in V1 — a billing dispute (e.g. "I asked to cancel two weeks ago and was still charged") is handled by hand, the same way every other manual-billing edge case in this document already is.
+
+Coming back is still §5's `confirm-payment` endpoint, unchanged — nothing else to design there.
+
+**Why no self-service cancel, and no deactivation lifecycle either (rationale, 2026-10-05, Steven):**
+1. Commitment is expressed through policy, not code: "V1 provides no self-service downgrade" is a sentence a `chain_admin` can be told, not a button they can press. Manual billing is already friction on the way in — there's no one-click upgrade toggle either — so nobody churns idly through a process that already requires a human conversation to even start.
+2. At V1's scale, a cancellation is one phone call, and that same call doubles as a free save-attempt. The system loses nothing by not having an instant-cancel button: there's no mid-period settlement problem (remaining days, refunds) to solve in code, because there was never an automated path that could create one.
+3. A real deactivation lifecycle — unpublishing the store's public page, handling customers with future appointments against a chain that just "went away" (the standing rule that the system never auto-cancels a booking still applies), data retention, reactivation — is a materially bigger and more expensive thing to design than a downgrade. This section's original "not a deactivation" framing was already deliberate before today; today's change just removes the one piece (self-service immediacy) that made it *look* close to a deactivation in the first place. V1 doesn't pay for a lifecycle it was never actually building toward.
 
 ---
 
@@ -247,7 +277,8 @@ There is no "locked out" state, so cancelling is no longer a scarier action than
 | `POST /api/store/billing/start-trial` | `chain_admin` only | One-time, chain-wide 30-day Paid trial (§3) |
 | `GET /api/store/billing/status` | `chain_admin` only | Current plan, trial/period dates, this month's appointment usage — powers the in-app quota banner |
 | `POST /api/admin/billing-accounts/{id}/confirm-payment` | Groway admin, `is_finance = true` | Confirm a payment; go/stay Paid for another month. Amount is server-derived from store count, never client-supplied (§5, 2026-10-03 #3) |
-| `POST /api/store/billing-account/cancel` | `chain_admin` only | Immediately downgrade to Free (§7) |
+
+~~`POST /api/store/billing-account/cancel` | `chain_admin` only | Immediately downgrade to Free~~ — **removed 2026-10-05 (Steven, §7).** V1 has no self-service downgrade endpoint; cancellation is a manual Groway-admin action, not an API call.
 
 Login (`POST /api/store/auth/login`) is completely unchanged — billing state never affects it, for any app role.
 
@@ -277,7 +308,12 @@ CREATE TABLE store.billing_accounts (
     quota_warn_90_sent_at          TIMESTAMPTZ,
     quota_warn_100_sent_at         TIMESTAMPTZ,
     cancelled_at                   TIMESTAMPTZ,
-    cancelled_by_store_user_id     UUID REFERENCES store.store_users(id),
+    -- cancelled_by_store_user_id DROPPED 2026-10-05 (Steven): had no writer
+    -- left once §7's self-service cancel endpoint was removed; not repointed
+    -- at an admin table because V1 deliberately has no admin-identity FK
+    -- anywhere in this schema (see recorded_by_admin_id below, FK-less for
+    -- the same reason). cancelled_at is still set, now by the admin's manual
+    -- UPDATE (§7) instead of by the endpoint this column used to belong to.
     created_at                     TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at                     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -395,4 +431,4 @@ VALUES ('bb222222-2222-2222-2222-222222222222', '2026-09-28', 7);
 3. **No proration or partial-month handling** beyond the `GREATEST()` rule in §5.
 4. **Resetting `trial_used_at` for a one-off exception** is a direct manual action (§3), not a designed endpoint.
 5. **Merging two already-separate chains' billing accounts** (e.g. two independently-onboarded chains turn out to be the same owner) isn't designed — expected to be rare enough to handle by hand if it ever comes up.
-6. **Selah Head Spa's own arrangement**: Steven has noted Selah Head Spa and Groway are effectively one company, so no real money changes hands there in practice. Nothing in this schema special-cases that — Groway admin can simply call `confirm-payment` with `amountCents=0` to keep that chain on Paid indefinitely. Test data (§10) shows it as an ordinary paid account for illustration only.
+6. ~~Selah Head Spa's own arrangement: ... Groway admin can simply call `confirm-payment` with `amountCents=0`...~~ — **rewritten 2026-10-05 (Steven); the `amountCents=0` claim above was already wrong even before today** (§5 removed the ability to type *any* `amountCents` — the amount is always server-derived from store count, never client-supplied). **Selah Head Spa is a deliberate, permanent billing canary, not a special case.** Steven and Groway are effectively one company, so no real money changes hands there in practice — the economics are still "our own product doesn't charge us" — but the chain runs the *identical* trial → reminder → manual `confirm-payment` → Paid flow as any outside merchant, at the same real, server-derived $49/store/month (§5), on purpose: it's the one chain this billing flow gets exercised against continuously, end to end, with no whitelist and no code-level exception anywhere in this document. The money circulates inside the company's own books (Steven doesn't personally bear the cost) rather than being zeroed out, which is exactly what keeps it indistinguishable, in code, from a real paying customer — there is no `is_owned` flag, no amount override, nothing for a future engineer to accidentally special-case. Test data (§10) already shows it as an ordinary Paid account at the real derived amount ($98.00 for its 2 stores) — that was already correct; this item was the one place still describing something else.

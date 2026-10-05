@@ -417,7 +417,10 @@ CREATE TABLE store.appointments (
     status        VARCHAR(20) NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'completed', 'cancelled', 'no_show')),
     starts_at     TIMESTAMPTZ NOT NULL,
     ends_at       TIMESTAMPTZ NOT NULL,
-    is_test       BOOLEAN NOT NULL DEFAULT FALSE,  -- staff-marked test booking; see §5 on quota interaction
+    -- is_test REMOVED 2026-10-05 (Steven, #18 superseded) - not deferred,
+    -- gone outright. No competitor (Fresha/Vagaro/Mindbody/Booker/Square/
+    -- GlossGenius) has a test-appointment concept; see §5 below (now a
+    -- removal note) for the full rationale.
     -- Buffer snapshot, added 2026-09-29: buffer_before
     -- is the first service's Bb, buffer_after is the last service's Ba (rule
     -- finalized in the not-yet-written create-appointment document). Snapshotted
@@ -430,9 +433,10 @@ CREATE TABLE store.appointments (
     -- had occupies_capacity=true at booking time (an OR across items, same
     -- creation-time-snapshot philosophy as the buffer/price/duration columns
     -- here and on appointment_items - a later change to a service's flag
-    -- never retroactively touches an existing appointment). is_test
-    -- appointments still occupy capacity (real beds, same reasoning as
-    -- is_test still occupying staff time, §5).
+    -- never retroactively touches an existing appointment). Every
+    -- appointment occupies real capacity (real beds) - there is no
+    -- exemption of any kind (is_test, which used to be mentioned here as a
+    -- carve-out, was removed entirely 2026-10-05; see §5).
     occupies_capacity BOOLEAN NOT NULL DEFAULT true,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -460,9 +464,11 @@ CREATE INDEX idx_appointments_customer_id ON store.appointments(customer_id);
 
 ---
 
-## 5. `is_test` and the billing quota — the one place this document and `groway-billing-workflow.md` must stay in sync
+## 5. ~~`is_test` and the billing quota — the one place this document and `groway-billing-workflow.md` must stay in sync~~ — removed 2026-10-05 (Steven)
 
-`pricing-tiers-v1.md`'s billing rule excludes staff-marked test appointments from the Free-plan quota. That requires `store.appointments.is_test` (added above) to exist, and `groway-billing-workflow.md` §4.2's quota-check call to read it before deciding whether to consume a unit of quota. `is_test` is set by staff at creation time (a checkbox on the manual-booking screen) — never inferred.
+This section used to describe `store.appointments.is_test` and the Free-plan quota exemption it fed into (`groway-billing-workflow.md` §4.2). **Both are gone — not deferred, removed outright** (#18 superseded): no competitor (Fresha/Vagaro/Mindbody/Booker/Square/GlossGenius) has a test-appointment concept, and the complexity a quota-exemption branch drags along (a slot-occupancy carve-out, a calendar badge, a future reporting-query branch) wasn't worth paying for a training-practice use case the 100/month pilot quota already tolerates. The section number is kept, not reclaimed, so every other cross-reference to "§5" elsewhere in the docs still lands in the right place.
+
+**The one fact that survives, unchanged:** every appointment counts toward quota, no exemptions. This was already V1's actual behavior since the 2026-10-03 deferral; today's change only updates the documentation to say "removed" instead of "deferred" — no behavior changed.
 
 ---
 
