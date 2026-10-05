@@ -29,19 +29,13 @@
 
 Authorization is uniformly **`storeId ∈ caller.AuthorizedStoreIds`** (`store-onboarding-v1-design.md` §6), with one wrinkle for the person-level time-off endpoints, which carry no `storeId` at all:
 
-**Time-off authorization**: a caller may act on `staffId`'s time off ⟺ **`staffId` has at least one live schedule entry, or one `staff_services` row, at a `store_id ∈ caller.AuthorizedStoreIds`** (the broader "has some association with a store I'm authorized on" test — not just "bookable," since a brand-new hire with services assigned but no schedule entries yet still needs their time off manageable by that store's admin).
+**Time-off authorization (chain-membership test, revised 2026-10-04):** a caller may act on `staffId`'s time off ⟺ **the caller is `store_admin`/`chain_admin` (never `staff` — the blanket `403` below) and `staffId` belongs to the same chain as the caller** — `staff.chain_id = caller's chain`, the caller's chain resolved exactly as `growayshop-registration-workflow.md` §2.1 already does elsewhere (`store.chains.chain_admin_id` lookup for a `chain_admin` caller; via the caller's own store's `chain_id` for a `store_admin` caller). This replaces the earlier store-level "has some association with a store I'm authorized on" test (checking for a live schedule entry or a `staff_services` row at an authorized store) — that test was store-scoped while time off's effect is chain-wide (below), so the permission check and the effect it gates were measuring different things. Aligning both to chain scope removes the mismatch rather than papering over it.
 
 ```sql
-EXISTS (
-    SELECT 1 FROM store.staff_schedules
-    WHERE staff_id = :targetStaffId AND store_id = ANY(:callerAuthorizedStoreIds) AND deleted_at IS NULL
-    UNION ALL
-    SELECT 1 FROM store.staff_services
-    WHERE staff_id = :targetStaffId AND store_id = ANY(:callerAuthorizedStoreIds)
-)
+staff.chain_id = :callerChainId
 ```
 
-**Known V1 side effect, not a bug:** because time off is person-level, a `store_admin` at Store A can grant/edit time off for a staff member who *also* works at Store B — and that time off blocks them at Store B too. There is no "only affects Store A" option in V1 (requesting one is a real, expected ask once a chain runs multiple stores with overlapping staff — a V2 "store-scoped exception" feature, not designed here). Acceptable for V1 given the initial pilot is single-store-dominant; a chain-admin-visible "this affects other stores too" notice is the only mitigation, not a hard restriction.
+**By design (2026-10-04), not a side effect:** because time off's effect is already chain-wide, so is the permission to grant it — a `store_admin` at Store A can grant/edit time off for a staff member who *also* works at Store B, and that time off blocks them at Store B too, the same as at Store A. There is no "only affects Store A" option in V1 (requesting one is a real, expected ask once a chain runs multiple stores with overlapping staff — a V2 "store-scoped exception" feature, not designed here). A chain-admin-visible "this affects other stores too" notice remains the only mitigation, not a hard restriction — acceptable for V1 given the initial pilot is single-store-dominant.
 
 **`staff`-role callers get `403 FORBIDDEN` on every endpoint in this document in V1** (`business_hours`, weekly schedules, time off) — staff do not touch the system at all (2026-10-03). This is defense-in-depth, since no staff login interface exists in V1 to call these endpoints with in the first place; the V2 staff portal is a separate, later project and nothing here is designed to anticipate it.
 
@@ -96,6 +90,8 @@ At the moment an admin adds a person to a store (§2.2), the system materializes
 
 Entered as a start/end datetime pair (store-local time in the UI, stored as UTC). Shortcuts: "one day" fills `00:00`–`23:59:59` that date; "several days" is several rows. The UI states plainly that time off blocks every store the person works at (§1). `reason` is optional, with quick-pick categories (vacation/sick/personal/other) plus free text. Removing time off is a plain `DELETE` — V1 has no approval workflow.
 
+**Required "offline-coordination confirmed" checkbox (NEW, 2026-10-04).** The entry form has a mandatory checkbox, unchecked by default: "Offline-coordination confirmed." Submitting with it unchecked is blocked client-side, and the server independently rejects it too — `400 OFFLINE_CONFIRM_REQUIRED` if `offlineConfirmed` is missing or not `true` on `POST /staff/{staffId}/time-offs` (§4) — the client-side block is a convenience, the server check is the actual guard, same posture as `SCHEDULE_CONFLICT`/`SCHEDULE_OVERLAP` elsewhere in this document (an API caller can skip the UI; only the server can actually stop them). A line of microcopy next to the checkbox states the reason plainly: "This system only records time off — please coordinate the actual arrangement with the other staff member first." This is not an approval step (the "V1 has no approval workflow" sentence above still holds) — it's confirmation that the human coordination already happened, not a request for someone else's sign-off.
+
 ### 3.5 Copying a schedule between staff (same store only)
 
 `POST /stores/{storeId}/staff/{staffId}/schedule/copy` with `{ fromStaffId }` copies another person's entries **at this one store** onto the target person's own entries at that same store (full overwrite of just that store's slice of the target's timetable — their entries at any other store are untouched). Cross-store copy is rejected (`400`): the call always compares `fromStaffId` and `staffId` at the *same* `storeId` named in the path. Comparing two different people's hours only makes sense within one shared store context — "Jordan's Tuesday at the King West location" and "Anna's Tuesday at Yorkville" aren't hours anyone would ever want copied onto each other. This write holds the same advisory lock as every other `staff_schedules` writer (§5.1), keyed on the **target** `staffId`, and its result is still subject to the person-level overlap check against the rest of the target's timetable.
@@ -123,7 +119,7 @@ This is a different feature at a different scope from `store-onboarding-v1-desig
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/staff/{staffId}/time-offs?from=&to=` | Filtered by a UTC range |
-| `POST` | `/staff/{staffId}/time-offs` | `{ startsAt, endsAt, reason? }` (store-local ISO in the request; server converts to UTC) |
+| `POST` | `/staff/{staffId}/time-offs` | `{ startsAt, endsAt, reason?, offlineConfirmed }` (store-local ISO in the request; server converts to UTC); `offlineConfirmed` must be `true` or `400 OFFLINE_CONFIRM_REQUIRED` (§3.4, NEW 2026-10-04) |
 | `DELETE` | `/staff/{staffId}/time-offs/{timeOffId}` | Remove |
 
 Every store-level `PUT`/`POST`/`DELETE` that would leave a **future, `pending` or `confirmed`** appointment's occupied block no longer fully inside the updated available time returns `409 SCHEDULE_CONFLICT` (§5.2) unless called with `?confirm=true`. `?dry_run=true` runs the same conflict check without writing anything.
@@ -169,6 +165,7 @@ Failing either keeps them out of `GET /slots` entirely at that store. The back o
 | `TIME_OFF_OVERLAP` | 409 | Overlapping time-off range (DB exclusion constraint) |
 | `SCHEDULE_CONFLICT` | 409 | Change would strand a future pending or confirmed appointment — collects every affected appointment, not just the first (retry with `?confirm=true`) |
 | `DATE_IN_PAST` | 400 | Time-off start is in the past |
+| `OFFLINE_CONFIRM_REQUIRED` | 400 | Time-off entry submitted without the offline-coordination checkbox (§3.4, NEW 2026-10-04) |
 | `FORBIDDEN` | 403 | `staff`-role caller on any endpoint in this document (V1: admin-only entry, 2026-10-03) |
 | *(cross-store / person not in chain)* | 404 | Standard out-of-scope-resource convention — never confirms existence. Note: zero schedule entries at an otherwise-valid store is **not** this — that's a `200` empty array (§4) |
 
@@ -178,8 +175,8 @@ Failing either keeps them out of `GET /slots` entirely at that store. The back o
 
 - **Staff self-service, in any form** (2026-10-03) — no staff login interface exists; every endpoint in this document is `store_admin`/`chain_admin` only, with `staff`-role callers getting a blanket `403`. The V2 staff portal is a separate, later project.
 - Time-off approval workflows; recurring time off (e.g. "every Wednesday afternoon off") — express as multiple dated rows instead.
-- Overnight shifts / split (multi-segment) business hours.
-- Store-scoped time-off exceptions (§1's known side effect) — time off is chain-wide-per-person in V1.
+- Overnight shifts (e.g. 22:00–02:00) / split (multi-segment) store business hours. Staff `staff_schedules` rows may still be multiple non-overlapping segments per day — lunch gaps are supported (§3.2); only the store's own `business_hours` is single-segment in V1. Why: the schedule model is keyed on `day_of_week`, so a cross-midnight shift has no clean day attribution, and this is a spa booking system — overnight shifts are YAGNI. The slot engine already operates on interval sets, so split business hours later is a UI + constraint change, not an engine change.
+- Store-scoped time-off exceptions (§1's "by design" box) — time off is chain-wide-per-person in V1.
 - A bulk "clear this person's entire chain-wide timetable in one call" endpoint — "leaving the company" is handled per store via the existing `PUT`/`DELETE` (§4), one call per store that still has entries. If this proves painful in practice, a bulk-clear endpoint can be added later.
 - Automatic customer notification when a schedule change affects them — that's the reminder pipeline's concern, not this document's.
 - Work-hours reporting / time-clock — a schedule here is "bookable availability," not an attendance record.
