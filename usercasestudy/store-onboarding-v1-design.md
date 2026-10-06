@@ -480,6 +480,17 @@ This section used to describe `store.appointments.is_test` and the Free-plan quo
 
 All routes here follow the same authorization rule, uniformly: **`storeId ∈ caller.AuthorizedStoreIds`** grants write access, never a literal `caller.role == 'store_admin'` check — that set already covers `chain_admin` correctly (every store in their chain) without special-casing the role. A `staff` caller's set still grants only read access to the catalog (they need to see it while picking their own schedule); write endpoints reject `staff` regardless of set membership. A `storeId` outside the caller's set is **404**, not 403 — same reasoning as `growayshop-registration-workflow.md` §6.8: don't let the status code confirm whether a store outside your scope even exists.
 
+**`AuthorizedStoreIds`'s derived definition (2026-10-06 — `store.store_user_store_access` removed, no stored version):**
+
+- `chain_admin`: `SELECT s.id FROM store.stores s WHERE s.chain_id = (SELECT id FROM store.chains WHERE chain_admin_id = :callerId) ORDER BY s.created_at`
+- `store_admin`: `SELECT id FROM store.stores WHERE store_admin_id = :callerId`
+- V1 has no staff login; a V2b staff login's scope would be every store in its chain (staff rows are chain-level, Batch 4).
+
+This set is resolved once at login, ordered by `created_at`, and stored alongside `activeStoreId` in the Redis session (`growayshop-registration-workflow.md` §4) — `switch-store` is an in-memory membership check against it, never a DB query. The `storeId ∉ set → 404` rule above is unchanged.
+
+- **Default store**: `activeStoreId = AuthorizedStoreIds[0]` (the first entry once ordered) — no extra DB query needed at login beyond the derivation itself.
+- **Refresh rule**: adding a store (`growayshop-registration-workflow.md` §6.2) re-runs this derivation and replaces the cached set in the current session — the set is always exactly the derived query's live result, never an append. Any other authorization change (e.g. reassigning a store's `store_admin`) takes effect on the next login, the standard pattern for session-cached authorization everywhere else in this project.
+
 ---
 
 ## 7. Service catalog: categories, services, options, staff assignment (2026-09-29)

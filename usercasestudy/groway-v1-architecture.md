@@ -131,7 +131,7 @@ PostgreSQL
 ```
 
 - **Separate `DbContext` per module** (`CustomerDbContext`, `StoreDbContext`, `AdminDbContext`) — never one shared `GrowayDbContext`. Each context only knows about its own schema's tables.
-- **Foreign keys within a schema are normal and encouraged** — e.g. `store.store_user_store_access.store_id → store.stores.id` is a real, enforced FK; both tables are owned by Store and live in the same schema.
+- **Foreign keys within a schema are normal and encouraged** — e.g. `store.appointment_items.appointment_id → store.appointments.id` is a real, enforced FK; both tables are owned by Store and live in the same schema.
 - **No foreign keys across schemas.** `store.appointment.customer_id` is an application-level reference to a row in `customer.customers`, never an enforced FK — Postgres cannot check it, and application code must. This is deliberate: when a schema is later extracted into its own database, a cross-schema FK becomes physically impossible, while an application-level reference degrades gracefully into an ordinary cross-service ID reference. The cost is real (no database-level protection against an orphaned reference) and is accepted for extraction-readiness — cover it with application-level tests that check for orphaned cross-module references, since Postgres won't.
 
 ---

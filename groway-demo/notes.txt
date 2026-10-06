@@ -1,4 +1,5 @@
 http://localhost:8093/
+https://mock.addd.ca/
 
 Scene 1：访客免登录下单——讲"获客摩擦为零"，点出"数据库里这时没有这个客户"
 Scene 2：到店 30 秒认领——Kevin Liu 的单从 Guest 变成他的终身档案，讲"为什么不敢自动连"（号码回收串户的故事）

@@ -66,10 +66,9 @@ sequenceDiagram
     SM->>SCOG: AdminCreateUser(Username=phone-or-email, ...)
     SCOG-->>SM: 200 OK { sub }
     SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='staff', ...)
-    SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, staff_id, ...)
 ```
 
-`store_user_store_access` itself is untouched by this document in V1 — the table exists today only for `chain_admin`/`store_admin` logins (`growayshop-registration-workflow.md` §5). V2 would derive which stores a staff login can access from "stores where this `staff_id` has a live schedule entry," not from a separately-granted access row — recorded here so the eventual design doesn't reinvent that question.
+`store_user_store_access` was REMOVED 2026-10-06 (Steven) — every chain_admin/store_admin row it held was derivable from `chains.chain_admin_id`/`stores.store_admin_id` (`growayshop-registration-workflow.md` §5, `store-onboarding-v1-design.md` §6). V2b's staff scope follows the same derive-don't-store principle: since a staff row is chain-level (Batch 4), a staff login's scope is simply every store in that chain — no access table needed, recorded here so the eventual design doesn't reinvent that question.
 
 ---
 

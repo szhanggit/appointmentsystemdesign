@@ -49,13 +49,11 @@ Each `store.store_users` row has exactly one `app_role` — a person needing two
 store.chains (1) ──chain_admin_id (UNIQUE)──> store.store_users (exactly one chain_admin)
       │
       └── store.stores (many) ──store_admin_id (UNIQUE)──> store.store_users (exactly one store_admin each)
-                │
-                └── store.store_user_store_access (many-to-many: which store_users can act on which store)
 ```
 
-**One store, at most one operational admin** — enforced at the database level (`store.stores.store_admin_id UNIQUE`, §5; nullable — a store with no dedicated `store_admin` is a valid, permanent state, §6.2 revised). **One chain, one chain_admin** — also DB-enforced (`store.chains.chain_admin_id UNIQUE NOT NULL`, §5), a genuinely separate account, not a store_admin wearing a second hat — except the deliberate exception at a chain's very first store (§6.0), where the chain_admin *is* that store's `store_admin` by pointing `store_admin_id` at the same row, not a second account. A `chain_admin` gets one `store_user_store_access` row per store in their chain (one marked `is_primary = TRUE` as their default store, per §6.1); a `store_admin` gets exactly one such row, for their own store. `staff` accounts are unaffected — still many-to-many, since one person can work shifts at more than one store of the same chain (never across unrelated chains).
+**One store, at most one operational admin** — enforced at the database level (`store.stores.store_admin_id UNIQUE`, §5; nullable — a store with no dedicated `store_admin` is a valid, permanent state, §6.2 revised). **One chain, one chain_admin** — also DB-enforced (`store.chains.chain_admin_id UNIQUE NOT NULL`, §5), a genuinely separate account, not a store_admin wearing a second hat — except the deliberate exception at a chain's very first store (§6.0), where the chain_admin *is* that store's `store_admin` by pointing `store_admin_id` at the same row, not a second account. A `chain_admin`'s authorized set is every store in their chain — derived from `chains.chain_admin_id`, no rows stored; a `store_admin`'s is exactly their own store (`stores.store_admin_id`). Login is chain-scoped; the default active store is the first of `AuthorizedStoreIds` ordered by `created_at` (the client may remember the last-selected store instead). Canonical definition: `store-onboarding-v1-design.md` §6. `staff` have no login in V1 (principle #1); if a V2b staff portal ever exists, a staff login's scope is their chain's stores — derived, like everything else here.
 
-The session tracks **one active store at a time** (§4); switching (§6.6) updates context within the existing session, it never re-authenticates. For a `store_admin` there is only one store to be active on, so switching is a no-op for them; `chain_admin` and multi-store `staff` are the ones who actually switch.
+The session tracks **one active store at a time** (§4); switching (§6.6) updates context within the existing session, it never re-authenticates. For a `store_admin` there is only one store to be active on, so switching is a no-op for them; `chain_admin`s are the ones who actually switch (V1 has no staff login).
 
 ### 2.1 Resolving "the caller's chain"
 
@@ -148,6 +146,7 @@ Shared Redis, `population:"store"`, per architecture doc §7. The store-specific
   "sessionId": "...", "population": "store",
   "principalId": "...", "appRole": "chain_admin",
   "activeStoreId": "...",
+  "authorizedStoreIds": ["...", "..."],
   "cognitoAccessToken": "...", "cognitoIdToken": "...", "cognitoRefreshToken": "...",
   "createdAt": "...", "lastUsedAt": "...", "expiresAt": "..."
 }
@@ -167,8 +166,10 @@ CREATE TABLE store.store_users (
     email               VARCHAR(255) NOT NULL UNIQUE,
     display_name        VARCHAR(200),
     app_role            VARCHAR(20)  NOT NULL CHECK (app_role IN ('chain_admin', 'store_admin', 'staff')),
-    -- No staff_id here - which roster row this account corresponds to is a
-    -- per-store fact (see store_user_store_access below).
+    -- No staff_id here in V1 (staff have no login). If a V2b staff portal ever
+    -- needs logins, a staff login maps to exactly one chain-level staff row —
+    -- add staff_id directly on store_users then (per-chain, not per-store).
+    -- (2026-10-06: the "per-store fact" framing died with store_user_store_access.)
     status              VARCHAR(20)  NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'deactivated')),
     -- At most one of the next two is set: who created this account. A Groway
     -- admin (admin.admins.id, cross-schema - no enforced FK per architecture
@@ -216,22 +217,8 @@ ALTER TABLE store.stores
     ADD COLUMN chain_id       UUID NOT NULL REFERENCES store.chains(id),
     ADD COLUMN store_admin_id UUID UNIQUE REFERENCES store.store_users(id);
 
--- Many-to-many: which store_users can act on which store, and in what roster capacity.
-CREATE TABLE store.store_user_store_access (
-    store_user_id       UUID NOT NULL REFERENCES store.store_users(id),
-    store_id            UUID NOT NULL REFERENCES store.stores(id),
-    staff_id            UUID REFERENCES store.staff(id),  -- the person-level roster identity behind this login (store-onboarding-v1-design.md §4);
-                                          -- the same value across all of this person's store_user_store_access rows.
-                                          -- NULL for chain_admin/store_admin rows (pure admin access, no service-performing role).
-    is_primary          BOOLEAN NOT NULL DEFAULT FALSE,  -- default activeStoreId after login
-    granted_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
-    granted_by_admin_id       UUID,  -- cross-schema reference to admin.admins.id, not enforced
-    granted_by_store_user_id  UUID REFERENCES store.store_users(id),
-    PRIMARY KEY (store_user_id, store_id),
-    CONSTRAINT chk_exactly_one_granter CHECK (
-        (granted_by_admin_id IS NOT NULL) <> (granted_by_store_user_id IS NOT NULL)
-    )
-);
+-- REMOVED 2026-10-06 (Steven): redundant — every row was derivable from
+-- chains.chain_admin_id / stores.store_admin_id. See store-onboarding-v1-design.md §6.
 
 CREATE TABLE store.store_user_activity_log (
     id             BIGSERIAL PRIMARY KEY,
@@ -248,7 +235,6 @@ CREATE TABLE store.store_user_activity_log (
     ))
 );
 
-CREATE INDEX idx_store_user_store_access_store ON store.store_user_store_access(store_id);
 CREATE INDEX idx_store_user_activity_log_store_user_id ON store.store_user_activity_log(store_user_id);
 CREATE INDEX idx_stores_chain_id ON store.stores(chain_id);
 ```
@@ -300,7 +286,7 @@ sequenceDiagram
     SM->>DB: INSERT INTO store.booking_settings (store_id)
     SM->>DB: UPDATE store.stores SET store_admin_id = <chain_admin's own id> WHERE id = <new store id>
     Note over SM,DB: same row as chain_admin_id, not a second account (§1, §2 - R2's reasoning)
-    SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, is_primary)<br/>VALUES (<chain_admin id>, <new store id>, TRUE)
+    Note over SM,DB: chain_admin's access to this store is derived (store-onboarding-v1-design.md §6), no row to insert
     SM->>SES: Send verification email: "Verify your email to activate {chainName}" + link carrying the token
     SM-->>U: 201 Created { chainId, storeId, message: "Check your email to verify and activate your store." }
 ```
@@ -337,8 +323,6 @@ BEGIN
   DELETE FROM store.store_photos
     WHERE store_id IN (SELECT id FROM store.stores WHERE chain_id = p_chain_id);
   DELETE FROM store.booking_settings
-    WHERE store_id IN (SELECT id FROM store.stores WHERE chain_id = p_chain_id);
-  DELETE FROM store.store_user_store_access
     WHERE store_id IN (SELECT id FROM store.stores WHERE chain_id = p_chain_id);
   DELETE FROM store.stores WHERE chain_id = p_chain_id;
   DELETE FROM store.billing_appointment_usage
@@ -418,8 +402,7 @@ sequenceDiagram
         SCOG-->>SM: 200 OK { sub }
         SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='store_admin', created_by_admin_id, status='active', email_verified_at=now()) RETURNING id
         SM->>DB: UPDATE store.stores SET store_admin_id = <new store_admin id> WHERE id = <store id>
-        SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, is_primary)<br/>VALUES (<store_admin id>, <store id>, TRUE)
-        SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, is_primary)<br/>VALUES (<chain_admin id>, <store id>, <TRUE for the first store, FALSE thereafter>)
+        Note over SM,DB: store_admin's and chain_admin's access to this store are both derived (store-onboarding-v1-design.md §6), no rows to insert
     end
 
     SM->>SQSQ: SendMessage { event_type:'ACCOUNT_CREATED', ... } (once per account created)
@@ -450,11 +433,11 @@ sequenceDiagram
         SCOG-->>SM: 200 OK { sub }
         SM->>DB: INSERT INTO store.store_users (cognito_sub, email, app_role='store_admin', created_by_store_user_id=CA.id, status='active') RETURNING id
         SM->>DB: UPDATE store.stores SET store_admin_id = <new store_admin id> WHERE id = <new store id>
-        SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, is_primary, granted_by_store_user_id)<br/>VALUES (<new store_admin id>, <new store id>, TRUE, CA.id)
+        Note over SM,DB: store_admin's access to this store is derived (store-onboarding-v1-design.md §6), no row to insert
     else storeAdminEmail omitted
         Note over SM,DB: store_admin_id stays NULL - a nullable UNIQUE column (§2, §5),<br/>meaning "no dedicated store lead yet, chain_admin runs it directly."<br/>Not a degraded state: chain_admin's AuthorizedStoreIds already covers<br/>this store fully, so nothing here depends on store_admin_id being set.
     end
-    SM->>DB: INSERT INTO store.store_user_store_access (store_user_id, store_id, is_primary, granted_by_store_user_id)<br/>VALUES (CA.id, <new store id>, FALSE, CA.id)
+    SM->>SM: refresh CA.session.AuthorizedStoreIds (re-run §6's derivation; the set must stay the derived query's live result, not an append)
     SM->>SQSQ: SendMessage { event_type:'STORE_ADDED' }
     SM-->>CA: 201 Created { storeId, storeAdminStoreUserId: <id or null> }
 ```
@@ -487,8 +470,8 @@ sequenceDiagram
     GW->>SM: (in-process)
     SM->>SCOG: RespondToAuthChallenge(NEW_PASSWORD_REQUIRED, newPassword, Session, SecretHash)
     SCOG-->>SM: { AccessToken, IdToken, RefreshToken }
-    SM->>DB: SELECT store_id FROM store.store_user_store_access<br/>WHERE store_user_id=... ORDER BY is_primary DESC LIMIT 1
-    SM->>REDIS: SET session:<hash(opaque_token)> (population:'store', storeUserId, appRole, activeStoreId, cognito tokens, TTL)
+    SM->>SM: resolve AuthorizedStoreIds (store-onboarding-v1-design.md §6, derived, ordered by created_at); activeStoreId = AuthorizedStoreIds[0]
+    SM->>REDIS: SET session:<hash(opaque_token)> (population:'store', storeUserId, appRole, activeStoreId, authorizedStoreIds, cognito tokens, TTL)
     SM->>SQSQ: SendMessage { event_type:'INVITE_ACCEPTED' }
     SM-->>N: 200 OK { sessionToken, profile }
 ```
@@ -543,7 +526,7 @@ sequenceDiagram
     U->>GW: POST /api/store/session/switch-store { storeId }
     GW->>SM: (in-process)
     SM->>REDIS: GET session:<hash(sessionToken)>
-    SM->>DB: SELECT 1 FROM store.store_user_store_access WHERE store_user_id=... AND store_id=<storeId>
+    SM: check storeId ∈ session.AuthorizedStoreIds (in-memory, resolved at login)
     alt access granted
         SM->>REDIS: SET session:<hash(sessionToken)> (activeStoreId = storeId, ...)
         SM->>SQSQ: SendMessage { event_type:'STORE_SWITCHED', event_detail:{storeId} }
@@ -696,13 +679,12 @@ VALUES
      'd1e2f3a4-0000-0000-0000-000000000004',
      'manager.yorkville@selahheadspa.com', 'Yorkville Manager', 'store_admin',
      'a2222222-2222-2222-2222-222222222222',
-     'active', '2026-09-20 10:00:00-04', NULL),
-
-    ('c2222222-2222-2222-2222-222222222222',
-     'd1e2f3a4-0000-0000-0000-000000000002',
-     'anna@selahheadspa.com', 'Anna', 'staff',
-     'a2222222-2222-2222-2222-222222222222',
-     'active', '2026-09-20 10:05:00-04', '2026-09-24 09:00:00-04');
+     'active', '2026-09-20 10:00:00-04', NULL);
+-- Anna's store_users row (app_role='staff') and its LOGIN_SUCCESS activity
+-- log entry are REMOVED 2026-10-06 (Steven, same batch as
+-- store_user_store_access): stale pre-Batch-4 test data - staff have no
+-- login in V1 (principle #1). Her store.staff roster row below is kept -
+-- that's a legitimate, chain-level fact independent of any login.
 
 INSERT INTO store.chains (id, name, chain_admin_id, allowed_countries, created_at)
 VALUES ('cc111111-1111-1111-1111-111111111111', 'Selah Head Spa',
@@ -724,25 +706,15 @@ WHERE id = '99999999-0000-0000-0000-000000000002';
 INSERT INTO store.staff (id, chain_id, name, phone)
 VALUES ('b1000000-0000-0000-0000-000000000001', 'cc111111-1111-1111-1111-111111111111', 'Anna', '416-555-0142');
 
-INSERT INTO store.store_user_store_access (store_user_id, store_id, staff_id, is_primary, granted_by_admin_id)
-VALUES
-    -- chain_admin: one row per store, King West is the default.
-    ('c0000000-0000-0000-0000-000000000000', '99999999-0000-0000-0000-000000000001', NULL, TRUE,  'a2222222-2222-2222-2222-222222222222'),
-    ('c0000000-0000-0000-0000-000000000000', '99999999-0000-0000-0000-000000000002', NULL, FALSE, 'a2222222-2222-2222-2222-222222222222'),
-    -- each store_admin: exactly one row, their own store.
-    ('c1111111-1111-1111-1111-111111111111', '99999999-0000-0000-0000-000000000001', NULL, TRUE, 'a2222222-2222-2222-2222-222222222222'),
-    ('c1111112-1111-1111-1111-111111111112', '99999999-0000-0000-0000-000000000002', NULL, TRUE, 'a2222222-2222-2222-2222-222222222222'),
-    -- Anna (staff) works both branches - same staff_id both times, now that
-    -- store.staff is person-level (not a different roster row per branch).
-    ('c2222222-2222-2222-2222-222222222222', '99999999-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', TRUE,  'a2222222-2222-2222-2222-222222222222'),
-    ('c2222222-2222-2222-2222-222222222222', '99999999-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001', FALSE, 'a2222222-2222-2222-2222-222222222222');
+-- Access is derived (store-onboarding-v1-design.md §6), not stored: no
+-- store_user_store_access rows to seed. chain_admin's authorized set is
+-- every store in the chain; each store_admin's is their own store
+-- (stores.store_admin_id, already set above).
 
 INSERT INTO store.store_user_activity_log (store_user_id, event_type, event_detail, ip_address, created_at)
 VALUES
     ('c0000000-0000-0000-0000-000000000000', 'ACCOUNT_CREATED', NULL, '203.0.113.10', '2026-09-20 10:00:00-04'),
-    ('c0000000-0000-0000-0000-000000000000', 'STORE_SWITCHED', '{"storeId":"99999999-0000-0000-0000-000000000002"}', '198.51.100.30', '2026-09-25 08:31:00-04'),
-    ('c2222222-2222-2222-2222-222222222222', 'ACCOUNT_CREATED', NULL, '203.0.113.10', '2026-09-20 10:05:00-04'),
-    ('c2222222-2222-2222-2222-222222222222', 'LOGIN_SUCCESS', NULL, '198.51.100.31', '2026-09-24 09:00:00-04');
+    ('c0000000-0000-0000-0000-000000000000', 'STORE_SWITCHED', '{"storeId":"99999999-0000-0000-0000-000000000002"}', '198.51.100.30', '2026-09-25 08:31:00-04');
 ```
 
 *The owner is `chain_admin`, a genuinely separate account from either store's `store_admin` — this is the current design, not a store_admin wearing two hats. Anna (staff) works both branches with the **same** `staff_id` both times (2026-09-29 fix, `store-onboarding-v1-design.md` §4) — her name/phone/chain membership live in one `store.staff` row; which branches she works lives entirely in her `staff_schedules` entries (2026-10-03, Batch 4), not in a duplicated `staff` row per branch and not in any per-store assignment table.*
