@@ -181,6 +181,11 @@ None of these block the AI. They get built only if the market test passes:
 - No action: phone number as identity anchor — V1 already normalizes E.164 and counts
   per phone; the AI front desk's caller-ID → customer lookup rides on this for free.
 
+- **[V2b] Downgrade reason capture** — NEW 2026-10-06 (Steven). When a chain moves
+  from paid back to free, ask why. V1: downgrade is human-handled ("V1 不提供自助降级",
+  2026-10-05) so the reason is captured in the manual flow; when self-service
+  downgrade lands, prompt in-flow. Churn reasons feed retention and win-back.
+
 ### V3 — the AI layer (the exit-line bet)
 
 V3 is the three exit-line criteria — AI 前台 + AI 填空位 + AI 召回 — built + deployed
