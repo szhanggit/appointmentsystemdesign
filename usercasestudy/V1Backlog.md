@@ -186,6 +186,17 @@ None of these block the AI. They get built only if the market test passes:
   2026-10-05) so the reason is captured in the manual flow; when self-service
   downgrade lands, prompt in-flow. Churn reasons feed retention and win-back.
 
+- **[V2b] Marketing SMS/email campaigns with audience segmentation** — NEW 2026-10-08
+  (Steven; from a call with byChronos). byChronos model: marketing SMS at US$100
+  minimum top-up = 4,000 messages (≈ US$0.025/SMS); sends go to segmented groups —
+  (1) lapsed customers (no visit in 3/6 months), (2) birthday month, (3) all.
+  Marketing emails are free but blast-only (no segmentation). Pricing reference for
+  Groway: byChronos ≈ US$0.025/msg vs raw Twilio Canada toll-free ≈ US$0.0129/segment —
+  ~2× markup is the market anchor for our own per-tier SMS allowance (open question
+  in the pricing doc). Overlap note: manual segmented campaigns are the V2b stepping
+  stone; V3 AI recall (quiet 60+ days win-back) is the automated version. Consent seam
+  already exists: V1 captures booking-time marketing/AI-outreach consent (2026-10-02).
+
 ### V3 — the AI layer (the exit-line bet)
 
 V3 is the three exit-line criteria — AI 前台 + AI 填空位 + AI 召回 — built + deployed
