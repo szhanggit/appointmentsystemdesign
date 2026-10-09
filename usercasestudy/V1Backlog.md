@@ -196,6 +196,11 @@ None of these block the AI. They get built only if the market test passes:
   in the pricing doc). Overlap note: manual segmented campaigns are the V2b stepping
   stone; V3 AI recall (quiet 60+ days win-back) is the automated version. Consent seam
   already exists: V1 captures booking-time marketing/AI-outreach consent (2026-10-02).
+  Product split (byChronos): marketing SMS is a *separate product* from notification
+  SMS (reminders/confirmations) — it requires contacting customer service for a manual
+  top-up before use. Groway should keep the same split: notification SMS rides the
+  subscription allowance; marketing SMS is a separate paid bucket (also cleaner for
+  CASL — marketing consent is separate from transactional consent).
 
 ### V3 — the AI layer (the exit-line bet)
 
