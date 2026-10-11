@@ -202,6 +202,21 @@ None of these block the AI. They get built only if the market test passes:
   subscription allowance; marketing SMS is a separate paid bucket (also cleaner for
   CASL — marketing consent is separate from transactional consent).
 
+- **[V2b] Online gift-card sales (Stripe, Canada-capable)** — NEW 2026-10-10
+  (Steven; from byChronos WeChat promo screenshots). byChronos launched online
+  eGift Card sales (Oct 2026): the merchant puts a purchase link on their own
+  website, the customer pays online, the merchant receives the order and manually
+  creates the e-gift card in-system to send to the customer. Differs from in-store
+  gift cards (in-person purchase + payment) — the new part is the online payment
+  channel. **Canada NOT supported: payment runs through Zelle (US bank accounts
+  only).** Groway angle: a Stripe-based equivalent is Canada-capable from day one —
+  the differentiator isn't "has gift cards" (byChronos already sells them in-store)
+  but "works in Canada." Design notes: payment webhook should auto-issue the card
+  (byChronos's version is semi-manual — merchant creates the card after the order
+  arrives); gift-card balances are chain liability, same accounting care as deposits
+  (chain's own Stripe account, not Groway's). Overlap note: "gift cards" already
+  listed under Store operations — this entry is the online-sale channel variant.
+
 ### V3 — the AI layer (the exit-line bet)
 
 V3 is the three exit-line criteria — AI 前台 + AI 填空位 + AI 召回 — built + deployed
@@ -230,3 +245,4 @@ data exists.
   prompt version, I/O summary, cost. Needed for debugging, cost control, and (for voice)
   potential compliance. V3 infra; V1/V2 just don't prohibit it.
 - **[V3] Thin revenue-per-staff report** — NEW 2026-10-04 (Steven). Sums completed-appointment service price snapshots per staff per period (revenue only — no commission-model rules, no pay-period logic). The full commission/earnings model (rates, pay periods) stays V2b under the staff self-service portal. All source data exists in V1 (`appointments` + item price snapshots); this is a small reporting build, no new capture needed. Rationale: pilot visibility into what each technician sold, without waiting for the full payroll feature.
+
